@@ -6,7 +6,6 @@
 	export let onEdit: (() => void) | null = null;
 	export let onDelete: (() => void) | null = null;
 	
-	// Определяем поля в зависимости от типа
 	$: title = type === 'news' 
 		? (language === 'ru' ? data.titleRu : data.titleKz)
 		: type === 'teacher'
@@ -18,7 +17,7 @@
 		: type === 'menu'
 		? `Меню на ${formatDate(data.date)}`
 		: data.name || 'Без названия';
-	
+
 	$: description = type === 'news'
 		? (language === 'ru' ? data.contentRu : data.contentKz)
 		: type === 'teacher'
@@ -30,11 +29,11 @@
 		: type === 'menu'
 		? `Завтрак: ${language === 'ru' ? data.dishesRu?.breakfast : data.dishesKz?.breakfast}\nОбед: ${language === 'ru' ? data.dishesRu?.lunch : data.dishesKz?.lunch}\nУжин: ${language === 'ru' ? data.dishesRu?.dinner : data.dishesKz?.dinner}`
 		: data.description || '';
-	
+
 	$: imageUrl = data.imageUrl || '';
 	$: date = data.createdAt || data.birthday || '';
 	$: icon = type === 'news' ? '📰' : type === 'teacher' ? '👨‍🏫' : type === 'honor-board' ? '🏆' : type === 'section' ? '🎯' : type === 'menu' ? '🍽️' : '📋';
-	
+
 	function formatDate(dateString: string) {
 		if (!dateString) return '';
 		const date = new Date(dateString);
@@ -44,7 +43,7 @@
 			day: 'numeric'
 		});
 	}
-	
+
 	function getAdditionalInfo() {
 		switch (type) {
 			case 'teacher':
@@ -80,16 +79,14 @@
 			</div>
 		{/if}
 	</div>
-	
+
 	<div class="card-content">
 		<h3 class="card-title">{title}</h3>
-		
+
 		{#if description}
-			<div class="card-description">
-				{description}
-			</div>
+			<div class="card-description">{description}</div>
 		{/if}
-		
+
 		{#if getAdditionalInfo().length > 0}
 			<div class="card-details">
 				{#each getAdditionalInfo() as info}
@@ -99,14 +96,14 @@
 				{/each}
 			</div>
 		{/if}
-		
+
 		{#if date && type !== 'teacher' && type !== 'section' && type !== 'menu'}
 			<div class="card-date">
 				📅 {formatDate(date)}
 			</div>
 		{/if}
 	</div>
-	
+
 	{#if showActions && (onEdit || onDelete)}
 		<div class="card-actions">
 			{#if onEdit}
@@ -127,27 +124,29 @@
 
 <style>
 	.card {
-		background: white;
+		background: #ffffff;
 		border-radius: 1rem;
 		overflow: hidden;
-		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-		transition: transform 0.2s, box-shadow 0.2s;
-		border: 1px solid #e5e7eb;
-		height: 100%;
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+		border: 1px solid #f3f4f6;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		display: flex;
 		flex-direction: column;
 	}
 
 	.card:hover {
-		transform: translateY(-4px);
-		box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+		transform: translateY(-6px);
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
 	}
 
 	.card-image {
-		width: 100%;
-		height: 200px;
-		overflow: hidden;
+		height: 180px;
+		background: #f9fafb;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		position: relative;
+		overflow: hidden;
 	}
 
 	.card-image img {
@@ -166,9 +165,9 @@
 	}
 
 	.placeholder-icon {
-		font-size: 3rem;
+		font-size: 3.5rem;
 		color: white;
-		opacity: 0.8;
+		opacity: 0.85;
 	}
 
 	.card-content {
@@ -179,32 +178,37 @@
 	}
 
 	.card-title {
-		font-size: 1.25rem;
-		font-weight: bold;
-		color: #1f2937;
-		margin: 0 0 1rem 0;
-		line-height: 1.3;
+		font-size: 1.3rem;
+		font-weight: 600;
+		color: #111827;
+		margin-bottom: 0.75rem;
+		line-height: 1.4;
 	}
 
 	.card-description {
-		color: #6b7280;
+		color: #4b5563;
+		font-size: 0.95rem;
 		line-height: 1.6;
-		margin: 0 0 1rem 0;
-		flex: 1;
+		margin-bottom: 1rem;
 		display: -webkit-box;
 		-webkit-line-clamp: 3;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+		white-space: pre-line;
 	}
 
 	.card-details {
 		margin-bottom: 1rem;
+		border-top: 1px solid #f3f4f6;
+		padding-top: 0.75rem;
 	}
 
 	.detail-item {
-		margin-bottom: 0.5rem;
+		display: flex;
+		justify-content: space-between;
 		font-size: 0.875rem;
 		color: #6b7280;
+		margin-bottom: 0.4rem;
 	}
 
 	.detail-item strong {
@@ -212,10 +216,10 @@
 	}
 
 	.card-date {
-		color: #9ca3af;
-		font-size: 0.875rem;
+		color: #6b7280;
+		font-size: 0.85rem;
 		margin-top: auto;
-		padding-top: 1rem;
+		padding-top: 0.5rem;
 		border-top: 1px solid #f3f4f6;
 	}
 
@@ -223,41 +227,41 @@
 		display: flex;
 		gap: 0.5rem;
 		padding: 1rem 1.5rem;
-		border-top: 1px solid #e5e7eb;
-		background-color: #f9fafb;
+		border-top: 1px solid #f3f4f6;
+		background-color: #fafafa;
 	}
 
 	.btn {
-		padding: 0.5rem 1rem;
-		border-radius: 0.5rem;
+		padding: 0.6rem 1.2rem;
+		border-radius: 0.75rem;
 		border: none;
 		cursor: pointer;
 		font-weight: 500;
-		transition: all 0.2s;
+		transition: background-color 0.2s ease;
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 0.5rem;
 		font-size: 0.875rem;
 		flex: 1;
-		justify-content: center;
 	}
 
 	.btn-edit {
-		background-color: #059669;
+		background-color: #10b981;
 		color: white;
 	}
 
 	.btn-edit:hover {
-		background-color: #047857;
+		background-color: #059669;
 	}
 
 	.btn-danger {
-		background-color: #dc2626;
+		background-color: #ef4444;
 		color: white;
 	}
 
 	.btn-danger:hover {
-		background-color: #b91c1c;
+		background-color: #dc2626;
 	}
 
 	.btn-icon {
@@ -268,9 +272,9 @@
 		.card-actions {
 			flex-direction: column;
 		}
-		
+
 		.card-description {
 			-webkit-line-clamp: 4;
 		}
 	}
-</style> 
+</style>
