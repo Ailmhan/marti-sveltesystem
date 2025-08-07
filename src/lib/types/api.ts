@@ -72,8 +72,12 @@ export interface News {
 export interface NewsApiResponse {
 	id: number;
 	schoolId: number;
-	title: string; // API возвращает только title, не titleRu/titleKz
-	content: string; // API возвращает только content, не contentRu/contentKz
+	title?: string; // API возвращает только title, не titleRu/titleKz
+	titleRu?: string;
+	titleKz?: string;
+	content?: string; // API возвращает только content, не contentRu/contentKz
+	contentRu?: string;
+	contentKz?: string;
 	imageUrl: string | null;
 	createdAt: string;
 }
@@ -92,7 +96,9 @@ export interface HonorBoardApiResponse {
 	id: number;
 	schoolId: number;
 	studentName: string;
-	description: string; // API returns only description, not descriptionRu/descriptionKz
+	description?: string; // API returns only description, not descriptionRu/descriptionKz
+	descriptionRu?: string;
+	descriptionKz?: string;
 	imageUrl: string | null;
 }
 
@@ -112,8 +118,12 @@ export interface Section {
 export interface SectionApiResponse {
 	id: number;
 	schoolId: number;
-	name: string; // API возвращает только name, не nameRu/nameKz
-	schedule: string; // API возвращает только schedule, не scheduleRu/scheduleKz
+	name?: string; // API возвращает только name, не nameRu/nameKz
+	nameRu?: string;
+	nameKz?: string;
+	schedule?: string; // API возвращает только schedule, не scheduleRu/scheduleKz
+	scheduleRu?: string;
+	scheduleKz?: string;
 	teacher: string;
 	imageUrl: string | null;
 }
@@ -140,7 +150,17 @@ export interface CanteenMenuApiResponse {
 	id: number;
 	schoolId: number;
 	date: string;
-	dishes: {
+	dishes?: {
+		breakfast: string;
+		lunch: string;
+		dinner: string;
+	};
+	dishesRu?: {
+		breakfast: string;
+		lunch: string;
+		dinner: string;
+	};
+	dishesKz?: {
 		breakfast: string;
 		lunch: string;
 		dinner: string;
@@ -155,7 +175,7 @@ export interface Schedule {
 	classId: number;
 	subjectRu: string;
 	subjectKz: string;
-	date: Date;
+	date: string; // API возвращает строку, не Date
 	startTime: string;
 	endTime: string;
 	roomRu: string;

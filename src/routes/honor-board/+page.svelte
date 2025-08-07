@@ -1,96 +1,124 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
-	import { schoolStore } from '$lib/stores/school';
+	import { authStore } from '$lib/stores/auth';
 	import type { HonorBoard } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import DataCard from '$lib/components/DataCard.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
-	import PageHeader from '$lib/components/PageHeader.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import ErrorContainer from '$lib/components/ErrorContainer.svelte';
-	import FormField from '$lib/components/FormField.svelte';
-	import DataCard from '$lib/components/DataCard.svelte';
 
 	let honorBoard: HonorBoard[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
-	let language: 'ru' | 'kz' = 'ru';
 	let showAddModal = false;
+	let modalError = '';
 	let modalLoading = false;
 
 	let newHonorBoard = {
 		studentName: '',
 		descriptionRu: '',
 		descriptionKz: '',
-		imageUrl: ''
+		imageUrl: undefined as string | undefined
 	};
 
-	onMount(async () => {
-		await loadHonorBoard();
+	onMount(() => {
+		loadHonorBoard();
 	});
 
 	async function loadHonorBoard() {
+		if (!$authStore.schoolId) return;
+		
 		try {
 			loading = true;
-			const school = $schoolStore;
-			if (school) {
-				honorBoard = await apiClient.getHonorBoard(school.id, language);
-			} else {
-				error = 'Информация о школе не загружена';
-				honorBoard = [];
-			}
+			error = '';
+			const honorBoardData = await apiClient.getHonorBoard($authStore.schoolId);
+			honorBoard = honorBoardData;
 		} catch (err) {
+			console.error('Error loading honor board:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки доски почета';
-			honorBoard = [];
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function toggleLanguage() {
-		language = language === 'ru' ? 'kz' : 'ru';
-		await loadHonorBoard();
-	}
-
 	async function addHonorBoard() {
+		if (!$authStore.schoolId) {
+			modalError = 'ID школы не найден';
+			return;
+		}
+
+		// Валидация
+		if (!newHonorBoard.studentName.trim() || !newHonorBoard.descriptionRu.trim() || !newHonorBoard.descriptionKz.trim()) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
 		try {
+			modalError = '';
 			modalLoading = true;
-			const school = $schoolStore;
-			if (school) {
-				await apiClient.createHonorBoard({
-					...newHonorBoard,
-					schoolId: school.id
-				});
-				await loadHonorBoard();
-				closeModal();
-			} else {
-				throw new Error('Информация о школе не загружена');
-			}
+			
+			await apiClient.createHonorBoard({
+				...newHonorBoard,
+				schoolId: $authStore.schoolId
+			});
+			
+			// Сбрасываем форму
+			newHonorBoard = {
+				studentName: '',
+				descriptionRu: '',
+				descriptionKz: '',
+				imageUrl: undefined
+			};
+			
+			// Закрываем модальное окно после успешного сохранения
+			showAddModal = false;
+			modalLoading = false;
+			
+			// Перезагружаем данные
+			await loadHonorBoard();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ошибка создания записи';
-		} finally {
+			console.error('Error creating honor board entry:', err);
+			modalError = err instanceof Error ? err.message : 'Ошибка создания записи';
 			modalLoading = false;
 		}
 	}
 
 	function openModal() {
 		showAddModal = true;
+		modalError = '';
 	}
 
 	function closeModal() {
 		showAddModal = false;
+		modalError = '';
+		modalLoading = false;
 		newHonorBoard = {
 			studentName: '',
 			descriptionRu: '',
 			descriptionKz: '',
-			imageUrl: ''
+			imageUrl: undefined
 		};
-		error = '';
 	}
 
 	function handleImageChange(event: CustomEvent) {
-		newHonorBoard.imageUrl = event.detail.value;
+		// ImageUpload уже обрабатывает загрузку, просто получаем URL
+		const url = event.detail.value;
+		if (url) {
+			newHonorBoard.imageUrl = url;
+			console.log('Image URL set:', url);
+		}
+	}
+
+	async function deleteHonorBoard(id: number) {
+		try {
+			await apiClient.deleteHonorBoard(id);
+			await loadHonorBoard();
+		} catch (err) {
+			console.error('Error deleting honor board entry:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления записи';
+		}
 	}
 </script>
 
@@ -98,25 +126,28 @@
 	<title>Доска почета - Школьная система</title>
 </svelte:head>
 
-<div class="page-container">
-	<PageHeader
-		title="Доска почета школы"
-		showLanguageToggle={true}
-		language={language}
-		onLanguageToggle={toggleLanguage}
-		actions={[
-			{
-				text: 'Добавить ученика',
-				onClick: openModal,
-				icon: '➕'
-			}
-		]}
-	/>
+<div class="honor-board-page">
+	<div class="page-header">
+		<h1>Доска почета школы</h1>
+		<div class="page-actions">
+			<button class="btn btn-primary add-btn" on:click={openModal}>
+				<span class="btn-icon">➕</span>
+				Добавить ученика
+			</button>
+		</div>
+	</div>
 
 	{#if loading}
-		<LoadingSpinner size="lg" text="Загрузка доски почета..." />
+		<div class="loading-container">
+			<div class="spinner"></div>
+			<p>Загрузка доски почета...</p>
+		</div>
 	{:else if error}
-		<ErrorContainer {error} />
+		<div class="error-container">
+			<h2>Ошибка</h2>
+			<p>{error}</p>
+			<button class="btn btn-primary" on:click={loadHonorBoard}>Попробовать снова</button>
+		</div>
 	{:else if honorBoard.length === 0}
 		<EmptyState
 			title="Доска почета пуста"
@@ -131,72 +162,235 @@
 				<DataCard
 					data={item}
 					type="honor-board"
-					{language}
-					showActions={false}
+					showActions={true}
+					onEdit={() => console.log('Edit honor board:', item.id)}
+					onDelete={() => deleteHonorBoard(item.id)}
 				/>
 			{/each}
 		</div>
 	{/if}
 </div>
 
+<!-- Модальное окно добавления записи -->
 <DataModal
 	bind:open={showAddModal}
 	title="Добавить ученика на доску почета"
 	loading={modalLoading}
-	on:submit={addHonorBoard}
 	on:close={closeModal}
+	on:submit={addHonorBoard}
 >
-	<FormField
-		label="Имя ученика"
-		id="student-name"
-		type="text"
-		bind:value={newHonorBoard.studentName}
-		placeholder="Введите имя ученика"
-		required={true}
-	/>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
+		{/if}
 
-	<FormField
-		label="Описание достижения (Русский)"
-		id="description-ru"
-		type="textarea"
-		bind:value={newHonorBoard.descriptionRu}
-		placeholder="Опишите достижение ученика на русском языке"
-		required={true}
-		rows={3}
-	/>
+		<div>
+			<label for="studentName" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя ученика *
+			</label>
+			<input
+				id="studentName"
+				type="text"
+				bind:value={newHonorBoard.studentName}
+				required
+				placeholder="Введите имя ученика"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
 
-	<FormField
-		label="Описание достижения (Казахский)"
-		id="description-kz"
-		type="textarea"
-		bind:value={newHonorBoard.descriptionKz}
-		placeholder="Опишите достижение ученика на казахском языке"
-		required={true}
-		rows={3}
-	/>
+		<div>
+			<label for="descriptionRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание достижения (Русский) *
+			</label>
+			<textarea
+				id="descriptionRu"
+				bind:value={newHonorBoard.descriptionRu}
+				required
+				rows={3}
+				placeholder="Опишите достижение ученика на русском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
 
-	<div class="form-group">
-		<label for="student-image">Фото ученика</label>
-		<ImageUpload
-			id="student-image"
-			bind:value={newHonorBoard.imageUrl}
-			folder="honor-board"
-			on:success={(event) => newHonorBoard.imageUrl = event.detail.value}
-			on:error={(event) => error = event.detail.message}
-		/>
+		<div>
+			<label for="descriptionKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание достижения (Казахский) *
+			</label>
+			<textarea
+				id="descriptionKz"
+				bind:value={newHonorBoard.descriptionKz}
+				required
+				rows={3}
+				placeholder="Опишите достижение ученика на казахском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
+
+		<div>
+			<label class="block text-sm font-medium mb-2 text-gray-700">
+				Фото ученика
+			</label>
+			<ImageUpload
+				bind:value={newHonorBoard.imageUrl}
+				folder="honor-board"
+				on:change={handleImageChange}
+			/>
+		</div>
 	</div>
 </DataModal>
 
 <style>
-	/* Специфичные стили для страницы доски почета */
-	.form-group {
-		margin-bottom: 1.5rem;
+	.honor-board-page {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
+		padding-top: calc(70px + 2rem);
 	}
 
-	.form-group label {
-		display: block;
+	.page-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		row-gap: 1rem;
+		margin-bottom: 2.5rem;
+		border-bottom: 1px solid #e5e7eb;
+		padding-bottom: 1.25rem;
+	}
+
+	.page-header h1 {
+		margin: 0;
+		font-size: 2rem;
+		font-weight: 700;
+		color: #1f2937;
+	}
+
+	.page-actions {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.btn {
+		border: none;
+		border-radius: 0.6rem;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.6rem 1.2rem;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.add-btn {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.add-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.btn-icon {
+		font-size: 1.2rem;
+		margin-right: 0.5rem;
+	}
+
+	.loading-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 40vh;
+		gap: 1rem;
+		color: #6b7280;
+		text-align: center;
+	}
+
+	.spinner {
+		border: 4px solid #e5e7eb;
+		border-top: 4px solid #6366f1;
+		border-radius: 50%;
+		width: 2.5rem;
+		height: 2.5rem;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
+	}
+
+	.error-container {
+		text-align: center;
+		padding: 2rem;
+		color: #b91c1c;
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 0.75rem;
+	}
+
+	.error-container h2 {
+		margin: 0 0 1rem 0;
+		color: #b91c1c;
+	}
+
+	.error-container p {
+		margin: 0 0 1.5rem 0;
+	}
+
+	.grid-container {
+		display: grid;
+		gap: 1.5rem;
+	}
+
+	.grid-3 {
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	}
+
+	.alert {
+		padding: 0.75rem 1rem;
+		border-radius: 6px;
+		margin-bottom: 1.5rem;
 		font-weight: 500;
-		color: #374151;
-		margin-bottom: 0.5rem;
+	}
+
+	.alert-error {
+		background-color: #fee2e2;
+		color: #b91c1c;
+		border: 1px solid #ef4444;
+	}
+
+	@media (max-width: 768px) {
+		.page-header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.page-actions {
+			width: 100%;
+			justify-content: space-between;
+		}
 	}
 </style> 

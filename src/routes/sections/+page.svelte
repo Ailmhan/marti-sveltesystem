@@ -1,17 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
+	import { authStore } from '$lib/stores/auth';
 	import type { Section } from '$lib/types/api';
-	import Modal from '$lib/components/Modal.svelte';
+	import DataModal from '$lib/components/DataModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	let sections: Section[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
-	let language: 'ru' | 'kz' = 'ru';
 	let showAddModal = false;
-	let addLoading = false;
-	let addError = '';
+	let modalError = '';
+	let modalLoading = false;
 
 	let newSection = {
 		nameRu: '',
@@ -19,29 +22,23 @@
 		scheduleRu: '',
 		scheduleKz: '',
 		teacher: '',
-		imageUrl: ''
+		imageUrl: undefined as string | undefined
 	};
 
-	onMount(async () => {
-		try {
-			const school = await apiClient.getMe();
-			sections = await apiClient.getSections(school.id, language);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ошибка загрузки секций';
-		} finally {
-			loading = false;
-		}
+	onMount(() => {
+		loadSections();
 	});
 
-	async function toggleLanguage() {
-		language = language === 'ru' ? 'kz' : 'ru';
-		loading = true;
-		error = '';
-
+	async function loadSections() {
+		if (!$authStore.schoolId) return;
+		
 		try {
-			const school = await apiClient.getMe();
-			sections = await apiClient.getSections(school.id, language);
+			loading = true;
+			error = '';
+			const sectionsData = await apiClient.getSections($authStore.schoolId);
+			sections = sectionsData;
 		} catch (err) {
+			console.error('Error loading sections:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки секций';
 		} finally {
 			loading = false;
@@ -49,44 +46,87 @@
 	}
 
 	async function addSection() {
-		addLoading = true;
-		addError = '';
+		if (!$authStore.schoolId) {
+			modalError = 'ID школы не найден';
+			return;
+		}
+
+		// Валидация
+		if (!newSection.nameRu.trim() || !newSection.nameKz.trim() || 
+			!newSection.scheduleRu.trim() || !newSection.scheduleKz.trim() ||
+			!newSection.teacher.trim()) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
 
 		try {
-			const school = await apiClient.getMe();
+			modalError = '';
+			modalLoading = true;
+			
 			await apiClient.createSection({
 				...newSection,
-				schoolId: school.id
+				schoolId: $authStore.schoolId
 			});
 			
-			// Обновляем список секций
-			sections = await apiClient.getSections(school.id, language);
-			
-			// Закрываем модальное окно и очищаем форму
-			showAddModal = false;
+			// Сбрасываем форму
 			newSection = {
 				nameRu: '',
 				nameKz: '',
 				scheduleRu: '',
 				scheduleKz: '',
 				teacher: '',
-				imageUrl: ''
+				imageUrl: undefined
 			};
+			
+			// Закрываем модальное окно
+			showAddModal = false;
+			modalLoading = false;
+			
+			// Перезагружаем секции
+			await loadSections();
 		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Ошибка создания секции';
-		} finally {
-			addLoading = false;
+			console.error('Error creating section:', err);
+			modalError = err instanceof Error ? err.message : 'Ошибка создания секции';
+			modalLoading = false;
 		}
 	}
 
-	function openAddModal() {
+	function openModal() {
 		showAddModal = true;
-		addError = '';
+		modalError = '';
 	}
 
-	function closeAddModal() {
+	function closeModal() {
 		showAddModal = false;
-		addError = '';
+		modalError = '';
+		modalLoading = false;
+		newSection = {
+			nameRu: '',
+			nameKz: '',
+			scheduleRu: '',
+			scheduleKz: '',
+			teacher: '',
+			imageUrl: undefined
+		};
+	}
+
+	function handleImageChange(event: CustomEvent) {
+		// ImageUpload уже обрабатывает загрузку, просто получаем URL
+		const url = event.detail.value;
+		if (url) {
+			newSection.imageUrl = url;
+			console.log('Image URL set:', url);
+		}
+	}
+
+	async function deleteSection(id: number) {
+		try {
+			await apiClient.deleteSection(id);
+			await loadSections();
+		} catch (err) {
+			console.error('Error deleting section:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления секции';
+		}
 	}
 </script>
 
@@ -96,12 +136,12 @@
 
 <div class="sections-page">
 	<div class="page-header">
-		<h1>Секции и кружки</h1>
+		<h1>Секции школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-secondary" on:click={toggleLanguage}>
-				{language === 'ru' ? 'KZ' : 'RU'}
+			<button class="btn btn-primary add-btn" on:click={openModal}>
+				<span class="btn-icon">➕</span>
+				Добавить секцию
 			</button>
-			<button class="btn btn-primary" on:click={openAddModal}>Добавить секцию</button>
 		</div>
 	</div>
 
@@ -114,6 +154,7 @@
 		<div class="error-container">
 			<h2>Ошибка</h2>
 			<p>{error}</p>
+			<button class="btn btn-primary" on:click={loadSections}>Попробовать снова</button>
 		</div>
 	{:else if sections.length > 0}
 		<div class="grid-container grid-3">
@@ -121,104 +162,127 @@
 				<DataCard
 					data={section}
 					type="section"
-					{language}
 					showActions={true}
 					onEdit={() => console.log('Edit section:', section.id)}
-					onDelete={() => console.log('Delete section:', section.id)}
+					onDelete={() => deleteSection(section.id)}
 				/>
 			{/each}
 		</div>
 	{:else}
-		<div class="empty-state">
-			<h2>Секций пока нет</h2>
-			<p>Добавьте первую секцию в систему!</p>
-			<button class="btn btn-primary" on:click={openAddModal}>Добавить секцию</button>
-		</div>
+		<EmptyState
+			title="Секций пока нет"
+			description="Добавьте первую секцию в систему!"
+			icon="🎨"
+			buttonText="Добавить секцию"
+			onAction={openModal}
+		/>
 	{/if}
 </div>
 
 <!-- Модальное окно добавления секции -->
-<Modal isOpen={showAddModal} title="Добавить секцию" on:close={closeAddModal}>
-	<form on:submit|preventDefault={addSection}>
-		{#if addError}
-			<div class="alert alert-error">{addError}</div>
+<DataModal
+	bind:open={showAddModal}
+	title="Добавить секцию"
+	loading={modalLoading}
+	on:close={closeModal}
+	on:submit={addSection}
+>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
 		{/if}
 
-		<div class="form-group">
-			<label for="nameRu">Название (русский) *</label>
-			<input 
-				type="text" 
-				id="nameRu" 
-				bind:value={newSection.nameRu} 
-				required 
+		<div>
+			<label for="nameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (русский) *
+			</label>
+			<input
+				id="nameRu"
+				type="text"
+				bind:value={newSection.nameRu}
+				required
 				placeholder="Введите название секции на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="nameKz">Название (казахский) *</label>
-			<input 
-				type="text" 
-				id="nameKz" 
-				bind:value={newSection.nameKz} 
-				required 
+		<div>
+			<label for="nameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (казахский) *
+			</label>
+			<input
+				id="nameKz"
+				type="text"
+				bind:value={newSection.nameKz}
+				required
 				placeholder="Введите название секции на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="scheduleRu">Расписание (русский) *</label>
-			<input 
-				type="text" 
-				id="scheduleRu" 
-				bind:value={newSection.scheduleRu} 
-				required 
+		<div>
+			<label for="scheduleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (русский) *
+			</label>
+			<input
+				id="scheduleRu"
+				type="text"
+				bind:value={newSection.scheduleRu}
+				required
 				placeholder="Например: Понедельник, Среда 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="scheduleKz">Расписание (казахский) *</label>
-			<input 
-				type="text" 
-				id="scheduleKz" 
-				bind:value={newSection.scheduleKz} 
-				required 
+		<div>
+			<label for="scheduleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (казахский) *
+			</label>
+			<input
+				id="scheduleKz"
+				type="text"
+				bind:value={newSection.scheduleKz}
+				required
 				placeholder="Например: Дүйсенбі, Сәрсенбі 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="teacher">Руководитель *</label>
-			<input 
-				type="text" 
-				id="teacher" 
-				bind:value={newSection.teacher} 
-				required 
+		<div>
+			<label for="teacher" class="block text-sm font-medium mb-2 text-gray-700">
+				Руководитель *
+			</label>
+			<input
+				id="teacher"
+				type="text"
+				bind:value={newSection.teacher}
+				required
 				placeholder="ФИО руководителя секции"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="imageUrl">URL изображения</label>
-			<input 
-				type="url" 
-				id="imageUrl" 
-				bind:value={newSection.imageUrl} 
-				placeholder="https://example.com/section.jpg"
+		<div>
+			<label for="section-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="section-image-upload"
+				bind:value={newSection.imageUrl}
+				folder="sections"
+				on:change={handleImageChange}
+				on:error={(event) => {
+					modalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					modalError = '';
+				}}
 			/>
 		</div>
-
-		<div class="form-actions">
-			<button type="button" class="btn btn-secondary" on:click={closeAddModal}>
-				Отмена
-			</button>
-			<button type="submit" class="btn btn-primary" disabled={addLoading}>
-				{addLoading ? 'Добавление...' : 'Добавить секцию'}
-			</button>
-		</div>
-	</form>
-</Modal>
+	</div>
+</DataModal>
 
 <style>
 	.sections-page {
@@ -232,20 +296,64 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 2rem;
-		padding-bottom: 1rem;
-		border-bottom: 2px solid #eee;
+		flex-wrap: wrap;
+		row-gap: 1rem;
+		margin-bottom: 2.5rem;
+		border-bottom: 1px solid #e5e7eb;
+		padding-bottom: 1.25rem;
 	}
 
 	.page-header h1 {
 		margin: 0;
-		color: #333;
 		font-size: 2rem;
+		font-weight: 700;
+		color: #1f2937;
 	}
 
 	.page-actions {
 		display: flex;
-		gap: 0.5rem;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.btn {
+		border: none;
+		border-radius: 0.6rem;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.6rem 1.2rem;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.add-btn {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.add-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.btn-icon {
+		font-size: 1.2rem;
+		margin-right: 0.5rem;
 	}
 
 	.loading-container {
@@ -253,133 +361,55 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		min-height: 50vh;
+		min-height: 40vh;
 		gap: 1rem;
+		color: #6b7280;
+		text-align: center;
+	}
+
+	.spinner {
+		border: 4px solid #e5e7eb;
+		border-top: 4px solid #6366f1;
+		border-radius: 50%;
+		width: 2.5rem;
+		height: 2.5rem;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	.error-container {
 		text-align: center;
 		padding: 2rem;
+		color: #b91c1c;
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 0.75rem;
 	}
 
-	.section-card {
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-	}
-
-	.section-image {
-		width: 100%;
-		height: 200px;
-		overflow: hidden;
-		border-radius: 8px 8px 0 0;
-		margin: -1.5rem -1.5rem 1rem -1.5rem;
-	}
-
-	.section-image img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	.section-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.section-name {
+	.error-container h2 {
 		margin: 0 0 1rem 0;
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: #333;
+		color: #b91c1c;
 	}
 
-	.section-details {
-		flex: 1;
+	.error-container p {
+		margin: 0 0 1.5rem 0;
 	}
 
-	.detail-item {
-		margin-bottom: 0.5rem;
-		font-size: 0.875rem;
+	.grid-container {
+		display: grid;
+		gap: 1.5rem;
 	}
 
-	.detail-item strong {
-		color: #333;
-	}
-
-	.section-actions {
-		display: flex;
-		gap: 0.5rem;
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid #eee;
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: 4rem 2rem;
-	}
-
-	.empty-state h2 {
-		margin: 0 0 1rem 0;
-		color: #333;
-	}
-
-	.empty-state p {
-		margin: 0 0 2rem 0;
-		color: #666;
-	}
-
-	@media (max-width: 768px) {
-		.page-header {
-			flex-direction: column;
-			gap: 1rem;
-			align-items: stretch;
-		}
-
-		.page-actions {
-			justify-content: center;
-		}
-
-		.section-actions {
-			flex-direction: column;
-		}
-	}
-
-	/* Стили для модального окна */
-	.form-group {
-		margin-bottom: 1.5rem;
-	}
-
-	.form-group label {
-		display: block;
-		margin-bottom: 0.5rem;
-		font-weight: 500;
-		color: #555;
-	}
-
-	.form-group input,
-	.form-group textarea {
-		width: 100%;
-		padding: 0.75rem;
-		border: 2px solid #e1e5e9;
-		border-radius: 8px;
-		font-size: 1rem;
-		transition: border-color 0.2s;
-	}
-
-	.form-group input:focus,
-	.form-group textarea:focus {
-		outline: none;
-		border-color: #007bff;
-	}
-
-	.form-actions {
-		display: flex;
-		gap: 1rem;
-		justify-content: flex-end;
-		margin-top: 2rem;
+	.grid-3 {
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 	}
 
 	.alert {
@@ -390,8 +420,20 @@
 	}
 
 	.alert-error {
-		background-color: #f8d7da;
-		color: #721c24;
-		border: 1px solid #f5c6cb;
+		background-color: #fee2e2;
+		color: #b91c1c;
+		border: 1px solid #ef4444;
+	}
+
+	@media (max-width: 768px) {
+		.page-header {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.page-actions {
+			width: 100%;
+			justify-content: space-between;
+		}
 	}
 </style> 

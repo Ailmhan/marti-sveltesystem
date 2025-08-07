@@ -1,4 +1,3 @@
-import { authStore } from '$lib/stores/auth';
 import { get } from 'svelte/store';
 import { API_BASE_URL } from '$lib/constants';
 import type {
@@ -18,17 +17,10 @@ class ApiClient {
 			...options.headers as Record<string, string>,
 		};
 
-		// Get token from store or localStorage
-		const authState = get(authStore);
-		let token = authState.token;
-
-		// If token is not in store, try to get from localStorage
-		if (!token && typeof window !== 'undefined') {
+		// Get token from localStorage
+		let token = null;
+		if (typeof window !== 'undefined') {
 			token = localStorage.getItem('authToken');
-			if (token) {
-				// Update store
-				authStore.login(token);
-			}
 		}
 
 		if (token) {
@@ -41,9 +33,11 @@ class ApiClient {
 		});
 
 		if (!response.ok) {
-			// If 401, logout
+			// If 401, clear token
 			if (response.status === 401) {
-				authStore.logout();
+				if (typeof window !== 'undefined') {
+					localStorage.removeItem('authToken');
+				}
 				throw new Error('Unauthorized - please login again');
 			}
 
@@ -64,12 +58,11 @@ class ApiClient {
 			method: 'POST',
 			body: JSON.stringify({ email, password } as LoginRequest),
 		});
-		authStore.login(response.token);
 		return response;
 	}
 
-	async getMe(): Promise<School> {
-		return this.request<School>('/auth/me');
+	async getMe(): Promise<{ id: number }> {
+		return this.request<{ id: number }>('/auth/me');
 	}
 
 	// Школы
@@ -114,16 +107,33 @@ class ApiClient {
 			const apiResponse = await this.request<NewsApiResponse[]>(endpoint);
 			
 			// Преобразуем API ответ в наш формат
-			return apiResponse.map(item => ({
-				id: item.id,
-				schoolId: item.schoolId,
-				titleRu: item.title,
-				titleKz: item.title,
-				contentRu: item.content,
-				contentKz: item.content,
-				imageUrl: item.imageUrl || undefined,
-				createdAt: item.createdAt
-			}));
+			return apiResponse.map(item => {
+				// Проверяем, есть ли отдельные поля для языков
+				if ('titleRu' in item && 'titleKz' in item) {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						titleRu: item.titleRu,
+						titleKz: item.titleKz,
+						contentRu: item.contentRu,
+						contentKz: item.contentKz,
+						imageUrl: item.imageUrl || undefined,
+						createdAt: item.createdAt
+					};
+				} else {
+					// Если API возвращает только один язык
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						titleRu: item.title,
+						titleKz: item.title,
+						contentRu: item.content,
+						contentKz: item.content,
+						imageUrl: item.imageUrl || undefined,
+						createdAt: item.createdAt
+					};
+				}
+			});
 		} catch (error) {
 			console.error('Error fetching news:', error);
 			throw error;
@@ -219,16 +229,31 @@ class ApiClient {
 			const apiResponse = await this.request<SectionApiResponse[]>(endpoint);
 			
 			// Преобразуем API ответ в наш формат
-			return apiResponse.map(item => ({
-				id: item.id,
-				schoolId: item.schoolId,
-				nameRu: item.name,
-				nameKz: item.name,
-				scheduleRu: item.schedule,
-				scheduleKz: item.schedule,
-				teacher: item.teacher,
-				imageUrl: item.imageUrl || undefined
-			}));
+			return apiResponse.map(item => {
+				if ('nameRu' in item && 'nameKz' in item) {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						nameRu: item.nameRu,
+						nameKz: item.nameKz,
+						scheduleRu: item.scheduleRu,
+						scheduleKz: item.scheduleKz,
+						teacher: item.teacher,
+						imageUrl: item.imageUrl || undefined
+					};
+				} else {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						nameRu: item.name,
+						nameKz: item.name,
+						scheduleRu: item.schedule,
+						scheduleKz: item.schedule,
+						teacher: item.teacher,
+						imageUrl: item.imageUrl || undefined
+					};
+				}
+			});
 		} catch (error) {
 			console.error('Error fetching sections:', error);
 			throw error;
@@ -272,14 +297,27 @@ class ApiClient {
 			const apiResponse = await this.request<CanteenMenuApiResponse[]>(endpoint);
 			
 			// Преобразуем API ответ в наш формат
-			return apiResponse.map(item => ({
-				id: item.id,
-				schoolId: item.schoolId,
-				date: item.date,
-				dishesRu: item.dishes,
-				dishesKz: item.dishes,
-				imageUrl: item.imageUrl || undefined
-			}));
+			return apiResponse.map(item => {
+				if ('dishesRu' in item && 'dishesKz' in item) {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						date: item.date,
+						dishesRu: item.dishesRu,
+						dishesKz: item.dishesKz,
+						imageUrl: item.imageUrl || undefined
+					};
+				} else {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						date: item.date,
+						dishesRu: item.dishes,
+						dishesKz: item.dishes,
+						imageUrl: item.imageUrl || undefined
+					};
+				}
+			});
 		} catch (error) {
 			console.error('Error fetching canteen menu:', error);
 			throw error;
@@ -312,12 +350,73 @@ class ApiClient {
 
 	// Классы
 	async getClasses(schoolId?: number): Promise<Class[]> {
-		return this.request<Class[]>(`/classes${schoolId ? `/school/${schoolId}` : ''}`);
+		if (!schoolId) {
+			throw new Error('School ID is required');
+		}
+		return this.request<Class[]>(`/classes/school/${schoolId}`);
+	}
+
+	async getClass(id: number): Promise<Class> {
+		return this.request<Class>(`/classes/${id}`);
+	}
+
+	async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
+		return this.request<Class>('/classes', {
+			method: 'POST',
+			body: JSON.stringify(classData),
+		});
+	}
+
+	async updateClass(id: number, classData: Partial<Omit<Class, 'id'>>): Promise<Class> {
+		return this.request<Class>(`/classes/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify(classData),
+		});
+	}
+
+	async deleteClass(id: number): Promise<void> {
+		return this.request<void>(`/classes/${id}`, {
+			method: 'DELETE',
+		});
 	}
 
 	// Расписание
-	async getSchedule(schoolId?: number, teacherId?: number): Promise<Schedule[]> {
-		return this.request<Schedule[]>(`/schedule${schoolId ? `/school/${schoolId}` : ''}${teacherId ? `/teacher/${teacherId}` : ''}`);
+	async getSchedule(schoolId?: number, teacherId?: number, classId?: number): Promise<Schedule[]> {
+		let endpoint = '/schedule';
+		if (schoolId) {
+			endpoint += `/school/${schoolId}`;
+		}
+		if (teacherId) {
+			endpoint += `/teacher/${teacherId}`;
+		}
+		if (classId) {
+			endpoint += `/class/${classId}`;
+		}
+		return this.request<Schedule[]>(endpoint);
+	}
+
+	async getScheduleItem(id: number): Promise<Schedule> {
+		return this.request<Schedule>(`/schedule/${id}`);
+	}
+
+	async createSchedule(schedule: Omit<Schedule, 'id'>): Promise<Schedule> {
+		return this.request<Schedule>('/schedule', {
+			method: 'POST',
+			body: JSON.stringify(schedule),
+		});
+	}
+
+	async updateSchedule(id: number, schedule: Partial<Omit<Schedule, 'id'>>): Promise<Schedule> {
+		return this.request<Schedule>(`/schedule/${id}`, {
+			method: 'PATCH',
+			body: JSON.stringify(schedule),
+		});
+	}
+
+	async deleteSchedule(id: number): Promise<void> {
+		return this.request<void>(`/schedule/${id}`, {
+			method: 'DELETE',
+		});
 	}
 
 	// Доска почета
@@ -333,18 +432,35 @@ class ApiClient {
 			const apiResponse = await this.request<HonorBoardApiResponse[]>(endpoint);
 			
 			// Преобразуем API ответ в наш формат
-			return apiResponse.map(item => ({
-				id: item.id,
-				schoolId: item.schoolId,
-				studentName: item.studentName,
-				descriptionRu: item.description,
-				descriptionKz: item.description,
-				imageUrl: item.imageUrl || undefined
-			}));
+			return apiResponse.map(item => {
+				if ('descriptionRu' in item && 'descriptionKz' in item) {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						studentName: item.studentName,
+						descriptionRu: item.descriptionRu,
+						descriptionKz: item.descriptionKz,
+						imageUrl: item.imageUrl || undefined
+					};
+				} else {
+					return {
+						id: item.id,
+						schoolId: item.schoolId,
+						studentName: item.studentName,
+						descriptionRu: item.description,
+						descriptionKz: item.description,
+						imageUrl: item.imageUrl || undefined
+					};
+				}
+			});
 		} catch (error) {
 			console.error('Error fetching honor board:', error);
 			throw error;
 		}
+	}
+
+	async getHonorBoardItem(id: number): Promise<HonorBoard> {
+		return this.request<HonorBoard>(`/honor-board/${id}`);
 	}
 
 	async createHonorBoard(honorBoard: Omit<HonorBoard, 'id'>): Promise<HonorBoard> {

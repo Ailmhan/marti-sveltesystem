@@ -1,34 +1,30 @@
 <script lang="ts">
 	export let data: any;
-	export let type: 'news' | 'teacher' | 'honor-board' | 'section' | 'menu' = 'news';
+	export let type: string;
 	export let language: 'ru' | 'kz' = 'ru';
-	export let showActions = true;
-	export let onEdit: (() => void) | null = null;
-	export let onDelete: (() => void) | null = null;
-	
+	export let showActions = false;
+	export let onEdit = () => {};
+	export let onDelete = () => {};
+
 	$: title = type === 'news' 
 		? (language === 'ru' ? data.titleRu : data.titleKz)
-		: type === 'teacher'
+		: type === 'teacher' 
 		? (language === 'ru' ? data.nameRu : data.nameKz)
 		: type === 'honor-board'
-		? data.studentName
-		: type === 'section'
 		? (language === 'ru' ? data.nameRu : data.nameKz)
-		: type === 'menu'
-		? `Меню на ${formatDate(data.date)}`
-		: data.name || 'Без названия';
+		: data.name || data.title;
 
-	$: description = type === 'news'
+	$: content = type === 'news' 
 		? (language === 'ru' ? data.contentRu : data.contentKz)
-		: type === 'teacher'
+		: type === 'teacher' 
 		? (language === 'ru' ? data.subjectRu : data.subjectKz)
 		: type === 'honor-board'
 		? (language === 'ru' ? data.descriptionRu : data.descriptionKz)
 		: type === 'section'
 		? (language === 'ru' ? data.scheduleRu : data.scheduleKz)
-		: type === 'menu'
+		: type === 'canteen'
 		? `Завтрак: ${language === 'ru' ? data.dishesRu?.breakfast : data.dishesKz?.breakfast}\nОбед: ${language === 'ru' ? data.dishesRu?.lunch : data.dishesKz?.lunch}\nУжин: ${language === 'ru' ? data.dishesRu?.dinner : data.dishesKz?.dinner}`
-		: data.description || '';
+		: data.content || data.description;
 
 	$: imageUrl = data.imageUrl || '';
 	$: date = data.createdAt || data.birthday || '';
@@ -83,8 +79,8 @@
 	<div class="card-content">
 		<h3 class="card-title">{title}</h3>
 
-		{#if description}
-			<div class="card-description">{description}</div>
+		{#if content}
+			<div class="card-description">{content}</div>
 		{/if}
 
 		{#if getAdditionalInfo().length > 0}
@@ -193,6 +189,7 @@
 		display: -webkit-box;
 		-webkit-line-clamp: 3;
 		-webkit-box-orient: vertical;
+		line-clamp: 3;
 		overflow: hidden;
 		white-space: pre-line;
 	}

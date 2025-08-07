@@ -1,20 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
-	import { schoolStore } from '$lib/stores/school';
+	import { authStore } from '$lib/stores/auth';
 	import type { Teacher } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
-	import EmptyState from '$lib/components/EmptyState.svelte';
-	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let teachers: Teacher[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
-	let language: 'ru' | 'kz' = 'ru';
 	let showAddModal = false;
-	let addLoading = false;
-	let addError = '';
+	let modalError = '';
+	let modalLoading = false;
 
 	let newTeacher = {
 		nameRu: '',
@@ -24,76 +24,115 @@
 		email: '',
 		phone: '',
 		birthday: '',
-		image: ''
+		imageUrl: undefined as string | undefined
 	};
 
-	onMount(async () => {
+	onMount(() => {
+		loadTeachers();
+	});
+
+	async function loadTeachers() {
+		if (!$authStore.schoolId) return;
+		
 		try {
-			const school = $schoolStore;
-			if (school) {
-				teachers = await apiClient.getTeachers(school.id);
-			} else {
-				error = 'Информация о школе не загружена';
-				teachers = [];
-			}
+			loading = true;
+			error = '';
+			const teachersData = await apiClient.getTeachers($authStore.schoolId);
+			teachers = teachersData;
 		} catch (err) {
+			console.error('Error loading teachers:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки учителей';
-			teachers = [];
 		} finally {
 			loading = false;
 		}
-	});
-
-	async function toggleLanguage() {
-		language = language === 'ru' ? 'kz' : 'ru';
 	}
 
 	async function addTeacher() {
-		addLoading = true;
-		addError = '';
+		if (!$authStore.schoolId) {
+			modalError = 'ID школы не найден';
+			return;
+		}
+
+		// Валидация
+		if (!newTeacher.nameRu.trim() || !newTeacher.nameKz.trim() || 
+			!newTeacher.subjectRu.trim() || !newTeacher.subjectKz.trim() ||
+			!newTeacher.email.trim() || !newTeacher.phone.trim() || !newTeacher.birthday) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
 
 		try {
-			const school = $schoolStore;
-			if (school) {
-				await apiClient.createTeacher({
-					...newTeacher,
-					schoolId: school.id,
-					birthday: newTeacher.birthday
-				});
-				
-				// Обновляем список учителей
-				teachers = await apiClient.getTeachers(school.id);
-				
-				// Закрываем модальное окно и очищаем форму
-				showAddModal = false;
-				newTeacher = {
-					nameRu: '',
-					nameKz: '',
-					subjectRu: '',
-					subjectKz: '',
-					email: '',
-					phone: '',
-					birthday: '',
-					image: ''
-				};
-			} else {
-				throw new Error('Информация о школе не загружена');
-			}
+			modalError = '';
+			modalLoading = true;
+			
+			await apiClient.createTeacher({
+				...newTeacher,
+				schoolId: $authStore.schoolId
+			});
+			
+			// Сбрасываем форму
+			newTeacher = {
+				nameRu: '',
+				nameKz: '',
+				subjectRu: '',
+				subjectKz: '',
+				email: '',
+				phone: '',
+				birthday: '',
+				imageUrl: undefined
+			};
+			
+			// Закрываем модальное окно после успешного сохранения
+			showAddModal = false;
+			modalLoading = false;
+			
+			// Перезагружаем учителей
+			await loadTeachers();
 		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Ошибка создания учителя';
-		} finally {
-			addLoading = false;
+			console.error('Error creating teacher:', err);
+			modalError = err instanceof Error ? err.message : 'Ошибка создания учителя';
+			modalLoading = false;
 		}
 	}
 
 	function openAddModal() {
 		showAddModal = true;
-		addError = '';
+		modalError = '';
 	}
 
 	function closeAddModal() {
 		showAddModal = false;
-		addError = '';
+		modalError = '';
+		modalLoading = false;
+		newTeacher = {
+			nameRu: '',
+			nameKz: '',
+			subjectRu: '',
+			subjectKz: '',
+			email: '',
+			phone: '',
+			birthday: '',
+			imageUrl: undefined
+		};
+	}
+
+	async function deleteTeacher(id: number) {
+		try {
+			await apiClient.deleteTeacher(id);
+			await loadTeachers();
+		} catch (err) {
+			console.error('Error deleting teacher:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления учителя';
+		}
+	}
+
+	function handleImageChange(event: CustomEvent) {
+		// ImageUpload уже обрабатывает загрузку, просто получаем URL
+		const url = event.detail.value;
+		if (url) {
+			newTeacher.imageUrl = url;
+			console.log('Image URL set:', url);
+		}
 	}
 </script>
 
@@ -105,9 +144,6 @@
 	<div class="page-header">
 		<h1>Учителя школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-secondary" on:click={toggleLanguage}>
-				{language === 'ru' ? 'KZ' : 'RU'}
-			</button>
 			<button class="btn btn-primary add-btn" on:click={openAddModal}>
 				<span class="btn-icon">➕</span>
 				Добавить учителя
@@ -124,6 +160,7 @@
 		<div class="error-container">
 			<h2>Ошибка</h2>
 			<p>{error}</p>
+			<button class="btn btn-primary" on:click={loadTeachers}>Попробовать снова</button>
 		</div>
 	{:else if teachers.length > 0}
 		<div class="grid-container grid-4">
@@ -131,10 +168,9 @@
 				<DataCard
 					data={teacher}
 					type="teacher"
-					{language}
 					showActions={true}
 					onEdit={() => console.log('Edit teacher:', teacher.id)}
-					onDelete={() => console.log('Delete teacher:', teacher.id)}
+					onDelete={() => deleteTeacher(teacher.id)}
 				/>
 			{/each}
 		</div>
@@ -153,13 +189,13 @@
 <DataModal
 	bind:open={showAddModal}
 	title="Добавить учителя"
-	loading={addLoading}
+	loading={modalLoading}
 	on:close={closeAddModal}
 	on:submit={addTeacher}
 >
 	<div class="space-y-4">
-		{#if addError}
-			<div class="alert alert-error">{addError}</div>
+		{#if modalError}
+			<div class="alert alert-error">{modalError}</div>
 		{/if}
 
 		<div>
@@ -265,19 +301,21 @@
 			</label>
 			<ImageUpload
 				id="teacher-image-upload"
-				bind:value={newTeacher.image}
+				bind:value={newTeacher.imageUrl}
 				folder="teachers"
+				on:change={handleImageChange}
 				on:error={(event) => {
-					addError = event.detail.message;
+					modalError = event.detail.message;
 				}}
 				on:success={(event) => {
-					addError = '';
+					modalError = '';
 				}}
 			/>
 		</div>
 	</div>
 </DataModal>
 
+<style>
 .teachers-page {
 	max-width: 1200px;
 	margin: 0 auto;
@@ -322,25 +360,26 @@
 	padding: 0.6rem 1.2rem;
 }
 
-.btn-secondary {
-	background-color: #e5e7eb;
-	color: #374151;
+.btn-primary {
+	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+	color: white;
+	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.btn-secondary:hover {
-	background-color: #d1d5db;
+.btn-primary:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .add-btn {
-	background-color: #3b82f6;
+	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 	color: white;
-	box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .add-btn:hover {
-	background-color: #2563eb;
-	transform: translateY(-1px);
-	box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .btn-icon {
@@ -361,7 +400,7 @@
 
 .spinner {
 	border: 4px solid #e5e7eb;
-	border-top: 4px solid #3b82f6;
+	border-top: 4px solid #6366f1;
 	border-radius: 50%;
 	width: 2.5rem;
 	height: 2.5rem;
@@ -384,6 +423,15 @@
 	background: #fef2f2;
 	border: 1px solid #fecaca;
 	border-radius: 0.75rem;
+}
+
+.error-container h2 {
+	margin: 0 0 1rem 0;
+	color: #b91c1c;
+}
+
+.error-container p {
+	margin: 0 0 1.5rem 0;
 }
 
 .grid-container {
@@ -416,3 +464,4 @@
 		justify-content: space-between;
 	}
 }
+</style>

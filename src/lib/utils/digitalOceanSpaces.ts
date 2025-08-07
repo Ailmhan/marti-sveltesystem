@@ -1,24 +1,12 @@
-interface UploadResult {
-	success: boolean;
-	url?: string;
-	error?: string;
-}
+import { v4 as uuidv4 } from 'uuid';
 
-export async function uploadToDigitalOceanSpaces(
-	file: File,
-	folder: string = 'uploads'
-): Promise<UploadResult> {
+export async function uploadToDigitalOceanSpaces(file: File, folder = 'uploads') {
 	try {
-		// Создаем уникальное имя файла
-		const timestamp = Date.now();
-		const randomString = Math.random().toString(36).substring(2, 15);
-		const fileExtension = file.name.split('.').pop();
-		const fileName = `${folder}/${timestamp}_${randomString}.${fileExtension}`;
+		console.log('Uploading file:', file.name, 'to folder:', folder);
 
 		// Создаем FormData для отправки на сервер
 		const formData = new FormData();
 		formData.append('file', file);
-		formData.append('fileName', fileName);
 		formData.append('folder', folder);
 
 		// Отправляем файл на наш API endpoint
@@ -28,10 +16,13 @@ export async function uploadToDigitalOceanSpaces(
 		});
 
 		if (!response.ok) {
-			throw new Error(`Upload failed: ${response.statusText}`);
+			const errorText = await response.text();
+			console.error('Upload failed:', response.status, errorText);
+			return { success: false, error: `Upload failed: ${response.statusText}` };
 		}
 
 		const result = await response.json();
+		console.log('Upload response:', result);
 
 		if (result.success) {
 			return {
@@ -44,6 +35,7 @@ export async function uploadToDigitalOceanSpaces(
 				error: result.error || 'Upload failed'
 			};
 		}
+		
 	} catch (error) {
 		console.error('Upload error:', error);
 		return {

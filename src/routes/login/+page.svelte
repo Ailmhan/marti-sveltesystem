@@ -14,7 +14,7 @@
 
 		try {
 			const response = await apiClient.login(email, password);
-			authStore.login(response.token);
+			await authStore.login(response.token);
 			goto('/');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Ошибка входа';

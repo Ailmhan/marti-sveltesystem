@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import Button from '$lib/components/ui/button/button.svelte';
-	// Иконки заменены на символы
-	import { cn } from '$lib/utils/cn';
 
 	export let open = false;
 	export let title = '';
@@ -19,13 +16,23 @@
 	}
 
 	function handleSubmit() {
+		console.log('DataModal handleSubmit called, loading:', loading);
 		if (!loading) {
+			console.log('Dispatching submit event');
 			dispatch('submit');
+		} else {
+			console.log('Submit blocked due to loading state');
 		}
 	}
 
 	function handleBackdropClick(event: MouseEvent) {
 		if (event.target === event.currentTarget) {
+			handleClose();
+		}
+	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
 			handleClose();
 		}
 	}
@@ -35,20 +42,23 @@
 	<div 
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
 		on:click={handleBackdropClick}
+		on:keydown={handleKeyDown}
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
 	>
 		<div class="relative w-full max-w-lg mx-4 bg-white rounded-xl shadow-2xl border border-gray-200">
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-gray-100">
 				<h2 class="text-xl font-semibold text-gray-900">{title}</h2>
-				<Button 
-					variant="ghost" 
-					size="icon" 
+				<button 
+					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="hover:bg-gray-100"
+					class="p-2 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
 				>
-					<span class="text-gray-500">✕</span>
-				</Button>
+					<span>✕</span>
+				</button>
 			</div>
 
 			<!-- Content -->
@@ -58,24 +68,25 @@
 
 			<!-- Footer -->
 			<div class="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-				<Button 
-					variant="outline" 
+				<button 
+					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="border-gray-300 hover:bg-gray-100"
+					class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 transition-colors"
 				>
 					{cancelText}
-				</Button>
-				<Button 
+				</button>
+				<button 
+					type="button"
 					on:click={handleSubmit}
 					disabled={loading}
-					class="bg-blue-600 hover:bg-blue-700 text-white"
+					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 transition-colors flex items-center"
 				>
 					{#if loading}
 						<span class="mr-2 animate-spin">⏳</span>
 					{/if}
 					{submitText}
-				</Button>
+				</button>
 			</div>
 		</div>
 	</div>

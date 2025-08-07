@@ -1,17 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
+	import { authStore } from '$lib/stores/auth';
 	import type { Class, Teacher } from '$lib/types/api';
 	import ClassCard from '$lib/components/ClassCard.svelte';
-	import Modal from '$lib/components/Modal.svelte';
+	import DataModal from '$lib/components/DataModal.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let classes: Class[] = [];
 	let teachers: Teacher[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
 	let showAddModal = false;
 	let addLoading = false;
 	let addError = '';
+	let modalError = ''; // Добавляем для DataModal
 
 	let newClass = {
 		grade: 1,
@@ -19,58 +23,111 @@
 		teacherId: 0
 	};
 
-	onMount(async () => {
+	onMount(() => {
+		loadData();
+	});
+
+	async function loadData() {
+		if (!$authStore.schoolId) return;
+		
 		try {
-			const school = await apiClient.getMe();
+			loading = true;
+			error = '';
 			const [classesData, teachersData] = await Promise.all([
-				apiClient.getClasses(school.id),
-				apiClient.getTeachers(school.id)
+				apiClient.getClasses($authStore.schoolId),
+				apiClient.getTeachers($authStore.schoolId)
 			]);
 			classes = classesData;
 			teachers = teachersData;
 		} catch (err) {
+			console.error('Error loading data:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки данных';
 		} finally {
 			loading = false;
 		}
-	});
+	}
 
 	async function addClass() {
-		addLoading = true;
-		addError = '';
+		console.log('addClass called');
+		console.log('newClass:', newClass);
+		console.log('schoolId:', $authStore.schoolId);
+		
+		// Валидация
+		if (!newClass.letter) {
+			modalError = 'Выберите букву класса';
+			console.log('Validation failed: no letter');
+			return;
+		}
+		if (newClass.grade < 1 || newClass.grade > 11) {
+			modalError = 'Класс должен быть от 1 до 11';
+			console.log('Validation failed: invalid grade');
+			return;
+		}
+
+		if (!$authStore.schoolId) {
+			modalError = 'ID школы не найден';
+			console.log('Validation failed: no schoolId');
+			return;
+		}
 
 		try {
-			const school = await apiClient.getMe();
-			await apiClient.createClass({
+			addLoading = true;
+			modalError = '';
+			console.log('Starting API call...');
+
+			const classData = {
 				...newClass,
-				schoolId: school.id
-			});
+				schoolId: $authStore.schoolId
+			};
+			console.log('Class data to send:', classData);
+
+			const result = await apiClient.createClass(classData);
+			console.log('API call successful:', result);
 			
 			// Обновляем список классов
-			classes = await apiClient.getClasses(school.id);
+			await loadData();
 			
-			// Закрываем модальное окно и очищаем форму
+			// Закрываем модальное окно и очищаем форму только после успеха
 			showAddModal = false;
+			addLoading = false;
+			
+			// Сбрасываем форму
 			newClass = {
 				grade: 1,
 				letter: '',
 				teacherId: 0
 			};
 		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Ошибка создания класса';
-		} finally {
+			console.error('Error creating class:', err);
+			modalError = err instanceof Error ? err.message : 'Ошибка создания класса';
 			addLoading = false;
 		}
 	}
 
 	function openAddModal() {
 		showAddModal = true;
-		addError = '';
+		modalError = '';
 	}
 
 	function closeAddModal() {
 		showAddModal = false;
-		addError = '';
+		modalError = '';
+		newClass = {
+			grade: 1,
+			letter: '',
+			teacherId: 0
+		};
+	}
+
+	async function deleteClass(id: number) {
+		if (confirm('Вы уверены, что хотите удалить этот класс?')) {
+			try {
+				await apiClient.deleteClass(id);
+				await loadData();
+			} catch (err) {
+				error = err instanceof Error ? err.message : 'Ошибка удаления класса';
+			}
+		}
 	}
 </script>
 
@@ -82,7 +139,10 @@
 	<div class="page-header">
 		<h1>Классы школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary" on:click={openAddModal}>Добавить класс</button>
+			<button class="btn btn-primary add-btn" on:click={openAddModal}>
+				<span class="btn-icon">➕</span>
+				Добавить класс
+			</button>
 		</div>
 	</div>
 
@@ -95,119 +155,173 @@
 		<div class="error-container">
 			<h2>Ошибка</h2>
 			<p>{error}</p>
+			<button class="btn btn-primary" on:click={loadData}>Попробовать снова</button>
 		</div>
 	{:else if classes.length > 0}
 		<div class="classes-grid grid grid-cols-4">
 			{#each classes as classItem}
-				<ClassCard {classItem} />
+				<ClassCard 
+					{classItem} 
+					onDelete={() => deleteClass(classItem.id)}
+				/>
 			{/each}
 		</div>
 	{:else}
-		<div class="empty-state">
-			<h2>Классов пока нет</h2>
-			<p>Добавьте первый класс в систему!</p>
-			<button class="btn btn-primary" on:click={openAddModal}>Добавить класс</button>
-		</div>
+		<EmptyState
+			title="Классов пока нет"
+			description="Добавьте первый класс в систему!"
+			icon="🏫"
+			buttonText="Добавить класс"
+			onAction={openAddModal}
+		/>
 	{/if}
 </div>
 
 <!-- Модальное окно добавления класса -->
-<Modal isOpen={showAddModal} title="Добавить класс" on:close={closeAddModal}>
-	<form on:submit|preventDefault={addClass}>
-		{#if addError}
-			<div class="alert alert-error">{addError}</div>
-		{/if}
+<DataModal 
+	bind:open={showAddModal} 
+	title="Добавить класс" 
+	loading={addLoading}
+	on:close={closeAddModal}
+	on:submit={addClass}
+>
+	{#if modalError}
+		<div class="alert alert-error">{modalError}</div>
+	{/if}
+	<div class="form-group">
+		<label for="grade">Класс *</label>
+		<select id="grade" bind:value={newClass.grade} required class="form-select">
+			<option value="">Выберите класс</option>
+			{#each Array.from({length: 11}, (_, i) => i + 1) as grade}
+				<option value={grade}>{grade}</option>
+			{/each}
+		</select>
+	</div>
 
-		<div class="form-group">
-			<label for="grade">Класс *</label>
-			<select id="grade" bind:value={newClass.grade} required class="form-select">
-				<option value="">Выберите класс</option>
-				{#each Array.from({length: 11}, (_, i) => i + 1) as grade}
-					<option value={grade}>{grade}</option>
-				{/each}
-			</select>
-		</div>
+	<div class="form-group">
+		<label for="letter">Буква *</label>
+		<select id="letter" bind:value={newClass.letter} required class="form-select">
+			<option value="">Выберите букву</option>
+			<option value="А">А</option>
+			<option value="Б">Б</option>
+			<option value="В">В</option>
+			<option value="Г">Г</option>
+			<option value="Д">Д</option>
+			<option value="Е">Е</option>
+			<option value="Ё">Ё</option>
+			<option value="Ж">Ж</option>
+			<option value="З">З</option>
+			<option value="И">И</option>
+			<option value="К">К</option>
+			<option value="Л">Л</option>
+			<option value="М">М</option>
+			<option value="Н">Н</option>
+			<option value="О">О</option>
+			<option value="П">П</option>
+			<option value="Р">Р</option>
+			<option value="С">С</option>
+			<option value="Т">Т</option>
+			<option value="У">У</option>
+			<option value="Ф">Ф</option>
+			<option value="Х">Х</option>
+			<option value="Ц">Ц</option>
+			<option value="Ч">Ч</option>
+			<option value="Ш">Ш</option>
+			<option value="Щ">Щ</option>
+			<option value="Э">Э</option>
+			<option value="Ю">Ю</option>
+			<option value="Я">Я</option>
+		</select>
+	</div>
 
-		<div class="form-group">
-			<label for="letter">Буква *</label>
-			<select id="letter" bind:value={newClass.letter} required class="form-select">
-				<option value="">Выберите букву</option>
-				<option value="А">А</option>
-				<option value="Б">Б</option>
-				<option value="В">В</option>
-				<option value="Г">Г</option>
-				<option value="Д">Д</option>
-				<option value="Е">Е</option>
-				<option value="Ё">Ё</option>
-				<option value="Ж">Ж</option>
-				<option value="З">З</option>
-				<option value="И">И</option>
-				<option value="К">К</option>
-				<option value="Л">Л</option>
-				<option value="М">М</option>
-				<option value="Н">Н</option>
-				<option value="О">О</option>
-				<option value="П">П</option>
-				<option value="Р">Р</option>
-				<option value="С">С</option>
-				<option value="Т">Т</option>
-				<option value="У">У</option>
-				<option value="Ф">Ф</option>
-				<option value="Х">Х</option>
-				<option value="Ц">Ц</option>
-				<option value="Ч">Ч</option>
-				<option value="Ш">Ш</option>
-				<option value="Щ">Щ</option>
-				<option value="Э">Э</option>
-				<option value="Ю">Ю</option>
-				<option value="Я">Я</option>
-			</select>
-		</div>
-
-		<div class="form-group">
-			<label for="teacherId">Классный руководитель</label>
-			<select id="teacherId" bind:value={newClass.teacherId} class="form-select">
-				<option value={0}>Не назначен</option>
-				{#each teachers as teacher}
-					<option value={teacher.id}>{teacher.nameRu}</option>
-				{/each}
-			</select>
-		</div>
-
-		<div class="form-actions">
-			<button type="button" class="btn btn-secondary" on:click={closeAddModal}>
-				Отмена
-			</button>
-			<button type="submit" class="btn btn-primary" disabled={addLoading}>
-				{#if addLoading}
-					<div class="loading"></div>
-				{/if}
-				{addLoading ? 'Добавление...' : 'Добавить класс'}
-			</button>
-		</div>
-	</form>
-</Modal>
+	<div class="form-group">
+		<label for="teacherId">Классный руководитель</label>
+		<select id="teacherId" bind:value={newClass.teacherId} class="form-select">
+			<option value={0}>Не назначен</option>
+			{#each teachers as teacher}
+				<option value={teacher.id}>{teacher.nameRu}</option>
+			{/each}
+		</select>
+	</div>
+</DataModal>
 
 <style>
 	.classes-page {
-		padding: var(--space-6);
-		padding-top: calc(70px + var(--space-6));
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 2rem;
+		padding-top: calc(70px + 2rem);
 	}
 
 	.page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: var(--space-8);
+		margin-bottom: 2.5rem;
+		border-bottom: 1px solid #e5e7eb;
+		padding-bottom: 1.25rem;
 	}
 
 	.page-header h1 {
+		margin: 0;
 		font-size: 2rem;
+		font-weight: 700;
+		color: #1f2937;
 	}
 
 	.page-actions {
 		display: flex;
-		gap: var(--space-2);
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.btn {
+		border: none;
+		border-radius: 0.6rem;
+		font-weight: 600;
+		font-size: 0.9rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.6rem 1.2rem;
+	}
+
+	.btn-primary {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.btn-primary:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.btn-secondary {
+		background-color: #e5e7eb;
+		color: #374151;
+	}
+
+	.btn-secondary:hover {
+		background-color: #d1d5db;
+	}
+
+	.add-btn {
+		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+		color: white;
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.add-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	}
+
+	.btn-icon {
+		font-size: 1.2rem;
+		margin-right: 0.5rem;
 	}
 
 	.loading-container {
@@ -215,87 +329,114 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		min-height: 50vh;
-		gap: var(--space-4);
+		min-height: 40vh;
+		gap: 1rem;
+		color: #6b7280;
+		text-align: center;
+	}
+
+	.spinner {
+		border: 4px solid #e5e7eb;
+		border-top: 4px solid #6366f1;
+		border-radius: 50%;
+		width: 2.5rem;
+		height: 2.5rem;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	.error-container {
 		text-align: center;
-		padding: var(--space-8);
+		padding: 2rem;
+		color: #b91c1c;
+		background: #fef2f2;
+		border: 1px solid #fecaca;
+		border-radius: 0.75rem;
 	}
 
-	.empty-state {
-		text-align: center;
-		padding: var(--space-16) var(--space-8);
+	.error-container h2 {
+		margin: 0 0 1rem 0;
+		color: #b91c1c;
 	}
 
-	.empty-state h2 {
-		margin: 0 0 var(--space-4) 0;
-		color: var(--text-primary);
+	.error-container p {
+		margin: 0 0 1.5rem 0;
 	}
 
-	.empty-state p {
-		margin: 0 0 var(--space-8) 0;
-		color: var(--text-secondary);
+	.classes-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
 	}
 
 	@media (max-width: 768px) {
 		.page-header {
 			flex-direction: column;
-			gap: var(--space-4);
-			align-items: stretch;
+			align-items: flex-start;
 		}
 
 		.page-actions {
-			justify-content: center;
+			width: 100%;
+			justify-content: space-between;
 		}
 	}
 
 	/* Стили для модального окна */
 	.form-group {
-		margin-bottom: var(--space-6);
+		margin-bottom: 1.5rem;
 	}
 
 	.form-group label {
 		display: block;
-		margin-bottom: var(--space-2);
+		margin-bottom: 0.5rem;
 		font-weight: 500;
-		color: var(--text-primary);
+		color: #374151;
 	}
 
-	.form-group select {
+	.form-select {
 		width: 100%;
-		padding: var(--space-3) var(--space-4);
-		border: 2px solid var(--border-primary);
-		border-radius: var(--radius-lg);
+		padding: 0.75rem 1rem;
+		border: 2px solid #e5e7eb;
+		border-radius: 0.5rem;
 		font-size: 1rem;
-		transition: border-color var(--transition-fast);
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		transition: border-color 0.2s ease;
+		background: white;
+		color: #374151;
 	}
 
-	.form-group select:focus {
+	.form-select:focus {
 		outline: none;
-		border-color: var(--border-focus);
-	}
-
-	.form-actions {
-		display: flex;
-		gap: var(--space-4);
-		justify-content: flex-end;
-		margin-top: var(--space-8);
+		border-color: #6366f1;
 	}
 
 	.alert {
-		padding: var(--space-3) var(--space-4);
-		border-radius: var(--radius-lg);
-		margin-bottom: var(--space-6);
+		padding: 0.75rem 1rem;
+		border-radius: 6px;
+		margin-bottom: 1.5rem;
 		font-weight: 500;
 	}
 
 	.alert-error {
-		background-color: var(--error-light);
-		color: var(--error-dark);
-		border: 1px solid var(--error);
+		background-color: #fee2e2;
+		color: #b91c1c;
+		border: 1px solid #ef4444;
+	}
+
+	.loading-spinner {
+		width: 1rem;
+		height: 1rem;
+		border: 2px solid transparent;
+		border-top: 2px solid currentColor;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-right: 0.5rem;
 	}
 </style> 

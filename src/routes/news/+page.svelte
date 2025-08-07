@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
-	import { schoolStore } from '$lib/stores/school';
 	import type { News } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
+	import { authStore } from '$lib/stores/auth';
 
 	let news: News[] = [];
-	let loading = true;
+	let loading = false;
 	let error = '';
-	let language: 'ru' | 'kz' = 'ru';
 	let showAddModal = false;
+	let modalError = '';
 	let modalLoading = false;
 
 	let newNews = {
@@ -20,74 +20,97 @@
 		titleKz: '',
 		contentRu: '',
 		contentKz: '',
-		imageUrl: ''
+		imageUrl: undefined as string | undefined
 	};
 
-	onMount(async () => {
-		await loadNews();
+	onMount(() => {
+		loadNews();
 	});
 
 	async function loadNews() {
+		if (!$authStore.schoolId) return;
+		
 		try {
 			loading = true;
-			const school = $schoolStore;
-			if (school) {
-				news = await apiClient.getNews(school.id, language);
-			} else {
-				error = 'Информация о школе не загружена';
-				news = [];
-			}
+			error = '';
+			const newsData = await apiClient.getNews($authStore.schoolId);
+			news = newsData;
 		} catch (err) {
+			console.error('Error loading news:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки новостей';
-			news = [];
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function toggleLanguage() {
-		language = language === 'ru' ? 'kz' : 'ru';
-	}
-
 	async function addNews() {
+		// Валидация
+		if (!newNews.titleRu.trim() || !newNews.titleKz.trim() || !newNews.contentRu.trim() || !newNews.contentKz.trim()) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		if (!$authStore.schoolId) {
+			modalError = 'ID школы не найден';
+			return;
+		}
+
 		try {
+			modalError = '';
 			modalLoading = true;
-			const school = $schoolStore;
-			if (school) {
-				await apiClient.createNews({
-					...newNews,
-					schoolId: school.id
-				});
-				await loadNews();
-				closeModal();
-			} else {
-				throw new Error('Информация о школе не загружена');
-			}
+			
+			await apiClient.createNews({
+				...newNews,
+				schoolId: $authStore.schoolId
+			});
+			
+			// Сбрасываем форму
+			newNews = {
+				titleRu: '',
+				titleKz: '',
+				contentRu: '',
+				contentKz: '',
+				imageUrl: undefined
+			};
+			
+			// Закрываем модальное окно после успешного сохранения
+			showAddModal = false;
+			modalLoading = false;
+			
+			// Перезагружаем новости
+			await loadNews();
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ошибка создания новости';
-		} finally {
+			console.error('Error creating news:', err);
+			modalError = err instanceof Error ? err.message : 'Ошибка создания новости';
 			modalLoading = false;
 		}
 	}
 
 	function openModal() {
 		showAddModal = true;
+		modalError = '';
 	}
 
 	function closeModal() {
 		showAddModal = false;
+		modalError = '';
+		modalLoading = false;
 		newNews = {
 			titleRu: '',
 			titleKz: '',
 			contentRu: '',
 			contentKz: '',
-			imageUrl: ''
+			imageUrl: undefined
 		};
-		error = '';
 	}
 
 	function handleImageChange(event: CustomEvent) {
-		newNews.imageUrl = event.detail.value;
+		// ImageUpload уже обрабатывает загрузку, просто получаем URL
+		const url = event.detail.value;
+		if (url) {
+			newNews.imageUrl = url;
+			console.log('Image URL set:', url);
+		}
 	}
 
 	function formatDate(date: string | Date) {
@@ -97,6 +120,17 @@
 			month: 'long',
 			day: 'numeric'
 		});
+	}
+
+	async function deleteNews(id: number) {
+		if (confirm('Вы уверены, что хотите удалить эту новость?')) {
+			try {
+				await apiClient.deleteNews(id);
+				await loadNews();
+			} catch (err) {
+				error = err instanceof Error ? err.message : 'Ошибка удаления новости';
+			}
+		}
 	}
 </script>
 
@@ -108,9 +142,6 @@
 	<div class="page-header">
 		<h1>Новости школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-secondary" on:click={toggleLanguage}>
-				{language === 'ru' ? 'KZ' : 'RU'}
-			</button>
 			<button class="btn btn-primary add-btn" on:click={openModal}>
 				<span class="btn-icon">➕</span>
 				Добавить новость
@@ -127,6 +158,7 @@
 		<div class="error-container">
 			<h2>Ошибка</h2>
 			<p>{error}</p>
+			<button class="btn btn-primary" on:click={loadNews}>Попробовать снова</button>
 		</div>
 	{:else if news.length > 0}
 		<div class="grid-container grid-3">
@@ -134,10 +166,9 @@
 				<DataCard
 					data={item}
 					type="news"
-					{language}
 					showActions={true}
 					onEdit={() => console.log('Edit news:', item.id)}
-					onDelete={() => console.log('Delete news:', item.id)}
+					onDelete={() => deleteNews(item.id)}
 				/>
 			{/each}
 		</div>
@@ -161,9 +192,15 @@
 	on:submit={addNews}
 >
 	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
+		{/if}
+
 		<div>
 			<label for="titleRu" class="block text-sm font-medium mb-2 text-gray-700">
-				Заголовок (Русский)
+				Заголовок (Русский) *
 			</label>
 			<input
 				id="titleRu"
@@ -171,12 +208,13 @@
 				bind:value={newNews.titleRu}
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 				placeholder="Введите заголовок новости"
+				required
 			/>
 		</div>
 
 		<div>
 			<label for="titleKz" class="block text-sm font-medium mb-2 text-gray-700">
-				Заголовок (Казахский)
+				Заголовок (Казахский) *
 			</label>
 			<input
 				id="titleKz"
@@ -184,33 +222,36 @@
 				bind:value={newNews.titleKz}
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 				placeholder="Жаңалық тақырыбын енгізіңіз"
+				required
 			/>
 		</div>
 
 		<div>
 			<label for="contentRu" class="block text-sm font-medium mb-2 text-gray-700">
-				Содержание (Русский)
+				Содержание (Русский) *
 			</label>
-					<textarea
-			id="contentRu"
-			bind:value={newNews.contentRu}
-			rows={4}
-			class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-			placeholder="Введите содержание новости"
-		></textarea>
+			<textarea
+				id="contentRu"
+				bind:value={newNews.contentRu}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Введите содержание новости"
+				required
+			></textarea>
 		</div>
 
 		<div>
 			<label for="contentKz" class="block text-sm font-medium mb-2 text-gray-700">
-				Содержание (Казахский)
+				Содержание (Казахский) *
 			</label>
-					<textarea
-			id="contentKz"
-			bind:value={newNews.contentKz}
-			rows={4}
-			class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-			placeholder="Жаңалық мазмұнын енгізіңіз"
-		></textarea>
+			<textarea
+				id="contentKz"
+				bind:value={newNews.contentKz}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Жаңалық мазмұнын енгізіңіз"
+				required
+			></textarea>
 		</div>
 
 		<div>
@@ -223,10 +264,10 @@
 				folder="news"
 				on:change={handleImageChange}
 				on:error={(event) => {
-					error = event.detail.message;
+					modalError = event.detail.message;
 				}}
 				on:success={(event) => {
-					error = '';
+					modalError = '';
 				}}
 			/>
 		</div>
@@ -278,13 +319,15 @@
 	padding: 0.6rem 1.2rem;
 }
 
-.btn-secondary {
-	background-color: #e5e7eb;
-	color: #374151;
+.btn-primary {
+	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+	color: white;
+	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.btn-secondary:hover {
-	background-color: #d1d5db;
+.btn-primary:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
 .add-btn {
@@ -341,10 +384,32 @@
 	border-radius: 0.75rem;
 }
 
+.error-container h2 {
+	margin: 0 0 1rem 0;
+	color: #b91c1c;
+}
+
+.error-container p {
+	margin: 0 0 1.5rem 0;
+}
+
 .grid-container {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: 1.5rem;
+}
+
+.alert {
+	padding: 0.75rem 1rem;
+	border-radius: 6px;
+	margin-bottom: 1.5rem;
+	font-weight: 500;
+}
+
+.alert-error {
+	background-color: #fee2e2;
+	color: #b91c1c;
+	border: 1px solid #ef4444;
 }
 
 @media (max-width: 768px) {
