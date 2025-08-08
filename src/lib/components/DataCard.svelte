@@ -57,6 +57,8 @@
 				return [
 					{ label: 'Дата', value: formatDate(data.date) }
 				];
+			case 'news':
+				return []; // Убираем дату из дополнительной информации для новостей
 			default:
 				return [
 					{ label: 'Дата', value: formatDate(data.createdAt) }
@@ -120,24 +122,43 @@
 
 <style>
 	.card {
-		background: #ffffff;
-		border-radius: 1rem;
+		background: hsl(var(--card));
+		border-radius: var(--radius);
 		overflow: hidden;
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-		border: 1px solid #f3f4f6;
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		box-shadow: var(--shadow-md);
+		border: 1px solid hsl(var(--border));
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		display: flex;
 		flex-direction: column;
+		position: relative;
+		backdrop-filter: blur(10px);
 	}
 
 	.card:hover {
-		transform: translateY(-6px);
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+		transform: translateY(-8px);
+		box-shadow: var(--shadow-xl);
+		border-color: hsl(var(--primary) / 0.2);
+	}
+
+	.card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: linear-gradient(90deg, hsl(var(--primary)), hsl(262 83% 68%));
+		opacity: 0;
+		transition: opacity 0.3s ease;
+	}
+
+	.card:hover::before {
+		opacity: 1;
 	}
 
 	.card-image {
-		height: 180px;
-		background: #f9fafb;
+		height: 200px;
+		background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--accent)) 100%);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -154,16 +175,31 @@
 	.image-placeholder {
 		width: 100%;
 		height: 100%;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		position: relative;
+	}
+
+	.image-placeholder::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+		opacity: 0.3;
 	}
 
 	.placeholder-icon {
-		font-size: 3.5rem;
+		font-size: 4rem;
 		color: white;
-		opacity: 0.85;
+		opacity: 0.9;
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+		z-index: 1;
+		position: relative;
 	}
 
 	.card-content {
@@ -174,15 +210,18 @@
 	}
 
 	.card-title {
-		font-size: 1.3rem;
-		font-weight: 600;
-		color: #111827;
+		font-size: 1.4rem;
+		font-weight: 700;
+		background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 		margin-bottom: 0.75rem;
 		line-height: 1.4;
 	}
 
 	.card-description {
-		color: #4b5563;
+		color: hsl(var(--muted-foreground));
 		font-size: 0.95rem;
 		line-height: 1.6;
 		margin-bottom: 1rem;
@@ -222,43 +261,67 @@
 
 	.card-actions {
 		display: flex;
-		gap: 0.5rem;
-		padding: 1rem 1.5rem;
-		border-top: 1px solid #f3f4f6;
-		background-color: #fafafa;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		border-top: 1px solid hsl(var(--border));
+		background: linear-gradient(135deg, hsl(var(--muted) / 0.5) 0%, hsl(var(--accent) / 0.3) 100%);
+		backdrop-filter: blur(10px);
 	}
 
 	.btn {
-		padding: 0.6rem 1.2rem;
-		border-radius: 0.75rem;
+		padding: 0.75rem 1.5rem;
+		border-radius: var(--radius);
 		border: none;
 		cursor: pointer;
-		font-weight: 500;
-		transition: background-color 0.2s ease;
+		font-weight: 600;
+		transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.5rem;
 		font-size: 0.875rem;
 		flex: 1;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.btn::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		transition: left 0.5s;
+	}
+
+	.btn:hover::before {
+		left: 100%;
 	}
 
 	.btn-edit {
-		background-color: #10b981;
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 		color: white;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.btn-edit:hover {
-		background-color: #059669;
+		background: linear-gradient(135deg, #059669 0%, #047857 100%);
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
 	}
 
 	.btn-danger {
-		background-color: #ef4444;
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
 		color: white;
+		box-shadow: var(--shadow-sm);
 	}
 
 	.btn-danger:hover {
-		background-color: #dc2626;
+		background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
 	}
 
 	.btn-icon {

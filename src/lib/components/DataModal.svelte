@@ -25,14 +25,14 @@
 		}
 	}
 
-	function handleBackdropClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
+	function handleBackdropClick(mouseEvent: MouseEvent) {
+		if (mouseEvent.target === mouseEvent.currentTarget) {
 			handleClose();
 		}
 	}
 
-	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
+	function handleKeyDown(keyboardEvent: KeyboardEvent) {
+		if (keyboardEvent.key === 'Escape') {
 			handleClose();
 		}
 	}

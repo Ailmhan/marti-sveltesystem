@@ -6,14 +6,26 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
+	import DataPage from '$lib/components/DataPage.svelte';
+	import Schedule from '$lib/components/Schedule.svelte';
 	import { authStore } from '$lib/stores/auth';
+	import { languageStore } from '$lib/stores/language';
+	import { 
+		searchItems, 
+		sortItems, 
+		getNewsSortOptions 
+	} from '$lib/utils/filters';
+	import type { ScheduleEvent } from '$lib/types/ui';
 
 	let news: News[] = [];
+	let filteredNews: News[] = [];
 	let loading = false;
 	let error = '';
 	let showAddModal = false;
 	let modalError = '';
 	let modalLoading = false;
+	let currentView: 'grid' | 'list' | 'calendar' = 'grid';
+	let sortBy = '';
 
 	let newNews = {
 		titleRu: '',
@@ -26,6 +38,23 @@
 	onMount(() => {
 		loadNews();
 	});
+
+	// Реактивная сортировка (поиск теперь в хедере)
+	$: filteredNews = news.length > 0 ? news : [];
+
+	$: filteredNews = sortBy ? 
+		sortItems(filteredNews, sortBy, getNewsSortOptions()) :
+		filteredNews;
+
+	// Генерация событий для расписания
+	$: scheduleEvents = filteredNews.map(item => ({
+		id: item.id,
+		title: item.titleRu || item.titleKz,
+		date: new Date(item.createdAt),
+		description: item.contentRu || item.contentKz,
+		type: 'news' as const,
+		color: '#6366f1'
+	}));
 
 	async function loadNews() {
 		if (!$authStore.schoolId) return;
@@ -138,50 +167,91 @@
 	<title>Новости - Школьная система</title>
 </svelte:head>
 
-<div class="news-page">
-	<div class="page-header">
-		<h1>Новости школы</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить новость
-			</button>
-		</div>
-	</div>
+		<DataPage
+			title="Новости школы"
+			{loading}
+			{error}
+			showSearch={false}
+			showFilters={false}
+			showViewToggle={true}
+			showSort={true}
+			filters={[]}
+			sortOptions={getNewsSortOptions()}
+			on:sort={(event) => sortBy = event.detail}
+			on:viewChange={(event) => currentView = event.detail}
+			on:retry={loadNews}
+			let:pageState
+		>
+	<svelte:fragment slot="actions">
+		<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
+			<span class="btn-icon">➕</span>
+			Добавить новость
+		</button>
+	</svelte:fragment>
 
-	{#if loading}
-		<div class="loading-container">
-			<div class="spinner"></div>
-			<p>Загрузка новостей...</p>
-		</div>
-	{:else if error}
-		<div class="error-container">
-			<h2>Ошибка</h2>
-			<p>{error}</p>
-			<button class="btn btn-primary" on:click={loadNews}>Попробовать снова</button>
-		</div>
-	{:else if news.length > 0}
-		<div class="grid-container grid-3">
-			{#each news as item}
-				<DataCard
-					data={item}
-					type="news"
-					showActions={true}
-					onEdit={() => console.log('Edit news:', item.id)}
-					onDelete={() => deleteNews(item.id)}
+	<svelte:fragment slot="default">
+		{#if filteredNews.length > 0}
+			{#if currentView === 'grid'}
+				<div class="grid-container grid-3">
+					{#each filteredNews as item}
+						<DataCard
+							data={item}
+							type="news"
+							showActions={true}
+							onEdit={() => console.log('Edit news:', item.id)}
+							onDelete={() => deleteNews(item.id)}
+						/>
+					{/each}
+				</div>
+			{:else if currentView === 'list'}
+				<div class="list-container">
+					{#each filteredNews as item}
+						<div class="list-item">
+							<DataCard
+								data={item}
+								type="news"
+								showActions={true}
+								onEdit={() => console.log('Edit news:', item.id)}
+								onDelete={() => deleteNews(item.id)}
+							/>
+						</div>
+					{/each}
+				</div>
+						{:else if currentView === 'calendar'}
+				<Schedule
+					schedule={[]}
+					on:itemClick={(event) => {
+						console.log('Schedule item clicked:', event.detail);
+					}}
+					on:dateSelect={(event) => {
+						console.log('Date selected:', event.detail);
+					}}
+					on:viewChange={(event) => {
+						console.log('View changed:', event.detail);
+					}}
 				/>
-			{/each}
-		</div>
-	{:else}
-		<EmptyState
-			title="Новостей пока нет"
-			description="Добавьте первую новость в систему!"
-			icon="📰"
-			buttonText="Добавить новость"
-			onAction={openModal}
-		/>
-	{/if}
-</div>
+			{/if}
+		{:else if news.length > 0}
+			<EmptyState
+				title="Новости не найдены"
+				description="Попробуйте изменить параметры сортировки"
+				icon="🔍"
+				buttonText="Очистить сортировку"
+				onAction={() => {
+					sortBy = '';
+				}}
+			/>
+		{:else}
+			<EmptyState
+				title="Новостей пока нет"
+				description="Добавьте первую новость в систему!"
+				icon="📰"
+				buttonText="Добавить новость"
+				onAction={openModal}
+			/>
+		{/if}
+	</svelte:fragment>
+</DataPage>
 
 <!-- Модальное окно добавления новости -->
 <DataModal
@@ -331,19 +401,46 @@
 }
 
 .add-btn {
-	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 2rem;
+	font-weight: 700;
+	border-radius: var(--radius);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: var(--shadow-lg);
+	background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+	border: none;
 	color: white;
-	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	font-size: 1rem;
+	position: relative;
+	overflow: hidden;
+}
+
+.add-btn::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -100%;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+	transition: left 0.6s;
+}
+
+.add-btn:hover::before {
+	left: 100%;
 }
 
 .add-btn:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+	transform: translateY(-3px);
+	box-shadow: var(--shadow-xl);
+	background: linear-gradient(135deg, hsl(262 83% 68%) 0%, hsl(var(--primary)) 100%);
 }
 
 .btn-icon {
 	font-size: 1.2rem;
-	margin-right: 0.5rem;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .loading-container {
@@ -397,6 +494,48 @@
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 	gap: 1.5rem;
+}
+
+.grid-3 {
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.list-container {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.list-item {
+	width: 100%;
+}
+
+.list-item :global(.card) {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 1rem;
+}
+
+.list-item :global(.card-image) {
+	width: 120px;
+	height: 80px;
+	flex-shrink: 0;
+	margin-right: 1rem;
+}
+
+.list-item :global(.card-content) {
+	flex: 1;
+}
+
+.list-item :global(.card-title) {
+	font-size: 1.1rem;
+	margin-bottom: 0.5rem;
+}
+
+.list-item :global(.card-description) {
+	font-size: 0.9rem;
+	line-height: 1.4;
 }
 
 .alert {

@@ -2,7 +2,10 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
+	import { languageStore } from '$lib/stores/language';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
+	import HeaderSearch from '$lib/components/HeaderSearch.svelte';
 	import { cn } from '$lib/utils/cn';
 	import '../app.css';
 
@@ -24,7 +27,23 @@
 	}
 
 	function toggleSidebar() {
+		console.log('Toggle sidebar clicked, current state:', sidebarOpen);
 		sidebarOpen = !sidebarOpen;
+		console.log('New state:', sidebarOpen);
+	}
+
+	function handleLanguageChange(event: CustomEvent<'ru' | 'kz'>) {
+		languageStore.set(event.detail);
+	}
+
+	function handleSearch(event: CustomEvent<string>) {
+		// Здесь можно добавить глобальную логику поиска
+		console.log('Global search:', event.detail);
+	}
+
+	function handleSearchClear() {
+		// Здесь можно добавить логику очистки поиска
+		console.log('Search cleared');
 	}
 </script>
 
@@ -37,7 +56,7 @@
 	{#if $authStore.isAuthenticated}
 		<!-- Sidebar for desktop -->
 		<div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-			<div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card px-6 pb-4">
+			<div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card/80 backdrop-blur-xl px-6 pb-4 shadow-xl">
 				<div class="flex h-16 shrink-0 items-center">
 					<h1 class="text-xl font-bold text-primary">Школьная система</h1>
 				</div>
@@ -76,65 +95,83 @@
 
 		<!-- Mobile sidebar -->
 		{#if sidebarOpen}
-			<div class="relative z-50 lg:hidden">
-				<div class="fixed inset-0 bg-background/80"></div>
-				<div class="fixed inset-0 flex">
-					<div class="relative mr-16 flex w-full max-w-xs flex-1">
-						<div class="absolute left-full top-0 flex w-16 justify-center pt-5">
-							<Button variant="outline" size="icon" on:click={toggleSidebar}>
-								<span>✕</span>
-							</Button>
-						</div>
-						<div class="flex grow flex-col gap-y-5 overflow-y-auto bg-card px-6 pb-4">
-							<div class="flex h-16 shrink-0 items-center">
-								<h1 class="text-xl font-bold text-primary">Школьная система</h1>
-							</div>
-							<nav class="flex flex-1 flex-col">
-								<ul role="list" class="flex flex-1 flex-col gap-y-7">
-									<li>
-										<ul role="list" class="-mx-2 space-y-1">
-											{#each navigation as item}
-												<li>
-													<a
-														href={item.href}
-														class={cn(
-															$page.url.pathname === item.href
-																? 'bg-primary text-primary-foreground'
-																: 'text-muted-foreground hover:text-foreground hover:bg-accent',
-															'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-														)}
-														on:click={() => sidebarOpen = false}
-													>
-														<span class="text-lg">{item.icon}</span>
-														{item.name}
-													</a>
-												</li>
-											{/each}
-										</ul>
-									</li>
-									<li class="mt-auto">
-										<Button variant="outline" class="w-full justify-start" on:click={logout}>
-											<span class="mr-2">🚪</span>
-											Выйти
-										</Button>
-									</li>
-								</ul>
-							</nav>
-						</div>
+			<div class="mobile-sidebar-overlay">
+				<div class="mobile-sidebar-backdrop" on:click={toggleSidebar}></div>
+				<div class="mobile-sidebar">
+					<div class="mobile-sidebar-header">
+						<h1 class="mobile-sidebar-title">Школьная система</h1>
+						<button class="mobile-sidebar-close" on:click={toggleSidebar}>
+							<span>✕</span>
+						</button>
 					</div>
+					<nav class="mobile-sidebar-nav">
+						<ul role="list" class="mobile-sidebar-menu">
+							{#each navigation as item}
+								<li>
+									<a
+										href={item.href}
+										class="mobile-sidebar-link {$page.url.pathname === item.href ? 'active' : ''}"
+										on:click={() => sidebarOpen = false}
+									>
+										<span class="mobile-sidebar-icon">{item.icon}</span>
+										<span class="mobile-sidebar-text">{item.name}</span>
+									</a>
+								</li>
+							{/each}
+						</ul>
+						<div class="mobile-sidebar-footer">
+							<button class="mobile-sidebar-logout" on:click={logout}>
+								<span class="mobile-sidebar-icon">🚪</span>
+								<span class="mobile-sidebar-text">Выйти</span>
+							</button>
+						</div>
+					</nav>
 				</div>
 			</div>
 		{/if}
 
 		<!-- Main content -->
 		<div class="lg:pl-72">
+							<!-- Desktop header -->
+		<div class="desktop-header">
+			<div class="header-content">
+				<div class="header-left">
+					<div class="search-container">
+						<HeaderSearch
+							placeholder="Поиск по всей системе..."
+							on:search={handleSearch}
+							on:clear={handleSearchClear}
+						/>
+					</div>
+				</div>
+				<div class="header-right">
+					<div class="header-actions">
+						<LanguageSwitch
+							language={$languageStore}
+							on:change={handleLanguageChange}
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+
 			<!-- Mobile header -->
-			<div class="sticky top-0 z-40 flex items-center gap-x-6 bg-background px-4 py-4 shadow-sm sm:px-6 lg:hidden">
-				<Button variant="outline" size="icon" on:click={toggleSidebar}>
-					<span>☰</span>
-				</Button>
-				<div class="flex-1 text-sm font-semibold leading-6 text-foreground">
-					Школьная система
+			<div class="mobile-header">
+				<div class="mobile-header-content">
+					<Button variant="outline" size="icon" on:click={toggleSidebar} class="menu-btn">
+						<span>☰</span>
+					</Button>
+					<div class="mobile-search">
+						<HeaderSearch
+							placeholder="Поиск..."
+							on:search={handleSearch}
+							on:clear={handleSearchClear}
+						/>
+					</div>
+					<LanguageSwitch
+						language={$languageStore}
+						on:change={handleLanguageChange}
+					/>
 				</div>
 			</div>
 
@@ -152,3 +189,297 @@
 		</main>
 	{/if}
 </div>
+
+<style>
+	/* Desktop Header Styles */
+	.desktop-header {
+		position: sticky;
+		top: 0;
+		z-index: 40;
+		display: none;
+		backdrop-filter: blur(20px);
+	}
+
+	@media (min-width: 1024px) {
+		.desktop-header {
+			display: block;
+		}
+	}
+
+	.header-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 2rem;
+		max-width: 1210px;
+		margin: 0 auto;
+		gap: 2rem;
+	}
+
+	.header-left {
+		flex: 1;
+		max-width: 600px;
+	}
+
+	.search-container {
+		position: relative;
+		width: 100%;
+	}
+
+	.search-container :global(.header-search) {
+		width: 100%;
+	}
+
+	.header-right {
+		flex: 0 1 auto;
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	/* Mobile Header Styles */
+	.mobile-header {
+		position: sticky;
+		top: 0;
+		z-index: 40;
+		display: block;
+		background: linear-gradient(135deg, hsl(var(--background) / 0.95) 0%, hsl(var(--muted) / 0.3) 100%);
+		backdrop-filter: blur(20px);
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	@media (min-width: 1024px) {
+		.mobile-header {
+			display: none !important;
+		}
+	}
+
+	.mobile-header-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 1rem;
+		max-width: 1400px;
+		margin: 0 auto;
+	}
+
+	.menu-btn {
+		flex-shrink: 0;
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		padding: 0.5rem;
+		color: hsl(var(--foreground));
+		transition: all 0.2s ease;
+		box-shadow: var(--shadow-sm);
+	}
+
+	.menu-btn:hover {
+		background: hsl(var(--accent));
+		border-color: hsl(var(--ring));
+		transform: translateY(-1px);
+		box-shadow: var(--shadow-md);
+	}
+
+	.mobile-search {
+		flex: 1;
+		min-width: 0;
+		max-width: 400px;
+	}
+
+	.mobile-search :global(.header-search) {
+		width: 100%;
+	}
+
+	/* Mobile Sidebar Styles */
+	.mobile-sidebar-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 50;
+		display: flex;
+	}
+
+	.mobile-sidebar-backdrop {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+	}
+
+	.mobile-sidebar {
+		position: relative;
+		width: 280px;
+		height: 100vh;
+		background: linear-gradient(135deg, hsl(var(--card) / 0.95) 0%, hsl(var(--muted) / 0.3) 100%);
+		backdrop-filter: blur(20px);
+		border-right: 1px solid hsl(var(--border) / 0.3);
+		box-shadow: var(--shadow-xl);
+		display: flex;
+		flex-direction: column;
+		transform: translateX(-100%);
+		animation: slideIn 0.3s ease-out forwards;
+	}
+
+	@keyframes slideIn {
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	.mobile-sidebar-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.5rem;
+		border-bottom: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.mobile-sidebar-title {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: hsl(var(--primary));
+		margin: 0;
+	}
+
+	.mobile-sidebar-close {
+		background: none;
+		border: none;
+		font-size: 1.5rem;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 0.5rem;
+		border-radius: var(--radius);
+		transition: all 0.2s ease;
+	}
+
+	.mobile-sidebar-close:hover {
+		background: hsl(var(--accent));
+		color: hsl(var(--accent-foreground));
+	}
+
+	.mobile-sidebar-nav {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding: 1rem 0;
+	}
+
+	.mobile-sidebar-menu {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		flex: 1;
+	}
+
+	.mobile-sidebar-link {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 1rem 1.5rem;
+		color: hsl(var(--muted-foreground));
+		text-decoration: none;
+		transition: all 0.2s ease;
+		border-radius: 0;
+	}
+
+	.mobile-sidebar-link:hover {
+		background: hsl(var(--accent));
+		color: hsl(var(--accent-foreground));
+	}
+
+	.mobile-sidebar-link.active {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.mobile-sidebar-icon {
+		font-size: 1.25rem;
+		width: 1.5rem;
+		text-align: center;
+	}
+
+	.mobile-sidebar-text {
+		font-weight: 600;
+		font-size: 0.95rem;
+	}
+
+	.mobile-sidebar-footer {
+		padding: 1rem 1.5rem;
+		border-top: 1px solid hsl(var(--border) / 0.3);
+	}
+
+	.mobile-sidebar-logout {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+		border: 1px solid hsl(var(--destructive) / 0.2);
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+	}
+
+	.mobile-sidebar-logout:hover {
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+	}
+
+	/* Enhanced Button Styles */
+	:global(.btn-modern) {
+		background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+		color: hsl(var(--primary-foreground));
+		border: none;
+		border-radius: var(--radius);
+		padding: 0.75rem 1.5rem;
+		font-weight: 600;
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		box-shadow: var(--shadow-md);
+		position: relative;
+		overflow: hidden;
+	}
+
+	:global(.btn-modern::before) {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, hsl(var(--primary-foreground) / 0.2), transparent);
+		transition: left 0.5s ease;
+	}
+
+	:global(.btn-modern:hover::before) {
+		left: 100%;
+	}
+
+	:global(.btn-modern:hover) {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-lg);
+		background: linear-gradient(135deg, hsl(262 83% 68%) 0%, hsl(var(--primary)) 100%);
+	}
+
+	:global(.btn-modern:active) {
+		transform: translateY(0);
+		box-shadow: var(--shadow-sm);
+	}
+</style>

@@ -2,14 +2,15 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
-	import type { Schedule, Teacher, Class } from '$lib/types/api';
+	import type { Schedule as ScheduleType, Teacher, Class } from '$lib/types/api';
 	import { format } from 'date-fns';
 	import { ru } from 'date-fns/locale';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import Schedule from '$lib/components/Schedule.svelte';
 
-	let schedule: Schedule[] = [];
+	let schedule: ScheduleType[] = [];
 	let teachers: Teacher[] = [];
 	let classes: Class[] = [];
 	let loading = false;
@@ -169,45 +170,19 @@
 			<button class="btn btn-primary" on:click={loadData}>Попробовать снова</button>
 		</div>
 	{:else if schedule.length > 0}
-		<div class="schedule-list">
-			{#each schedule as scheduleItem}
-				<div class="schedule-card card">
-					<div class="schedule-header">
-						<div class="schedule-date">
-							{formatDate(scheduleItem.date)}
-						</div>
-						<div class="schedule-time">
-							{formatTime(scheduleItem.startTime)} - {formatTime(scheduleItem.endTime)}
-						</div>
-					</div>
-					
-					<div class="schedule-content">
-						<div class="schedule-subject">
-							<h3>{scheduleItem.subjectRu}</h3>
-						</div>
-						
-						<div class="schedule-details">
-							<div class="detail-item">
-								<strong>Класс:</strong> 
-								{scheduleItem.Class ? `${scheduleItem.Class.grade}${scheduleItem.Class.letter}` : 'N/A'}
-							</div>
-							<div class="detail-item">
-								<strong>Учитель:</strong> 
-								{scheduleItem.Teacher ? scheduleItem.Teacher.nameRu : 'N/A'}
-							</div>
-							<div class="detail-item">
-								<strong>Кабинет:</strong> {scheduleItem.roomRu}
-							</div>
-						</div>
-					</div>
-
-					<div class="schedule-actions">
-						<button class="btn btn-edit">Редактировать</button>
-						<button class="btn btn-danger" on:click={() => deleteSchedule(scheduleItem.id)}>Удалить</button>
-					</div>
-				</div>
-			{/each}
-		</div>
+		<Schedule 
+			{schedule}
+			on:itemClick={(event: CustomEvent<ScheduleType>) => {
+				console.log('Schedule item clicked:', event.detail);
+				// Здесь можно добавить логику для редактирования
+			}}
+			on:dateSelect={(event: CustomEvent<Date>) => {
+				console.log('Date selected:', event.detail);
+			}}
+			on:viewChange={(event: CustomEvent<'week' | 'day'>) => {
+				console.log('View changed:', event.detail);
+			}}
+		/>
 	{:else}
 		<EmptyState
 			title="Расписание пусто"
