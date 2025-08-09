@@ -178,6 +178,10 @@ class ApiClient {
 		});
 	}
 
+	async getNewsById(id: number): Promise<News> {
+		return this.request<News>(`/news/${id}`);
+	}
+
 	// Учителя
 	async getTeachers(schoolId?: number): Promise<Teacher[]> {
 		if (!schoolId) {
@@ -194,6 +198,14 @@ class ApiClient {
 
 	async getTeacher(id: number): Promise<Teacher> {
 		return this.request<Teacher>(`/teachers/${id}`);
+	}
+
+	async getTeacherBirthdays(schoolId: number) {
+		return this.request(`/teachers/birthdays/school/${schoolId}`);
+	}
+
+	async getTeacherSchedule(teacherId: number) {
+		return this.request(`/schedule/teacher/${teacherId}`);
 	}
 
 	async createTeacher(teacher: Omit<Teacher, 'id'>): Promise<Teacher> {

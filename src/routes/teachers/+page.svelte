@@ -165,13 +165,15 @@
 	{:else if teachers.length > 0}
 		<div class="grid-container grid-4">
 			{#each teachers as teacher}
-				<DataCard
-					data={teacher}
-					type="teacher"
-					showActions={true}
-					onEdit={() => console.log('Edit teacher:', teacher.id)}
-					onDelete={() => deleteTeacher(teacher.id)}
-				/>
+                <a href={`/teachers/${teacher.id}`} style="text-decoration:none;">
+                    <DataCard
+                        data={teacher}
+                        type="teacher"
+                        showActions={true}
+                        onEdit={() => console.log('Edit teacher:', teacher.id)}
+                        onDelete={() => deleteTeacher(teacher.id)}
+                    />
+                </a>
 			{/each}
 		</div>
 	{:else}

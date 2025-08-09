@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 
-	export let placeholder = 'Поиск...';
-	export let value = '';
-	export let disabled = false;
+  export let placeholder = 'Поиск...';
+  export let value = '';
+  export let disabled = false;
+  export let compact = false; // мобильный режим: свёрнут в иконку
 
 	const dispatch = createEventDispatcher<{
 		search: string;
 		clear: void;
 	}>();
 
-	let searchTimeout: NodeJS.Timeout;
+  let searchTimeout: NodeJS.Timeout;
+  let expanded = false; // для compact
 
 	function handleInput(event: Event) {
 		const target = event.target as HTMLInputElement;
@@ -35,36 +37,72 @@
 	}
 </script>
 
-<div class="header-search">
-	<div class="search-input-wrapper">
-		<div class="search-icon">🔍</div>
-		<input
-			type="text"
-			{placeholder}
-			{value}
-			{disabled}
-			class="search-input"
-			class:disabled={disabled}
-			on:input={handleInput}
-			on:keydown={handleKeyDown}
-		/>
-		{#if value}
-			<button
-				type="button"
-				class="clear-btn"
-				on:click={handleClear}
-				aria-label="Очистить поиск"
-			>
-				✕
-			</button>
-		{/if}
-	</div>
-</div>
+{#if compact}
+  <div class="header-search compact">
+    <button class="compact-btn" type="button" aria-label="Открыть поиск" on:click={() => (expanded = true)}>🔍</button>
+    {#if expanded}
+      <div class="mobile-search-overlay" role="dialog" aria-modal="true" tabindex="-1" on:click={() => (expanded = false)} on:keydown={(e: KeyboardEvent) => { if (e.key === 'Escape') expanded = false; }}>
+        <section class="mobile-search-panel" role="document" on:click|stopPropagation>
+          <div class="search-input-wrapper">
+            <div class="search-icon">🔍</div>
+            <input
+              type="search"
+              bind:value={value}
+              {placeholder}
+              {disabled}
+              class="search-input"
+              class:disabled={disabled}
+              on:input={handleInput}
+              on:keydown={handleKeyDown}
+              aria-label="Поиск по системе"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="search"
+              enterkeyhint="search"
+              
+            />
+            {#if value}
+              <button type="button" class="clear-btn" on:click={handleClear} aria-label="Очистить поиск">✕</button>
+            {/if}
+            <button type="button" class="close-btn" aria-label="Закрыть поиск" on:click={() => (expanded = false)}>✕</button>
+          </div>
+        </section>
+      </div>
+    {/if}
+  </div>
+{:else}
+  <div class="header-search">
+    <div class="search-input-wrapper">
+      <div class="search-icon">🔍</div>
+      <input
+        type="search"
+        bind:value={value}
+        {placeholder}
+        {disabled}
+        class="search-input"
+        class:disabled={disabled}
+        on:input={handleInput}
+        on:keydown={handleKeyDown}
+        aria-label="Поиск по системе"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        spellcheck="false"
+        inputmode="search"
+        enterkeyhint="search"
+      />
+      {#if value}
+        <button type="button" class="clear-btn" on:click={handleClear} aria-label="Очистить поиск">✕</button>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <style>
-	.header-search {
-		position: relative;
-	}
+  .header-search { position: relative; }
+  .header-search.compact { display: inline-flex; }
 
 	.search-input-wrapper {
 		position: relative;
@@ -121,17 +159,19 @@
 		transform: scale(1.1);
 	}
 
-	.search-input {
-		flex: 1;
-		border: none;
-		outline: none;
-		padding: 0.75rem 1rem;
-		font-size: 0.875rem;
-		background: transparent;
-		color: hsl(var(--foreground));
-		min-width: 200px;
-		font-weight: 500;
-	}
+    .search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        background: transparent;
+        color: hsl(var(--foreground));
+        min-width: 200px;
+        font-weight: 500;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
 
 	.search-input::placeholder {
 		color: hsl(var(--muted-foreground));
@@ -169,9 +209,31 @@
 		transform: scale(0.95);
 	}
 
-	@media (max-width: 768px) {
-		.search-input {
-			min-width: 150px;
-		}
-	}
+  /* Compact mode */
+  .compact-btn {
+    width: 40px; height: 40px;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--card));
+    color: hsl(var(--foreground));
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-search-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 10px;
+  }
+  .mobile-search-panel { width: 100%; max-width: 700px; }
+  .mobile-search-panel .search-input-wrapper { border-radius: 12px; }
+  .close-btn { background: none; border: none; padding: 0.75rem; color: hsl(var(--muted-foreground)); }
+
+    @media (max-width: 768px) {
+    .search-input { min-width: 0; }
+    .search-input-wrapper { padding-right: 0.25rem; }
+    .clear-btn { padding: 0.5rem; }
+    }
 </style>

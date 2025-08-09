@@ -192,31 +192,35 @@
 	<svelte:fragment slot="default">
 		{#if filteredNews.length > 0}
 			{#if currentView === 'grid'}
-				<div class="grid-container grid-3">
-					{#each filteredNews as item}
-						<DataCard
-							data={item}
-							type="news"
-							showActions={true}
-							onEdit={() => console.log('Edit news:', item.id)}
-							onDelete={() => deleteNews(item.id)}
-						/>
-					{/each}
-				</div>
+                <div class="grid-container grid-3">
+                    {#each filteredNews as item}
+                        <a href={`/news/${item.id}`} style="text-decoration:none;">
+                            <DataCard
+                                data={item}
+                                type="news"
+                                showActions={true}
+                                onEdit={() => console.log('Edit news:', item.id)}
+                                onDelete={() => deleteNews(item.id)}
+                            />
+                        </a>
+                    {/each}
+                </div>
 			{:else if currentView === 'list'}
-				<div class="list-container">
-					{#each filteredNews as item}
-						<div class="list-item">
-							<DataCard
-								data={item}
-								type="news"
-								showActions={true}
-								onEdit={() => console.log('Edit news:', item.id)}
-								onDelete={() => deleteNews(item.id)}
-							/>
-						</div>
-					{/each}
-				</div>
+                <div class="list-container">
+                    {#each filteredNews as item}
+                        <div class="list-item">
+                            <a href={`/news/${item.id}`} style="text-decoration:none; display:block;">
+                                <DataCard
+                                    data={item}
+                                    type="news"
+                                    showActions={true}
+                                    onEdit={() => console.log('Edit news:', item.id)}
+                                    onDelete={() => deleteNews(item.id)}
+                                />
+                            </a>
+                        </div>
+                    {/each}
+                </div>
 						{:else if currentView === 'calendar'}
 				<Schedule
 					schedule={[]}

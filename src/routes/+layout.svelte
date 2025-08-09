@@ -25,6 +25,7 @@
 		{ name: 'Главная', href: '/', icon: '🏠' },
 		{ name: 'Новости', href: '/news', icon: '📰' },
 		{ name: 'Учителя', href: '/teachers', icon: '👥' },
+		{ name: 'Дни рождения', href: '/teachers/birthdays', icon: '🎂' },
 		{ name: 'Доска почета', href: '/honor-board', icon: '🏆' },
 		{ name: 'Меню', href: '/canteen', icon: '🍽️' },
 		{ name: 'Расписание', href: '/schedule', icon: '📅' },
@@ -78,27 +79,32 @@
     {#if $authStore.isAuthenticated && !$page.url.pathname.startsWith('/login') && !$page.url.pathname.startsWith('/register')}
 		<!-- Sidebar for desktop -->
 		<div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-			<div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card/80 backdrop-blur-xl px-6 pb-4 shadow-xl">
-				<div class="flex h-16 shrink-0 items-center">
-					<h1 class="text-xl font-bold text-primary">Школьная система</h1>
+			<div class="sidebar-surface flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
+				<div class="sidebar-header">
+					<div class="brand">
+						{#if $authStore.schoolData?.logoUrl}
+							<img class="brand-logo" src={$authStore.schoolData.logoUrl} alt="Логотип школы" />
+						{:else}
+							<div class="brand-logo ph">🏫</div>
+						{/if}
+						<div class="brand-text">
+							<div class="brand-title">Школьная система</div>
+							<div class="brand-sub">{$authStore.schoolData?.nameRu || 'Добро пожаловать'}</div>
+						</div>
+					</div>
 				</div>
-				<nav class="flex flex-1 flex-col">
-					<ul role="list" class="flex flex-1 flex-col gap-y-7">
+				<nav class="flex flex-1 flex-col sidebar-nav">
+					<ul role="list" class="flex flex-1 flex-col gap-y-2">
 						<li>
 							<ul role="list" class="-mx-2 space-y-1">
 								{#each navigation as item}
 									<li>
 										<a
 											href={item.href}
-											class={cn(
-												$page.url.pathname === item.href
-													? 'bg-primary text-primary-foreground'
-													: 'text-muted-foreground hover:text-foreground hover:bg-accent',
-												'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-											)}
+											class="nav-item {$page.url.pathname === item.href ? 'active' : ''}"
 										>
-											<span class="text-lg">{item.icon}</span>
-											{item.name}
+											<span class="nav-icon">{item.icon}</span>
+											<span class="nav-text">{item.name}</span>
 										</a>
 									</li>
 								{/each}
@@ -139,11 +145,14 @@
 						<ul role="list" class="mobile-sidebar-menu">
 							{#each navigation as item}
 								<li>
-									<a
-										href={item.href}
-										class="mobile-sidebar-link {$page.url.pathname === item.href ? 'active' : ''}"
-										on:click={() => sidebarOpen = false}
-									>
+                                    <a
+                                        href={item.href}
+                                        class="mobile-sidebar-link {$page.url.pathname === item.href ? 'active' : ''}"
+                                        on:click={() => sidebarOpen = false}
+                                        role="button"
+                                        tabindex="0"
+                                        on:keydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { sidebarOpen = false; } }}
+                                    >
 										<span class="mobile-sidebar-icon">{item.icon}</span>
 										<span class="mobile-sidebar-text">{item.name}</span>
 									</a>
@@ -179,9 +188,9 @@
                     <div class="header-actions">
                         <Button class="btn-modern" on:click={openSchoolPage}>
                             <span class="btn-icon">🏫</span>
-                            Страница школы
+                            О школе
                         </Button>
-                        <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
                             {#if isDark}
                                 <span class="theme-icon">🌞</span>
                             {:else}
@@ -200,16 +209,17 @@
 			<!-- Mobile header -->
 			<div class="mobile-header">
                 <div class="mobile-header-content">
-					<Button variant="outline" size="icon" on:click={toggleSidebar} class="menu-btn">
-						<span>☰</span>
-					</Button>
-					<div class="mobile-search">
-						<HeaderSearch
-							placeholder="Поиск..."
-							on:search={handleSearch}
-							on:clear={handleSearchClear}
-						/>
-					</div>
+                    <button type="button" class="menu-btn" aria-label="Меню" on:click={toggleSidebar}>
+                        <span>☰</span>
+                    </button>
+                    <div class="mobile-search">
+                        <HeaderSearch
+                            placeholder="Поиск..."
+                            compact={true}
+                            on:search={handleSearch}
+                            on:clear={handleSearchClear}
+                        />
+                    </div>
                     <Button variant="outline" on:click={openSchoolPage}>
                         🏫
                     </Button>
@@ -295,6 +305,28 @@
 		gap: 1rem;
 	}
 
+  /* Fun Sidebar */
+  .sidebar-surface{
+    border-right: 1px solid hsl(var(--border));
+    background: linear-gradient(180deg, hsl(var(--card)/.9), hsl(var(--muted)/.3));
+    backdrop-filter: blur(18px);
+    box-shadow: inset -1px 0 0 hsl(var(--background)/.4), var(--shadow-xl);
+  }
+  .sidebar-header{ padding: 1rem 0 .5rem; position: relative; }
+  .brand{ display:flex; align-items:center; gap:.75rem; }
+  .brand-logo{ width:42px; height:42px; border-radius:10px; border:1px solid hsl(var(--border)); object-fit:cover; background:hsl(var(--background)); }
+  .brand-logo.ph{ display:flex; align-items:center; justify-content:center; font-size:1.1rem; }
+  .brand-text{ line-height:1.2; }
+  .brand-title{ font-weight:800; color:hsl(var(--foreground)); }
+  .brand-sub{ color:hsl(var(--muted-foreground)); font-size:.875rem; }
+
+  .sidebar-nav{ padding-top:.25rem; }
+  .nav-item{ display:flex; align-items:center; gap:.6rem; padding:.6rem .75rem; border-radius:.65rem; text-decoration:none; color:hsl(var(--muted-foreground)); transition: all .2s ease; position:relative; }
+  .nav-item:hover{ background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); transform: translateX(2px); }
+  .nav-item.active{ background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); box-shadow: var(--shadow-sm); }
+  .nav-icon{ font-size:1.1rem; width:1.5rem; text-align:center; }
+  .nav-text{ font-weight:700; }
+
 .theme-toggle {
     width: 40px;
     height: 40px;
@@ -371,9 +403,10 @@
 		max-width: 400px;
 	}
 
-	.mobile-search :global(.header-search) {
-		width: 100%;
-	}
+    .mobile-search :global(.header-search) { width: 100%; }
+    .mobile-search :global(input.search-input) {
+        font-size: 16px; /* prevents iOS zoom */
+    }
 
 	/* Mobile Sidebar Styles */
 	.mobile-sidebar-overlay {
