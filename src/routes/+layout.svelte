@@ -1,15 +1,25 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { authStore } from '$lib/stores/auth';
-	import { languageStore } from '$lib/stores/language';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
-	import HeaderSearch from '$lib/components/HeaderSearch.svelte';
-	import { cn } from '$lib/utils/cn';
-	import '../app.css';
+    import { page } from '$app/stores';
+    import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
+    import { authStore } from '$lib/stores/auth';
+    import { languageStore } from '$lib/stores/language';
+    import Button from '$lib/components/ui/button/button.svelte';
+    import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
+    import HeaderSearch from '$lib/components/HeaderSearch.svelte';
+    import { cn } from '$lib/utils/cn';
+    import '../app.css';
 
-	let sidebarOpen = false;
+    let sidebarOpen = false;
+    let isDark = false;
+
+    onMount(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('theme');
+            isDark = saved === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+        }
+    });
 
 	const navigation = [
 		{ name: 'Главная', href: '/', icon: '🏠' },
@@ -45,6 +55,18 @@
 		// Здесь можно добавить логику очистки поиска
 		console.log('Search cleared');
 	}
+
+    function toggleTheme() {
+        isDark = !isDark;
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.documentElement.classList.toggle('dark', isDark);
+        }
+    }
+
+    function openSchoolPage() {
+        goto('/school');
+    }
 </script>
 
 <svelte:head>
@@ -52,8 +74,8 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background">
-	<!-- Показываем навигацию только если пользователь авторизован -->
-	{#if $authStore.isAuthenticated}
+    <!-- Показываем навигацию только если пользователь авторизован и не на страницах авторизации -->
+    {#if $authStore.isAuthenticated && !$page.url.pathname.startsWith('/login') && !$page.url.pathname.startsWith('/register')}
 		<!-- Sidebar for desktop -->
 		<div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
 			<div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card/80 backdrop-blur-xl px-6 pb-4 shadow-xl">
@@ -96,7 +118,16 @@
 		<!-- Mobile sidebar -->
 		{#if sidebarOpen}
 			<div class="mobile-sidebar-overlay">
-				<div class="mobile-sidebar-backdrop" on:click={toggleSidebar}></div>
+                <div
+                    class="mobile-sidebar-backdrop"
+                    role="button"
+                    tabindex="0"
+                    aria-label="Закрыть меню"
+                    on:click={toggleSidebar}
+                    on:keydown={(e: KeyboardEvent) => {
+                        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') toggleSidebar();
+                    }}
+                ></div>
 				<div class="mobile-sidebar">
 					<div class="mobile-sidebar-header">
 						<h1 class="mobile-sidebar-title">Школьная система</h1>
@@ -144,8 +175,19 @@
 						/>
 					</div>
 				</div>
-				<div class="header-right">
-					<div class="header-actions">
+                <div class="header-right">
+                    <div class="header-actions">
+                        <Button class="btn-modern" on:click={openSchoolPage}>
+                            <span class="btn-icon">🏫</span>
+                            Страница школы
+                        </Button>
+                        <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+                            {#if isDark}
+                                <span class="theme-icon">🌞</span>
+                            {:else}
+                                <span class="theme-icon">🌙</span>
+                            {/if}
+                        </button>
 						<LanguageSwitch
 							language={$languageStore}
 							on:change={handleLanguageChange}
@@ -157,7 +199,7 @@
 
 			<!-- Mobile header -->
 			<div class="mobile-header">
-				<div class="mobile-header-content">
+                <div class="mobile-header-content">
 					<Button variant="outline" size="icon" on:click={toggleSidebar} class="menu-btn">
 						<span>☰</span>
 					</Button>
@@ -168,6 +210,16 @@
 							on:clear={handleSearchClear}
 						/>
 					</div>
+                    <Button variant="outline" on:click={openSchoolPage}>
+                        🏫
+                    </Button>
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+                        {#if isDark}
+                            <span class="theme-icon">🌞</span>
+                        {:else}
+                            <span class="theme-icon">🌙</span>
+                        {/if}
+                    </button>
 					<LanguageSwitch
 						language={$languageStore}
 						on:change={handleLanguageChange}
@@ -242,6 +294,31 @@
 		align-items: center;
 		gap: 1rem;
 	}
+
+.theme-toggle {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle:hover {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--ring));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.theme-icon {
+    font-size: 1rem;
+}
 
 	/* Mobile Header Styles */
 	.mobile-header {

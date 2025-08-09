@@ -323,22 +323,31 @@
 	padding-top: calc(70px + 2rem);
 }
 
-.page-header {
+ .page-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	flex-wrap: wrap;
 	row-gap: 1rem;
 	margin-bottom: 2.5rem;
-	border-bottom: 1px solid #e5e7eb;
+   border-bottom: 1px solid hsl(var(--border));
 	padding-bottom: 1.25rem;
 }
 
-.page-header h1 {
+ .page-header h1 {
 	margin: 0;
 	font-size: 2rem;
 	font-weight: 700;
-	color: #1f2937;
+   color: hsl(var(--foreground));
+}
+
+/* Gradient heading in dark theme */
+:global(.dark) .page-header h1 {
+  background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
 
 .page-actions {
@@ -360,22 +369,24 @@
 	padding: 0.6rem 1.2rem;
 }
 
-.btn-primary {
-	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-	color: white;
-	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
+ .btn-primary {
+   background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+   color: hsl(var(--primary-foreground));
+   box-shadow: var(--shadow-md);
+   border: 1px solid hsl(var(--ring) / 0.3);
+ }
 
 .btn-primary:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 }
 
-.add-btn {
-	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-	color: white;
-	box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-}
+ .add-btn {
+   background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+   color: hsl(var(--primary-foreground));
+   box-shadow: var(--shadow-md);
+   border: 1px solid hsl(var(--ring) / 0.3);
+ }
 
 .add-btn:hover {
 	transform: translateY(-2px);
@@ -387,20 +398,20 @@
 	margin-right: 0.4rem;
 }
 
-.loading-container {
+ .loading-container {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
 	min-height: 40vh;
 	gap: 1rem;
-	color: #6b7280;
+   color: hsl(var(--muted-foreground));
 	text-align: center;
 }
 
-.spinner {
-	border: 4px solid #e5e7eb;
-	border-top: 4px solid #6366f1;
+ .spinner {
+   border: 4px solid hsl(var(--muted));
+   border-top: 4px solid hsl(var(--primary));
 	border-radius: 50%;
 	width: 2.5rem;
 	height: 2.5rem;
@@ -416,12 +427,12 @@
 	}
 }
 
-.error-container {
+ .error-container {
 	text-align: center;
 	padding: 2rem;
-	color: #b91c1c;
-	background: #fef2f2;
-	border: 1px solid #fecaca;
+   color: hsl(var(--destructive));
+   background: hsl(var(--destructive) / 0.1);
+   border: 1px solid hsl(var(--destructive) / 0.3);
 	border-radius: 0.75rem;
 }
 
@@ -447,11 +458,13 @@
 	font-weight: 500;
 }
 
-.alert-error {
-	background-color: #fee2e2;
-	color: #b91c1c;
-	border: 1px solid #ef4444;
-}
+ .alert-error {
+   background-color: hsl(var(--destructive) / 0.1);
+   color: hsl(var(--destructive));
+   border: 1px solid hsl(var(--destructive) / 0.3);
+ }
+
+ /* form controls themed inside DataModal component */
 
 @media (max-width: 768px) {
 	.page-header {

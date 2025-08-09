@@ -253,21 +253,30 @@
 		padding-top: calc(70px + 2rem);
 	}
 
-	.page-header {
+    .page-header {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 2.5rem;
-		border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid hsl(var(--border));
 		padding-bottom: 1.25rem;
 	}
 
-	.page-header h1 {
+    .page-header h1 {
 		margin: 0;
 		font-size: 2rem;
 		font-weight: 700;
-		color: #1f2937;
+        color: hsl(var(--foreground));
 	}
+
+    /* Gradient heading in dark theme */
+    :global(.dark) .page-header h1 {
+        background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: transparent;
+    }
 
 	.page-actions {
 		display: flex;
@@ -288,31 +297,26 @@
 		padding: 0.6rem 1.2rem;
 	}
 
-	.btn-primary {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		color: white;
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-	}
+    .btn-primary {
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+        color: hsl(var(--primary-foreground));
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--ring) / 0.3);
+    }
 
 	.btn-primary:hover {
 		transform: translateY(-2px);
 		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
 	}
 
-	.btn-secondary {
-		background-color: #e5e7eb;
-		color: #374151;
-	}
+    /* removed unused .btn-secondary */
 
-	.btn-secondary:hover {
-		background-color: #d1d5db;
-	}
-
-	.add-btn {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		color: white;
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-	}
+    .add-btn {
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+        color: hsl(var(--primary-foreground));
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--ring) / 0.3);
+    }
 
 	.add-btn:hover {
 		transform: translateY(-2px);
@@ -324,20 +328,20 @@
 		margin-right: 0.5rem;
 	}
 
-	.loading-container {
+    .loading-container {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		min-height: 40vh;
 		gap: 1rem;
-		color: #6b7280;
+        color: hsl(var(--muted-foreground));
 		text-align: center;
 	}
 
-	.spinner {
-		border: 4px solid #e5e7eb;
-		border-top: 4px solid #6366f1;
+    .spinner {
+        border: 4px solid hsl(var(--muted));
+        border-top: 4px solid hsl(var(--primary));
 		border-radius: 50%;
 		width: 2.5rem;
 		height: 2.5rem;
@@ -353,18 +357,18 @@
 		}
 	}
 
-	.error-container {
+    .error-container {
 		text-align: center;
 		padding: 2rem;
-		color: #b91c1c;
-		background: #fef2f2;
-		border: 1px solid #fecaca;
+        color: hsl(var(--destructive));
+        background: hsl(var(--destructive) / 0.1);
+        border: 1px solid hsl(var(--destructive) / 0.3);
 		border-radius: 0.75rem;
 	}
 
-	.error-container h2 {
+    .error-container h2 {
 		margin: 0 0 1rem 0;
-		color: #b91c1c;
+        color: hsl(var(--destructive));
 	}
 
 	.error-container p {
@@ -394,27 +398,28 @@
 		margin-bottom: 1.5rem;
 	}
 
-	.form-group label {
+    .form-group label {
 		display: block;
 		margin-bottom: 0.5rem;
 		font-weight: 500;
-		color: #374151;
+        color: hsl(var(--foreground));
 	}
 
-	.form-select {
+    .form-select {
 		width: 100%;
 		padding: 0.75rem 1rem;
-		border: 2px solid #e5e7eb;
+        border: 1px solid hsl(var(--border));
 		border-radius: 0.5rem;
 		font-size: 1rem;
 		transition: border-color 0.2s ease;
-		background: white;
-		color: #374151;
+        background: hsl(var(--card));
+        color: hsl(var(--foreground));
 	}
 
-	.form-select:focus {
+    .form-select:focus {
 		outline: none;
-		border-color: #6366f1;
+        border-color: hsl(var(--ring));
+        box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
 	}
 
 	.alert {
@@ -430,13 +435,5 @@
 		border: 1px solid #ef4444;
 	}
 
-	.loading-spinner {
-		width: 1rem;
-		height: 1rem;
-		border: 2px solid transparent;
-		border-top: 2px solid currentColor;
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-		margin-right: 0.5rem;
-	}
+    /* removed unused .loading-spinner */
 </style> 

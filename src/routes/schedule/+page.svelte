@@ -234,7 +234,7 @@
 					required
 					class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 				/>
-			</div>
+						</div>
 
 			<div>
 				<label for="endTime" class="block text-sm font-medium mb-2 text-gray-700">
@@ -247,9 +247,9 @@
 					required
 					class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 				/>
-			</div>
-		</div>
-
+						</div>
+					</div>
+					
 		<div>
 			<label for="subjectRu" class="block text-sm font-medium mb-2 text-gray-700">
 				Предмет (Русский) *
@@ -262,8 +262,8 @@
 				placeholder="Введите предмет на русском"
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
-		</div>
-
+						</div>
+						
 		<div>
 			<label for="subjectKz" class="block text-sm font-medium mb-2 text-gray-700">
 				Предмет (Казахский) *
@@ -276,7 +276,7 @@
 				placeholder="Введите предмет на казахском"
 				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 			/>
-		</div>
+							</div>
 
 		<div class="grid grid-cols-2 gap-4">
 			<div>
@@ -294,7 +294,7 @@
 						<option value={teacher.id}>{teacher.nameRu}</option>
 					{/each}
 				</select>
-			</div>
+							</div>
 
 			<div>
 				<label for="classId" class="block text-sm font-medium mb-2 text-gray-700">
@@ -311,8 +311,8 @@
 						<option value={classItem.id}>{classItem.grade}{classItem.letter}</option>
 					{/each}
 				</select>
-			</div>
-		</div>
+						</div>
+					</div>
 
 		<div class="grid grid-cols-2 gap-4">
 			<div>
@@ -341,9 +341,9 @@
 					placeholder="101 кабинет"
 					class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
 				/>
-			</div>
+					</div>
+				</div>
 		</div>
-	</div>
 </DataModal>
 
 <style>
@@ -361,7 +361,7 @@
 		flex-wrap: wrap;
 		row-gap: 1rem;
 		margin-bottom: 2.5rem;
-		border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid hsl(var(--border));
 		padding-bottom: 1.25rem;
 	}
 
@@ -369,7 +369,16 @@
 		margin: 0;
 		font-size: 2rem;
 		font-weight: 700;
-		color: #1f2937;
+        color: hsl(var(--foreground));
+	}
+
+	/* Gradient heading in dark theme */
+	:global(.dark) .page-header h1 {
+		background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+		color: transparent;
 	}
 
 	.page-actions {
@@ -391,11 +400,12 @@
 		padding: 0.6rem 1.2rem;
 	}
 
-	.btn-primary {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		color: white;
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-	}
+    .btn-primary {
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+        color: hsl(var(--primary-foreground));
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--ring) / 0.3);
+    }
 
 	.btn-primary:hover {
 		transform: translateY(-2px);
@@ -420,11 +430,12 @@
 		background-color: #dc2626;
 	}
 
-	.add-btn {
-		background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-		color: white;
-		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-	}
+    .add-btn {
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+        color: hsl(var(--primary-foreground));
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--ring) / 0.3);
+    }
 
 	.add-btn:hover {
 		transform: translateY(-2px);
@@ -443,13 +454,13 @@
 		justify-content: center;
 		min-height: 40vh;
 		gap: 1rem;
-		color: #6b7280;
+        color: hsl(var(--muted-foreground));
 		text-align: center;
 	}
 
-	.spinner {
-		border: 4px solid #e5e7eb;
-		border-top: 4px solid #6366f1;
+    .spinner {
+        border: 4px solid hsl(var(--muted));
+        border-top: 4px solid hsl(var(--primary));
 		border-radius: 50%;
 		width: 2.5rem;
 		height: 2.5rem;
@@ -468,9 +479,9 @@
 	.error-container {
 		text-align: center;
 		padding: 2rem;
-		color: #b91c1c;
-		background: #fef2f2;
-		border: 1px solid #fecaca;
+        color: hsl(var(--destructive));
+        background: hsl(var(--destructive) / 0.1);
+        border: 1px solid hsl(var(--destructive) / 0.3);
 		border-radius: 0.75rem;
 	}
 
@@ -490,11 +501,11 @@
 	}
 
 	.schedule-card {
-		background: #ffffff;
-		border-radius: 1rem;
-		overflow: hidden;
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-		border: 1px solid #f3f4f6;
+        background: hsl(var(--card));
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--border));
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		display: flex;
 		flex-direction: column;
@@ -512,18 +523,18 @@
 		justify-content: space-between;
 		align-items: center;
 		padding-bottom: 1rem;
-		border-bottom: 1px solid #e5e7eb;
+        border-bottom: 1px solid hsl(var(--border));
 	}
 
 	.schedule-date {
 		font-weight: 600;
-		color: #374151;
+        color: hsl(var(--foreground));
 		font-size: 1.125rem;
 	}
 
 	.schedule-time {
 		font-weight: bold;
-		color: #6366f1;
+        color: hsl(var(--primary));
 		font-size: 1rem;
 	}
 
@@ -533,7 +544,7 @@
 
 	.schedule-subject h3 {
 		margin: 0 0 1rem 0;
-		color: #1f2937;
+        color: hsl(var(--foreground));
 		font-size: 1.25rem;
 		font-weight: 600;
 	}
@@ -547,18 +558,18 @@
 
 	.detail-item {
 		font-size: 0.875rem;
-		color: #6b7280;
+        color: hsl(var(--muted-foreground));
 	}
 
 	.detail-item strong {
-		color: #374151;
+        color: hsl(var(--foreground));
 	}
 
 	.schedule-actions {
 		display: flex;
 		gap: 0.5rem;
 		padding-top: 1rem;
-		border-top: 1px solid #e5e7eb;
+        border-top: 1px solid hsl(var(--border));
 	}
 
 	.alert {
@@ -568,10 +579,26 @@
 		font-weight: 500;
 	}
 
-	.alert-error {
-		background-color: #fee2e2;
-		color: #b91c1c;
-		border: 1px solid #ef4444;
+    .alert-error {
+        background-color: hsl(var(--destructive) / 0.1);
+        color: hsl(var(--destructive));
+        border: 1px solid hsl(var(--destructive) / 0.3);
+    }
+
+    /* Dark-theme friendly form controls */
+    .schedule-page input,
+    .schedule-page textarea,
+    .schedule-page select {
+        background: hsl(var(--card));
+        color: hsl(var(--foreground));
+        border: 1px solid hsl(var(--border));
+    }
+    .schedule-page input:focus,
+    .schedule-page textarea:focus,
+    .schedule-page select:focus {
+        outline: none;
+        border-color: hsl(var(--ring));
+        box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
 	}
 
 	@media (max-width: 768px) {
