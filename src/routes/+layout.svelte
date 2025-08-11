@@ -155,6 +155,15 @@
 						</li>
 						
 						<li>
+							<a href="/school" class="sidebar-school-link">
+								<Button variant="outline" class="w-full justify-start">
+									<span class="mr-2">🌐</span>
+									Сайт школы
+								</Button>
+							</a>
+						</li>
+						
+						<li>
 							<Button variant="outline" class="w-full justify-start" on:click={logout}>
 								<span class="mr-2">🚪</span>
 								Выйти
@@ -216,6 +225,11 @@
 									<span class="mobile-sidebar-text">{t('navigation.adminMode', $languageStore)}</span>
 								</button>
 							{/if}
+							
+							<a href="/school" class="mobile-sidebar-school">
+								<span class="mobile-sidebar-icon">🌐</span>
+								<span class="mobile-sidebar-text">Сайт школы</span>
+							</a>
 							
 							<button class="mobile-sidebar-logout" on:click={logout}>
 								<span class="mobile-sidebar-icon">🚪</span>
@@ -612,6 +626,32 @@
 	.mobile-sidebar-logout:hover {
 		background: hsl(var(--destructive));
 		color: hsl(var(--destructive-foreground));
+	}
+
+	.sidebar-school-link {
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.mobile-sidebar-school {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: none;
+		border: none;
+		border-radius: 0.5rem;
+		color: hsl(var(--muted-foreground));
+		text-decoration: none;
+		transition: all 0.2s ease;
+		font-weight: 500;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-school:hover {
+		background: hsl(var(--primary) / 0.1);
+		color: hsl(var(--primary));
 	}
 
 	.mobile-sidebar-admin {
