@@ -8,11 +8,14 @@
     import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
     import HeaderSearch from '$lib/components/HeaderSearch.svelte';
     import ToastContainer from '$lib/components/ToastContainer.svelte';
+    import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
+    import { adminStore } from '$lib/stores/admin';
     import { cn } from '$lib/utils/cn';
     import '../app.css';
 
     let sidebarOpen = false;
     let isDark = false;
+    let showAdminModal = false;
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -46,6 +49,18 @@
 
 	function handleLanguageChange(event: CustomEvent<'ru' | 'kz'>) {
 		languageStore.set(event.detail);
+	}
+
+	function openAdminModal() {
+		showAdminModal = true;
+	}
+
+	function closeAdminModal() {
+		showAdminModal = false;
+	}
+
+	function exitAdminMode() {
+		adminStore.exitAdminMode();
 	}
 
 	function handleSearch(event: CustomEvent<string>) {
@@ -111,7 +126,22 @@
 								{/each}
 							</ul>
 						</li>
+						<!-- Admin controls -->
 						<li class="mt-auto">
+							{#if $adminStore.isAdminMode}
+								<Button variant="destructive" class="w-full justify-start mb-2" on:click={exitAdminMode}>
+									<span class="mr-2">🔒</span>
+									Выйти из режима админа
+								</Button>
+							{:else}
+								<Button variant="secondary" class="w-full justify-start mb-2 admin-btn" on:click={openAdminModal}>
+									<span class="mr-2">🔐</span>
+									Войти как администратор
+								</Button>
+							{/if}
+						</li>
+						
+						<li>
 							<Button variant="outline" class="w-full justify-start" on:click={logout}>
 								<span class="mr-2">🚪</span>
 								Выйти
@@ -161,6 +191,19 @@
 							{/each}
 						</ul>
 						<div class="mobile-sidebar-footer">
+							<!-- Admin controls for mobile -->
+							{#if $adminStore.isAdminMode}
+								<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
+									<span class="mobile-sidebar-icon">🔒</span>
+									<span class="mobile-sidebar-text">Выйти из режима админа</span>
+								</button>
+							{:else}
+								<button class="mobile-sidebar-admin" on:click={openAdminModal}>
+									<span class="mobile-sidebar-icon">🔐</span>
+									<span class="mobile-sidebar-text">Войти как администратор</span>
+								</button>
+							{/if}
+							
 							<button class="mobile-sidebar-logout" on:click={logout}>
 								<span class="mobile-sidebar-icon">🚪</span>
 								<span class="mobile-sidebar-text">Выйти</span>
@@ -255,6 +298,9 @@
 
 <!-- Toast notifications -->
 <ToastContainer />
+
+<!-- Admin login modal -->
+<AdminLoginModal bind:open={showAdminModal} on:close={closeAdminModal} />
 
 <style>
 	/* Desktop Header Styles */
@@ -553,6 +599,62 @@
 	.mobile-sidebar-logout:hover {
 		background: hsl(var(--destructive));
 		color: hsl(var(--destructive-foreground));
+	}
+
+	.mobile-sidebar-admin {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+		color: white;
+		border: none;
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-admin:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+	}
+
+	.mobile-sidebar-admin-exit {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+		border: none;
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-admin-exit:hover {
+		background: hsl(var(--destructive) / 0.9);
+		transform: translateY(-1px);
+		box-shadow: var(--shadow-md);
+	}
+
+	/* Admin Button Styles */
+	:global(.admin-btn) {
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(139, 92, 246, 0.4) !important;
+		box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3) !important;
+	}
+
+	:global(.admin-btn:hover) {
+		transform: translateY(-2px) !important;
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4) !important;
 	}
 
 	/* Enhanced Button Styles */

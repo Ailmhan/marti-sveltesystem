@@ -10,6 +10,7 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 
 	let sections: Section[] = [];
 	let loading = false;
@@ -230,10 +231,12 @@
 	<div class="page-header">
 		<h1>Секции школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить секцию
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить секцию
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -254,7 +257,7 @@
 				<DataCard
 					data={section}
 					type="section"
-					showActions={true}
+					showActions={$adminStore.isAdminMode}
 					onEdit={() => openEditModal(section)}
 					onDelete={() => deleteSection(section.id)}
 				/>
@@ -265,8 +268,8 @@
 			title="Секций пока нет"
 			description="Добавьте первую секцию в систему!"
 			icon="🎨"
-			buttonText="Добавить секцию"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? "Добавить секцию" : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
 </div>

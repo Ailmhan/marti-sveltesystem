@@ -8,6 +8,7 @@
     import NewsSlider from '$lib/components/NewsSlider.svelte';
     import EditModal from '$lib/components/EditModal.svelte';
     import ImageUpload from '$lib/components/ImageUpload.svelte';
+    import { adminStore } from '$lib/stores/admin';
 
 	onMount(() => {
 		// Простая проверка: если не авторизован - перенаправляем на логин
@@ -287,10 +288,12 @@
 				<div class="section-icon">🏫</div>
 				<h2 class="section-title">Информация о школе</h2>
 				<p class="section-subtitle">Подробная информация о вашем учебном заведении</p>
-				<button class="btn btn-edit" on:click={openEditSchoolModal}>
-					<span class="btn-icon">✏️</span>
-					Редактировать
-				</button>
+				{#if $adminStore.isAdminMode}
+					<button class="btn btn-edit" on:click={openEditSchoolModal}>
+						<span class="btn-icon">✏️</span>
+						Редактировать
+					</button>
+				{/if}
 			</div>
 			<div class="info-card">
 				<div class="info-grid">

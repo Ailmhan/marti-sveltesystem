@@ -10,6 +10,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -242,10 +243,12 @@
 	<div class="page-header">
 		<h1>Учителя школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openAddModal}>
-				<span class="btn-icon">➕</span>
-				Добавить учителя
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openAddModal}>
+					<span class="btn-icon">➕</span>
+					Добавить учителя
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -267,7 +270,7 @@
                     <DataCard
                         data={teacher}
                         type="teacher"
-                        showActions={true}
+                        showActions={$adminStore.isAdminMode}
                         onEdit={() => openEditModal(teacher)}
                         onDelete={() => deleteTeacher(teacher.id)}
                     />
@@ -279,8 +282,8 @@
 			title="Учителей пока нет"
 			description="Добавьте первого учителя в систему!"
 			icon="👥"
-			buttonText="Добавить учителя"
-			onAction={openAddModal}
+			buttonText={$adminStore.isAdminMode ? "Добавить учителя" : null}
+			onAction={$adminStore.isAdminMode ? openAddModal : null}
 		/>
 	{/if}
 </div>

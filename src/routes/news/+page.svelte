@@ -10,6 +10,7 @@
 	import DataPage from '$lib/components/DataPage.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
 	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
 	import { 
@@ -270,10 +271,12 @@
 			let:pageState
 		>
 	<svelte:fragment slot="actions">
-		<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
-			<span class="btn-icon">➕</span>
-			Добавить новость
-		</button>
+		{#if $adminStore.isAdminMode}
+			<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
+				<span class="btn-icon">➕</span>
+				Добавить новость
+			</button>
+		{/if}
 	</svelte:fragment>
 
 	<svelte:fragment slot="default">
@@ -285,7 +288,7 @@
                             <DataCard
                                 data={item}
                                 type="news"
-                                showActions={true}
+                                showActions={$adminStore.isAdminMode}
                                 onEdit={() => openEditModal(item)}
                                 onDelete={() => deleteNews(item.id)}
                             />
@@ -300,7 +303,7 @@
                                 <DataCard
                                     data={item}
                                     type="news"
-                                    showActions={true}
+                                    showActions={$adminStore.isAdminMode}
                                     onEdit={() => openEditModal(item)}
                                     onDelete={() => deleteNews(item.id)}
                                 />
@@ -337,8 +340,8 @@
 				title="Новостей пока нет"
 				description="Добавьте первую новость в систему!"
 				icon="📰"
-				buttonText="Добавить новость"
-				onAction={openModal}
+				buttonText={$adminStore.isAdminMode ? "Добавить новость" : null}
+				onAction={$adminStore.isAdminMode ? openModal : null}
 			/>
 		{/if}
 	</svelte:fragment>

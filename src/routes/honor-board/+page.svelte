@@ -10,6 +10,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 
 	let honorBoard: HonorBoard[] = [];
 	let loading = false;
@@ -221,10 +222,12 @@
 	<div class="page-header">
 		<h1>Доска почета школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить ученика
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить ученика
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -244,8 +247,8 @@
 			title="Доска почета пуста"
 			description="Пока нет записей о достижениях учеников"
 			icon="🏆"
-			buttonText="Добавить первого ученика"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? "Добавить первого ученика" : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{:else}
 		<div class="grid-container grid-3">
@@ -253,7 +256,7 @@
 				<DataCard
 					data={item}
 					type="honor-board"
-					showActions={true}
+					showActions={$adminStore.isAdminMode}
 					onEdit={() => openEditModal(item)}
 					onDelete={() => deleteHonorBoard(item.id)}
 				/>

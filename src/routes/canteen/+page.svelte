@@ -13,6 +13,7 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { uploadToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
 	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 
 	let menus: CanteenMenu[] = [];
 	let loading = false;
@@ -248,10 +249,12 @@
 	<div class="page-header">
 		<h1>Меню столовой</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить меню
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить меню
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -272,7 +275,7 @@
 				<DataCard
 					data={menu}
 					type="canteen"
-					showActions={true}
+					showActions={$adminStore.isAdminMode}
 					onEdit={() => openEditModal(menu)}
 					onDelete={() => deleteMenu(menu.id)}
 				/>
@@ -283,8 +286,8 @@
 			title="Меню пока нет"
 			description="Добавьте первое меню в систему!"
 			icon="🍽️"
-			buttonText="Добавить меню"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? "Добавить меню" : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
 </div>
