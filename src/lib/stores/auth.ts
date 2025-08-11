@@ -50,7 +50,13 @@ function createAuthStore() {
 			localStorage.removeItem('authToken');
 			set({ token: null, isAuthenticated: false, schoolId: null, schoolData: null });
 		},
-		loadSchoolData
+		loadSchoolData,
+		updateSchoolData: (newSchoolData: any) => {
+			update(state => ({
+				...state,
+				schoolData: newSchoolData
+			}));
+		}
 	};
 }
 

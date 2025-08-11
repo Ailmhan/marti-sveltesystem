@@ -4,8 +4,10 @@
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
     import { apiClient } from '$lib/api/client';
-    import type { News } from '$lib/types/api';
+    import type { News, School } from '$lib/types/api';
     import NewsSlider from '$lib/components/NewsSlider.svelte';
+    import EditModal from '$lib/components/EditModal.svelte';
+    import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	onMount(() => {
 		// Простая проверка: если не авторизован - перенаправляем на логин
@@ -18,6 +20,22 @@
     let latestLoading = false;
     let latestError = '';
     let lastLoadedSchoolId: number | null = null;
+
+    // School edit state
+    let showEditSchoolModal = false;
+    let editSchoolModalError = '';
+    let editSchoolModalLoading = false;
+
+    let editSchoolData = {
+        nameRu: '',
+        nameKz: '',
+        email: '',
+        addressRu: '',
+        addressKz: '',
+        descriptionRu: '',
+        descriptionKz: '',
+        logoUrl: undefined as string | undefined
+    };
 
     async function loadLatest() {
         if (!$authStore.schoolId) return;
@@ -43,6 +61,77 @@
 
     $: if ($authStore.schoolId && $authStore.schoolId !== lastLoadedSchoolId && !latestLoading) {
         loadLatest();
+    }
+
+    // School edit functions
+    function openEditSchoolModal() {
+        if ($authStore.schoolData) {
+            editSchoolData = {
+                nameRu: $authStore.schoolData.nameRu || '',
+                nameKz: $authStore.schoolData.nameKz || '',
+                email: $authStore.schoolData.email || '',
+                addressRu: $authStore.schoolData.addressRu || '',
+                addressKz: $authStore.schoolData.addressKz || '',
+                descriptionRu: $authStore.schoolData.descriptionRu || '',
+                descriptionKz: $authStore.schoolData.descriptionKz || '',
+                logoUrl: $authStore.schoolData.logoUrl
+            };
+            showEditSchoolModal = true;
+            editSchoolModalError = '';
+        }
+    }
+
+    function closeEditSchoolModal() {
+        showEditSchoolModal = false;
+        editSchoolModalError = '';
+        editSchoolModalLoading = false;
+        editSchoolData = {
+            nameRu: '',
+            nameKz: '',
+            email: '',
+            addressRu: '',
+            addressKz: '',
+            descriptionRu: '',
+            descriptionKz: '',
+            logoUrl: undefined
+        };
+    }
+
+    async function updateSchoolData() {
+        if (!$authStore.schoolData?.id) {
+            editSchoolModalError = 'Ошибка: ID школы не найден';
+            return;
+        }
+
+        // Валидация
+        if (!editSchoolData.nameRu.trim() || !editSchoolData.nameKz.trim() || !editSchoolData.email.trim()) {
+            editSchoolModalError = 'Название школы и email обязательны для заполнения';
+            return;
+        }
+
+        try {
+            editSchoolModalError = '';
+            editSchoolModalLoading = true;
+            
+            const updatedSchool = await apiClient.updateSchool($authStore.schoolData.id, editSchoolData);
+            
+            // Обновляем данные в authStore
+            authStore.updateSchoolData(updatedSchool);
+            
+            // Закрываем модальное окно после успешного сохранения
+            closeEditSchoolModal();
+        } catch (err) {
+            console.error('Error updating school data:', err);
+            editSchoolModalError = err instanceof Error ? err.message : 'Ошибка обновления данных школы';
+            editSchoolModalLoading = false;
+        }
+    }
+
+    function handleEditImageChange(event: CustomEvent) {
+        const url = event.detail.value;
+        if (url) {
+            editSchoolData.logoUrl = url;
+        }
     }
 </script>
 
@@ -198,6 +287,10 @@
 				<div class="section-icon">🏫</div>
 				<h2 class="section-title">Информация о школе</h2>
 				<p class="section-subtitle">Подробная информация о вашем учебном заведении</p>
+				<button class="btn btn-edit" on:click={openEditSchoolModal}>
+					<span class="btn-icon">✏️</span>
+					Редактировать
+				</button>
 			</div>
 			<div class="info-card">
 				<div class="info-grid">
@@ -239,6 +332,135 @@
 	{/if}
 	</div>
 </div>
+
+<!-- Модальное окно редактирования данных школы -->
+<EditModal
+	bind:open={showEditSchoolModal}
+	title="Редактировать информацию о школе"
+	loading={editSchoolModalLoading}
+	on:close={closeEditSchoolModal}
+	on:submit={updateSchoolData}
+>
+	<div class="space-y-4">
+		{#if editSchoolModalError}
+			<div class="alert alert-error">
+				{editSchoolModalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editNameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Название школы (Русский) *
+			</label>
+			<input
+				id="editNameRu"
+				type="text"
+				bind:value={editSchoolData.nameRu}
+				required
+				placeholder="Введите название школы на русском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editNameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Название школы (Казахский) *
+			</label>
+			<input
+				id="editNameKz"
+				type="text"
+				bind:value={editSchoolData.nameKz}
+				required
+				placeholder="Введите название школы на казахском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editEmail" class="block text-sm font-medium mb-2 text-gray-700">
+				Email школы *
+			</label>
+			<input
+				id="editEmail"
+				type="email"
+				bind:value={editSchoolData.email}
+				required
+				placeholder="school@example.com"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editAddressRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Адрес (Русский)
+			</label>
+			<input
+				id="editAddressRu"
+				type="text"
+				bind:value={editSchoolData.addressRu}
+				placeholder="Введите адрес на русском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editAddressKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Адрес (Казахский)
+			</label>
+			<input
+				id="editAddressKz"
+				type="text"
+				bind:value={editSchoolData.addressKz}
+				placeholder="Введите адрес на казахском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editDescriptionRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание (Русский)
+			</label>
+			<textarea
+				id="editDescriptionRu"
+				bind:value={editSchoolData.descriptionRu}
+				rows={3}
+				placeholder="Введите описание школы на русском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
+
+		<div>
+			<label for="editDescriptionKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание (Казахский)
+			</label>
+			<textarea
+				id="editDescriptionKz"
+				bind:value={editSchoolData.descriptionKz}
+				rows={3}
+				placeholder="Введите описание школы на казахском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
+
+		<div>
+			<label for="edit-school-logo-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Логотип школы
+			</label>
+			<ImageUpload
+				id="edit-school-logo-upload"
+				bind:value={editSchoolData.logoUrl}
+				folder="school"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editSchoolModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editSchoolModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
     .dashboard {
@@ -497,6 +719,49 @@
         margin: 2rem 0 1.25rem 0;
         padding-bottom: 0.5rem;
         border-bottom: 1px solid hsl(var(--border));
+        position: relative;
+    }
+
+    .btn-edit {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 68%) 100%);
+        color: hsl(var(--primary-foreground));
+        border: none;
+        border-radius: 0.6rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-md);
+        border: 1px solid hsl(var(--ring) / 0.3);
+    }
+
+    .btn-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-icon {
+        font-size: 1rem;
+    }
+
+    .alert {
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        font-weight: 500;
+    }
+
+    .alert-error {
+        background-color: hsl(var(--destructive) / 0.1);
+        color: hsl(var(--destructive));
+        border: 1px solid hsl(var(--destructive) / 0.3);
     }
 
     .section-icon {
@@ -776,5 +1041,11 @@
         .modules-grid { grid-template-columns: 1fr; }
 
         .module-card { padding: 1.25rem; }
+
+        .btn-edit {
+            position: static;
+            margin-top: 1rem;
+            align-self: flex-start;
+        }
 	}
 </style>
