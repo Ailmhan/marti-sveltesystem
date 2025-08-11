@@ -14,6 +14,8 @@
 	import { uploadToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
 	import { toastStore } from '$lib/stores/toast';
 	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let menus: CanteenMenu[] = [];
 	let loading = false;
@@ -247,12 +249,12 @@
 
 <div class="canteen-page">
 	<div class="page-header">
-		<h1>Меню столовой</h1>
+		<h1>{t('pageHeaders.canteen', $languageStore)}</h1>
 		<div class="page-actions">
 			{#if $adminStore.isAdminMode}
 				<button class="btn btn-primary add-btn" on:click={openModal}>
 					<span class="btn-icon">➕</span>
-					Добавить меню
+					{t('buttons.addMenu', $languageStore)}
 				</button>
 			{/if}
 		</div>
@@ -283,10 +285,10 @@
 		</div>
 	{:else}
 		<EmptyState
-			title="Меню пока нет"
-			description="Добавьте первое меню в систему!"
+			title={t('emptyStates.canteen.title', $languageStore)}
+			description={t('emptyStates.canteen.description', $languageStore)}
 			icon="🍽️"
-			buttonText={$adminStore.isAdminMode ? "Добавить меню" : null}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.canteen.buttonText', $languageStore) : null}
 			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
@@ -295,7 +297,7 @@
 <!-- Модальное окно добавления меню -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить меню"
+	title={t('modalTitles.addMenu', $languageStore)}
 	loading={false}
 	on:close={closeModal}
 	on:submit={addMenu}

@@ -11,6 +11,8 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -241,12 +243,12 @@
 
 <div class="teachers-page">
 	<div class="page-header">
-		<h1>Учителя школы</h1>
+		<h1>{t('pageHeaders.teachers', $languageStore)}</h1>
 		<div class="page-actions">
 			{#if $adminStore.isAdminMode}
 				<button class="btn btn-primary add-btn" on:click={openAddModal}>
 					<span class="btn-icon">➕</span>
-					Добавить учителя
+					{t('buttons.addTeacher', $languageStore)}
 				</button>
 			{/if}
 		</div>
@@ -279,10 +281,10 @@
 		</div>
 	{:else}
 		<EmptyState
-			title="Учителей пока нет"
-			description="Добавьте первого учителя в систему!"
+			title={t('emptyStates.teachers.title', $languageStore)}
+			description={t('emptyStates.teachers.description', $languageStore)}
 			icon="👥"
-			buttonText={$adminStore.isAdminMode ? "Добавить учителя" : null}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.teachers.buttonText', $languageStore) : null}
 			onAction={$adminStore.isAdminMode ? openAddModal : null}
 		/>
 	{/if}
@@ -291,7 +293,7 @@
 <!-- Модальное окно добавления учителя -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить учителя"
+	title={t('modalTitles.addTeacher', $languageStore)}
 	loading={modalLoading}
 	on:close={closeAddModal}
 	on:submit={addTeacher}

@@ -11,6 +11,8 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let sections: Section[] = [];
 	let loading = false;
@@ -229,12 +231,12 @@
 
 <div class="sections-page">
 	<div class="page-header">
-		<h1>Секции школы</h1>
+		<h1>{t('pageHeaders.sections', $languageStore)}</h1>
 		<div class="page-actions">
 			{#if $adminStore.isAdminMode}
 				<button class="btn btn-primary add-btn" on:click={openModal}>
 					<span class="btn-icon">➕</span>
-					Добавить секцию
+					{t('buttons.addSection', $languageStore)}
 				</button>
 			{/if}
 		</div>
@@ -265,10 +267,10 @@
 		</div>
 	{:else}
 		<EmptyState
-			title="Секций пока нет"
-			description="Добавьте первую секцию в систему!"
+			title={t('emptyStates.sections.title', $languageStore)}
+			description={t('emptyStates.sections.description', $languageStore)}
 			icon="🎨"
-			buttonText={$adminStore.isAdminMode ? "Добавить секцию" : null}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.sections.buttonText', $languageStore) : null}
 			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
@@ -277,7 +279,7 @@
 <!-- Модальное окно добавления секции -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить секцию"
+	title={t('modalTitles.addSection', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addSection}

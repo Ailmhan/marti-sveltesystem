@@ -1,29 +1,35 @@
 <script lang="ts">
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
+	
 	export let data: any;
 	export let type: string;
-	export let language: 'ru' | 'kz' = 'ru';
+	export let language: 'ru' | 'kz' | null = null;
 	export let showActions = false;
 	export let onEdit = () => {};
 	export let onDelete = () => {};
 
+	// Используем languageStore если language не передан
+	$: currentLanguage = language || $languageStore;
+
 	$: title = type === 'news' 
-		? (language === 'ru' ? data.titleRu : data.titleKz)
+		? (currentLanguage === 'ru' ? data.titleRu : data.titleKz)
 		: type === 'teacher' 
-		? (language === 'ru' ? data.nameRu : data.nameKz)
+		? (currentLanguage === 'ru' ? data.nameRu : data.nameKz)
 		: type === 'honor-board'
-		? (language === 'ru' ? data.nameRu : data.nameKz)
+		? (currentLanguage === 'ru' ? data.nameRu : data.nameKz)
 		: data.name || data.title;
 
 	$: content = type === 'news' 
-		? (language === 'ru' ? data.contentRu : data.contentKz)
+		? (currentLanguage === 'ru' ? data.contentRu : data.contentKz)
 		: type === 'teacher' 
-		? (language === 'ru' ? data.subjectRu : data.subjectKz)
+		? (currentLanguage === 'ru' ? data.subjectRu : data.subjectKz)
 		: type === 'honor-board'
-		? (language === 'ru' ? data.descriptionRu : data.descriptionKz)
+		? (currentLanguage === 'ru' ? data.descriptionRu : data.descriptionKz)
 		: type === 'section'
-		? (language === 'ru' ? data.scheduleRu : data.scheduleKz)
+		? (currentLanguage === 'ru' ? data.scheduleRu : data.scheduleKz)
 		: type === 'canteen'
-		? `Завтрак: ${language === 'ru' ? data.dishesRu?.breakfast : data.dishesKz?.breakfast}\nОбед: ${language === 'ru' ? data.dishesRu?.lunch : data.dishesKz?.lunch}\nУжин: ${language === 'ru' ? data.dishesRu?.dinner : data.dishesKz?.dinner}`
+		? `${t('meals.breakfast', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.breakfast : data.dishesKz?.breakfast}\n${t('meals.lunch', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.lunch : data.dishesKz?.lunch}\n${t('meals.dinner', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.dinner : data.dishesKz?.dinner}`
 		: data.content || data.description;
 
 	$: imageUrl = data.imageUrl || '';

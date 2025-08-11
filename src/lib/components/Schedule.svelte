@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import type { ScheduleItem } from '$lib/types/api';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	export let schedule: ScheduleItem[] = [];
 	export let showNavigation = true;
@@ -196,9 +198,9 @@
 										class="schedule-item"
 										on:click={() => handleItemClick(item)}
 									>
-										<div class="item-subject">{item.subjectRu || item.subjectKz}</div>
-										<div class="item-teacher">{item.Teacher?.nameRu || item.Teacher?.nameKz || 'Учитель не указан'}</div>
-										<div class="item-room">{item.roomRu || item.roomKz || 'Кабинет не указан'}</div>
+										<div class="item-subject">{$languageStore === 'ru' ? item.subjectRu : item.subjectKz}</div>
+										<div class="item-teacher">{($languageStore === 'ru' ? item.Teacher?.nameRu : item.Teacher?.nameKz) || t('messages.teacherNotSpecified', $languageStore)}</div>
+										<div class="item-room">{($languageStore === 'ru' ? item.roomRu : item.roomKz) || t('messages.roomNotSpecified', $languageStore)}</div>
 										<div class="item-time">{formatTime(item.startTime)} - {formatTime(item.endTime)}</div>
 									</div>
 								{/each}
@@ -226,9 +228,9 @@
 								{formatTime(item.startTime)} - {formatTime(item.endTime)}
 							</div>
 							<div class="item-content">
-								<div class="item-subject">{item.subjectRu || item.subjectKz}</div>
-								<div class="item-teacher">{item.Teacher?.nameRu || item.Teacher?.nameKz || 'Учитель не указан'}</div>
-								<div class="item-room">{item.roomRu || item.roomKz || 'Кабинет не указан'}</div>
+								<div class="item-subject">{$languageStore === 'ru' ? item.subjectRu : item.subjectKz}</div>
+								<div class="item-teacher">{($languageStore === 'ru' ? item.Teacher?.nameRu : item.Teacher?.nameKz) || t('messages.teacherNotSpecified', $languageStore)}</div>
+								<div class="item-room">{($languageStore === 'ru' ? item.roomRu : item.roomKz) || t('messages.roomNotSpecified', $languageStore)}</div>
 								{#if item.Class}
 									<div class="item-class">{item.Class.grade}{item.Class.letter} класс</div>
 								{/if}

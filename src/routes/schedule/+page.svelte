@@ -9,6 +9,8 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let schedule: ScheduleType[] = [];
 	let teachers: Teacher[] = [];
@@ -149,11 +151,11 @@
 
 <div class="schedule-page">
 	<div class="page-header">
-		<h1>Расписание занятий</h1>
+		<h1>{t('pageHeaders.schedule', $languageStore)}</h1>
 		<div class="page-actions">
 			<button class="btn btn-primary add-btn" on:click={openModal}>
 				<span class="btn-icon">➕</span>
-				Добавить занятие
+				{t('buttons.addSchedule', $languageStore)}
 			</button>
 		</div>
 	</div>
@@ -185,10 +187,10 @@
 		/>
 	{:else}
 		<EmptyState
-			title="Расписание пусто"
-			description="Добавьте первое занятие в расписание!"
+			title={t('emptyStates.schedule.title', $languageStore)}
+			description={t('emptyStates.schedule.description', $languageStore)}
 			icon="📅"
-			buttonText="Добавить занятие"
+			buttonText={t('emptyStates.schedule.buttonText', $languageStore)}
 			onAction={openModal}
 		/>
 	{/if}
@@ -197,7 +199,7 @@
 <!-- Модальное окно добавления расписания -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить занятие"
+	title={t('modalTitles.addSchedule', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addSchedule}

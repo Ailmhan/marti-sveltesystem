@@ -11,6 +11,8 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { toastStore } from '$lib/stores/toast';
 	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let honorBoard: HonorBoard[] = [];
 	let loading = false;
@@ -220,12 +222,12 @@
 
 <div class="honor-board-page">
 	<div class="page-header">
-		<h1>Доска почета школы</h1>
+		<h1>{t('pageHeaders.honorBoard', $languageStore)}</h1>
 		<div class="page-actions">
 			{#if $adminStore.isAdminMode}
 				<button class="btn btn-primary add-btn" on:click={openModal}>
 					<span class="btn-icon">➕</span>
-					Добавить ученика
+					{t('buttons.addStudent', $languageStore)}
 				</button>
 			{/if}
 		</div>
@@ -244,10 +246,10 @@
 		</div>
 	{:else if honorBoard.length === 0}
 		<EmptyState
-			title="Доска почета пуста"
-			description="Пока нет записей о достижениях учеников"
+			title={t('emptyStates.honorBoard.title', $languageStore)}
+			description={t('emptyStates.honorBoard.description', $languageStore)}
 			icon="🏆"
-			buttonText={$adminStore.isAdminMode ? "Добавить первого ученика" : null}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.honorBoard.buttonText', $languageStore) : null}
 			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{:else}
@@ -268,7 +270,7 @@
 <!-- Модальное окно добавления записи -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить ученика на доску почета"
+	title={t('modalTitles.addHonorBoardStudent', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addHonorBoard}

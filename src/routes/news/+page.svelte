@@ -13,6 +13,7 @@
 	import { adminStore } from '$lib/stores/admin';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 	import { 
 		searchItems, 
 		sortItems, 
@@ -256,7 +257,7 @@
 </svelte:head>
 
 		<DataPage
-			title="Новости школы"
+			title={t('pageHeaders.news', $languageStore)}
 			{loading}
 			{error}
 			showSearch={false}
@@ -274,7 +275,7 @@
 		{#if $adminStore.isAdminMode}
 			<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
 				<span class="btn-icon">➕</span>
-				Добавить новость
+				{t('buttons.addNews', $languageStore)}
 			</button>
 		{/if}
 	</svelte:fragment>
@@ -327,20 +328,20 @@
 			{/if}
 		{:else if news.length > 0}
 			<EmptyState
-				title="Новости не найдены"
-				description="Попробуйте изменить параметры сортировки"
+				title={t('emptyStates.newsNotFound.title', $languageStore)}
+				description={t('emptyStates.newsNotFound.description', $languageStore)}
 				icon="🔍"
-				buttonText="Очистить сортировку"
+				buttonText={t('emptyStates.newsNotFound.buttonText', $languageStore)}
 				onAction={() => {
 					sortBy = '';
 				}}
 			/>
 		{:else}
 			<EmptyState
-				title="Новостей пока нет"
-				description="Добавьте первую новость в систему!"
+				title={t('emptyStates.news.title', $languageStore)}
+				description={t('emptyStates.news.description', $languageStore)}
 				icon="📰"
-				buttonText={$adminStore.isAdminMode ? "Добавить новость" : null}
+				buttonText={$adminStore.isAdminMode ? t('emptyStates.news.buttonText', $languageStore) : null}
 				onAction={$adminStore.isAdminMode ? openModal : null}
 			/>
 		{/if}
@@ -350,7 +351,7 @@
 <!-- Модальное окно добавления новости -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить новость"
+	title={t('modalTitles.addNews', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addNews}
