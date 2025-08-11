@@ -17,7 +17,12 @@
 			await authStore.login(response.token);
 			goto('/');
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ошибка входа';
+			const errorMsg = err instanceof Error ? err.message : 'Ошибка входа';
+			if (errorMsg.includes('Неверный email или пароль') || errorMsg.includes('Unauthorized')) {
+				error = 'Неверные учетные данные. Если у вас нет аккаунта, зарегистрируйте новую школу.';
+			} else {
+				error = errorMsg;
+			}
 		} finally {
 			loading = false;
 		}
@@ -60,6 +65,9 @@
 						<span class="credential-value">password123</span>
 					</div>
 				</div>
+				<p class="test-note">
+					⚠️ Если тестовые данные не работают, <a href="/register" class="register-link-inline">зарегистрируйте новую школу</a>
+				</p>
 			</div>
 		</div>
 
@@ -100,6 +108,9 @@
 				<div class="error-message">
 					<span class="error-icon">⚠️</span>
 					{error}
+					{#if error.includes('Если у вас нет аккаунта')}
+						<a href="/register" class="register-link">Регистрация</a>
+					{/if}
 				</div>
 			{/if}
 
@@ -343,6 +354,35 @@
 
 	.error-icon {
 		font-size: 1rem;
+	}
+
+	.register-link {
+		color: var(--primary);
+		text-decoration: underline;
+		font-weight: 500;
+		margin-left: 0.5rem;
+		transition: opacity 0.2s ease;
+	}
+
+	.register-link:hover {
+		opacity: 0.8;
+	}
+
+	.test-note {
+		margin-top: 1rem;
+		font-size: 0.875rem;
+		color: var(--text-secondary);
+		text-align: center;
+	}
+
+	.register-link-inline {
+		color: var(--primary);
+		text-decoration: underline;
+		font-weight: 500;
+	}
+
+	.register-link-inline:hover {
+		opacity: 0.8;
 	}
 
 	/* Submit Button */
