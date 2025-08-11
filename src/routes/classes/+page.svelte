@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import type { Class, Teacher } from '$lib/types/api';
 	import ClassCard from '$lib/components/ClassCard.svelte';
 	import DataModal from '$lib/components/DataModal.svelte';
@@ -140,12 +141,14 @@
 <div class="classes-page">
 	<div class="page-header">
 		<h1>{t('pageHeaders.classes', $languageStore)}</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openAddModal}>
-				<span class="btn-icon">➕</span>
-				{t('buttons.addClass', $languageStore)}
-			</button>
-		</div>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openAddModal}>
+					<span class="btn-icon">➕</span>
+					{t('buttons.addClass', $languageStore)}
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -173,8 +176,8 @@
 			title={t('emptyStates.classes.title', $languageStore)}
 			description={t('emptyStates.classes.description', $languageStore)}
 			icon="🏫"
-			buttonText={t('emptyStates.classes.buttonText', $languageStore)}
-			onAction={openAddModal}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.classes.buttonText', $languageStore) : undefined}
+			onAction={$adminStore.isAdminMode ? openAddModal : undefined}
 		/>
 	{/if}
 </div>

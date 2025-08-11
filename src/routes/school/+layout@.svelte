@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
-	import { adminStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 	import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -15,12 +15,21 @@
 
 	function openAdminModal() {
 		console.log('🔐 School Layout: openAdminModal called, current showAdminModal:', showAdminModal);
+		console.log('🔐 School Layout: adminStore state:', $adminStore);
 		showAdminModal = true;
 		console.log('🔐 School Layout: showAdminModal set to:', showAdminModal);
 	}
 
 	function closeAdminModal() {
+		console.log('🔐 School Layout: closeAdminModal called');
 		showAdminModal = false;
+	}
+
+	// Отладочная функция для проверки
+	function testModal() {
+		console.log('🧪 Test modal clicked!');
+		alert('Тест модального окна');
+		openAdminModal();
 	}
 
 	onMount(() => {
@@ -85,6 +94,15 @@
 							title="Войти как администратор"
 						>
 							🔐 Войти как администратор
+						</button>
+						<button 
+							type="button"
+							on:click={testModal} 
+							class="admin-mode-btn"
+							style="background: red; margin-left: 0.5rem;"
+							title="Тест модального окна"
+						>
+							🧪 Тест
 						</button>
 					{/if}
 				</div>
