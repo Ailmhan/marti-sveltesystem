@@ -68,8 +68,25 @@
 	function getScheduleForTimeSlot(date: Date, timeSlot: string): ScheduleItem[] {
 		return schedule.filter(item => {
 			const itemDate = new Date(item.date);
-			return itemDate.toDateString() === date.toDateString() && 
-				   item.startTime === timeSlot;
+			const normalizedStartTime = item.startTime.length === 4 ? `0${item.startTime}` : item.startTime;
+			const normalizedTimeSlot = timeSlot.length === 4 ? `0${timeSlot}` : timeSlot;
+			
+			const dateMatches = itemDate.toDateString() === date.toDateString();
+			const timeMatches = normalizedStartTime === normalizedTimeSlot;
+			
+			console.log('🔍 Schedule filter:', {
+				itemDate: itemDate.toDateString(),
+				targetDate: date.toDateString(),
+				itemStartTime: item.startTime,
+				normalizedStartTime,
+				timeSlot,
+				normalizedTimeSlot,
+				dateMatches,
+				timeMatches,
+				item
+			});
+			
+			return dateMatches && timeMatches;
 		});
 	}
 

@@ -15,9 +15,15 @@
     if(!$authStore.schoolId) return;
     loading = true; error='';
     try{
-      // birthdays = await apiClient.getTeacherBirthdays($authStore.schoolId); // TODO: Implement this method
-      birthdays = [];
+      console.log('🎂 Loading teacher birthdays for school:', $authStore.schoolId);
+      const response = await fetch(`https://walrus-app-fioy4.ondigitalocean.app/api/teachers/birthdays/school/${$authStore.schoolId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      birthdays = await response.json();
+      console.log('🎂 Birthdays loaded:', birthdays.length);
     }catch(e){
+      console.error('❌ Error loading birthdays:', e);
       error = e instanceof Error ? e.message : 'Не удалось загрузить дни рождения';
     }finally{ loading=false; }
   }

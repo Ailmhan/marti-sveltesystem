@@ -30,6 +30,12 @@
 
 		try {
 			await adminStore.enterAdminMode(email, password);
+			
+			// Обновляем данные школы после входа в админ режим
+			console.log('🔐 Admin login successful, refreshing school data...');
+			await authStore.loadSchoolData();
+			console.log('✅ School data refreshed after admin login');
+			
 			toastStore.success('Вы вошли в режим администратора');
 			close();
 		} catch (err) {

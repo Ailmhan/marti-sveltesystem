@@ -9,7 +9,13 @@
 	export let folder = 'uploads';
 	export let id: string = '';
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{
+		change: { value: string; uploading: boolean };
+		error: { message: string };
+		success: { message: string };
+		uploadStart: void;
+		uploadEnd: void;
+	}>();
 
 	let fileInput: HTMLInputElement;
 	let dragOver = false;
@@ -50,6 +56,7 @@
 
 		// Показываем состояние загрузки
 		uploading = true;
+		dispatch('uploadStart');
 		console.log('Starting upload...');
 
 		try {
@@ -68,7 +75,7 @@
 				
 				// Устанавливаем URL из Digital Ocean Spaces
 				value = result.url;
-				dispatch('change', { value: result.url });
+				dispatch('change', { value: result.url, uploading: false });
 				dispatch('success', { message: 'Изображение успешно загружено' });
 				console.log('Upload successful:', result.url);
 			} else {
@@ -86,6 +93,7 @@
 			dispatch('error', { message: errorMsg });
 		} finally {
 			uploading = false;
+			dispatch('uploadEnd');
 			console.log('Upload finished');
 		}
 	}

@@ -28,6 +28,7 @@
 	let showAddModal = false;
 	let modalError = '';
 	let modalLoading = false;
+	let imageUploading = false;
 	let currentView: 'grid' | 'list' | 'calendar' = 'grid';
 	let sortBy = '';
 
@@ -154,10 +155,27 @@
 	function handleImageChange(event: CustomEvent) {
 		// ImageUpload уже обрабатывает загрузку, просто получаем URL
 		const url = event.detail.value;
+		const uploading = event.detail.uploading;
+		
 		if (url) {
 			newNews.imageUrl = url;
 			console.log('Image URL set:', url);
 		}
+		
+		if (uploading !== undefined) {
+			imageUploading = uploading;
+			console.log('Image uploading state:', uploading);
+		}
+	}
+	
+	function handleImageUploadStart() {
+		imageUploading = true;
+		console.log('🔄 Image upload started');
+	}
+	
+	function handleImageUploadEnd() {
+		imageUploading = false;
+		console.log('✅ Image upload ended');
 	}
 
 	// Edit functions
@@ -349,10 +367,10 @@
 </DataPage>
 
 <!-- Модальное окно добавления новости -->
-<DataModal
-	bind:open={showAddModal}
-	title={t('modalTitles.addNews', $languageStore)}
-	loading={modalLoading}
+	<DataModal
+		bind:open={showAddModal}
+		title={t('modalTitles.addNews', $languageStore)}
+		loading={modalLoading || imageUploading}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -428,6 +446,8 @@
 				bind:value={newNews.imageUrl}
 				folder="news"
 				on:change={handleImageChange}
+				on:uploadStart={handleImageUploadStart}
+				on:uploadEnd={handleImageUploadEnd}
 				on:error={(event) => {
 					modalError = event.detail.message;
 				}}
