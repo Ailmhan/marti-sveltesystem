@@ -126,10 +126,10 @@ class ApiClient {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						titleRu: item.titleRu,
-						titleKz: item.titleKz,
-						contentRu: item.contentRu,
-						contentKz: item.contentKz,
+						titleRu: item.titleRu || '',
+						titleKz: item.titleKz || '',
+						contentRu: item.contentRu || '',
+						contentKz: item.contentKz || '',
 						imageUrl: item.imageUrl || undefined,
 						createdAt: item.createdAt
 					};
@@ -138,10 +138,10 @@ class ApiClient {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						titleRu: item.title,
-						titleKz: item.title,
-						contentRu: item.content,
-						contentKz: item.content,
+						titleRu: item.title || '',
+						titleKz: item.title || '',
+						contentRu: item.content || '',
+						contentKz: item.content || '',
 						imageUrl: item.imageUrl || undefined,
 						createdAt: item.createdAt
 					};
@@ -159,10 +159,10 @@ class ApiClient {
 			return {
 				id: apiResponse.id,
 				schoolId: apiResponse.schoolId,
-				titleRu: apiResponse.title,
-				titleKz: apiResponse.title,
-				contentRu: apiResponse.content,
-				contentKz: apiResponse.content,
+				titleRu: apiResponse.title || '',
+				titleKz: apiResponse.title || '',
+				contentRu: apiResponse.content || '',
+				contentKz: apiResponse.content || '',
 				imageUrl: apiResponse.imageUrl || undefined,
 				createdAt: apiResponse.createdAt
 			};
@@ -189,10 +189,6 @@ class ApiClient {
 		return this.request<void>(`/news/${id}`, {
 			method: 'DELETE',
 		});
-	}
-
-	async getNewsById(id: number): Promise<News> {
-		return this.request<News>(`/news/${id}`);
 	}
 
 	// Учителя
@@ -259,22 +255,22 @@ class ApiClient {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						nameRu: item.nameRu,
-						nameKz: item.nameKz,
-						scheduleRu: item.scheduleRu,
-						scheduleKz: item.scheduleKz,
-						teacher: item.teacher,
+						nameRu: item.nameRu || '',
+						nameKz: item.nameKz || '',
+						scheduleRu: item.scheduleRu || '',
+						scheduleKz: item.scheduleKz || '',
+						teacher: item.teacher || '',
 						imageUrl: item.imageUrl || undefined
 					};
 				} else {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						nameRu: item.name,
-						nameKz: item.name,
-						scheduleRu: item.schedule,
-						scheduleKz: item.schedule,
-						teacher: item.teacher,
+						nameRu: item.name || '',
+						nameKz: item.name || '',
+						scheduleRu: item.schedule || '',
+						scheduleKz: item.schedule || '',
+						teacher: item.teacher || '',
 						imageUrl: item.imageUrl || undefined
 					};
 				}
@@ -328,8 +324,8 @@ class ApiClient {
 						id: item.id,
 						schoolId: item.schoolId,
 						date: item.date,
-						dishesRu: item.dishesRu,
-						dishesKz: item.dishesKz,
+						dishesRu: item.dishesRu || { breakfast: '', lunch: '', dinner: '' },
+						dishesKz: item.dishesKz || { breakfast: '', lunch: '', dinner: '' },
 						imageUrl: item.imageUrl || undefined
 					};
 				} else {
@@ -337,8 +333,8 @@ class ApiClient {
 						id: item.id,
 						schoolId: item.schoolId,
 						date: item.date,
-						dishesRu: item.dishes,
-						dishesKz: item.dishes,
+						dishesRu: item.dishes || { breakfast: '', lunch: '', dinner: '' },
+						dishesKz: item.dishes || { breakfast: '', lunch: '', dinner: '' },
 						imageUrl: item.imageUrl || undefined
 					};
 				}
@@ -462,18 +458,18 @@ class ApiClient {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						studentName: item.studentName,
-						descriptionRu: item.descriptionRu,
-						descriptionKz: item.descriptionKz,
+						studentName: item.studentName || '',
+						descriptionRu: item.descriptionRu || '',
+						descriptionKz: item.descriptionKz || '',
 						imageUrl: item.imageUrl || undefined
 					};
 				} else {
 					return {
 						id: item.id,
 						schoolId: item.schoolId,
-						studentName: item.studentName,
-						descriptionRu: item.description,
-						descriptionKz: item.description,
+						studentName: item.studentName || '',
+						descriptionRu: item.description || '',
+						descriptionKz: item.description || '',
 						imageUrl: item.imageUrl || undefined
 					};
 				}

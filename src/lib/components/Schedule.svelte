@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import type { ScheduleItem } from '$lib/types/api';
+	import type { Schedule as ScheduleItem } from '$lib/types/api';
 	import { languageStore } from '$lib/stores/language';
 	import { t } from '$lib/i18n/translations';
 

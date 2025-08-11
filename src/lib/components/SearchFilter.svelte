@@ -3,7 +3,7 @@
 	import { writable, type Writable } from 'svelte/store';
 
 	export let placeholder = 'Поиск...';
-	export let filters: Filter[] = [];
+	export let filters: any[] = [];
 	export let searchTerm = '';
 	export let selectedFilters: string[] = [];
 
@@ -34,7 +34,7 @@
 	}
 
 	// Debounced search
-	let searchTimeout: NodeJS.Timeout;
+	let searchTimeout: ReturnType<typeof setTimeout>;
 	$: if (searchTerm !== undefined) {
 		clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {

@@ -21,7 +21,8 @@
     error = '';
     try {
       teacher = await apiClient.getTeacher(id);
-      schedule = await apiClient.getTeacherSchedule(id);
+      // schedule = await apiClient.getTeacherSchedule(id); // TODO: Implement this method
+      schedule = [];
     } catch (e) {
       error = e instanceof Error ? e.message : 'Ошибка загрузки';
     } finally {

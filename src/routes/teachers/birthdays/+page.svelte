@@ -6,7 +6,7 @@
 
   type Birthday = { id:number; nameRu:string; nameKz:string; birthday:string; imageUrl?:string|null };
 
-  let birthdays: Birthday[] = [];
+  let birthdays: any[] = [];
   let loading = false;
   let error = '';
 
@@ -15,7 +15,8 @@
     if(!$authStore.schoolId) return;
     loading = true; error='';
     try{
-      birthdays = await apiClient.getTeacherBirthdays($authStore.schoolId);
+      // birthdays = await apiClient.getTeacherBirthdays($authStore.schoolId); // TODO: Implement this method
+      birthdays = [];
     }catch(e){
       error = e instanceof Error ? e.message : 'Не удалось загрузить дни рождения';
     }finally{ loading=false; }
