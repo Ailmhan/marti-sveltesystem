@@ -9,6 +9,7 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { toastStore } from '$lib/stores/toast';
 
 	let honorBoard: HonorBoard[] = [];
 	let loading = false;
@@ -92,6 +93,7 @@
 			
 			// Перезагружаем данные
 			await loadHonorBoard();
+			toastStore.success('Ученик успешно добавлен на доску почета');
 		} catch (err) {
 			console.error('Error creating honor board entry:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка создания записи';
@@ -179,6 +181,7 @@
 			
 			// Перезагружаем данные
 			await loadHonorBoard();
+			toastStore.success('Информация о ученике успешно обновлена');
 		} catch (err) {
 			console.error('Error updating honor board entry:', err);
 			editModalError = err instanceof Error ? err.message : 'Ошибка обновления записи';
@@ -194,12 +197,18 @@
 	}
 
 	async function deleteHonorBoard(id: number) {
+		if (!confirm('Вы уверены, что хотите удалить эту запись?')) {
+			return;
+		}
+
 		try {
 			await apiClient.deleteHonorBoard(id);
 			await loadHonorBoard();
+			toastStore.success('Запись успешно удалена из доски почета');
 		} catch (err) {
 			console.error('Error deleting honor board entry:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления записи';
+			toastStore.error('Не удалось удалить запись');
 		}
 	}
 </script>

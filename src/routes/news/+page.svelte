@@ -9,6 +9,7 @@
 	import DataCard from '$lib/components/DataCard.svelte';
 	import DataPage from '$lib/components/DataPage.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
+	import { toastStore } from '$lib/stores/toast';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
 	import { 
@@ -233,13 +234,18 @@
 	}
 
 	async function deleteNews(id: number) {
-		if (confirm('Вы уверены, что хотите удалить эту новость?')) {
-			try {
-				await apiClient.deleteNews(id);
-				await loadNews();
-			} catch (err) {
-				error = err instanceof Error ? err.message : 'Ошибка удаления новости';
-			}
+		if (!confirm('Вы уверены, что хотите удалить эту новость?')) {
+			return;
+		}
+
+		try {
+			await apiClient.deleteNews(id);
+			await loadNews();
+			toastStore.success('Новость успешно удалена');
+		} catch (err) {
+			console.error('Error deleting news:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления новости';
+			toastStore.error('Не удалось удалить новость');
 		}
 	}
 </script>

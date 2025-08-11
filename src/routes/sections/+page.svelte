@@ -9,6 +9,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import { toastStore } from '$lib/stores/toast';
 
 	let sections: Section[] = [];
 	let loading = false;
@@ -205,12 +206,18 @@
 	}
 
 	async function deleteSection(id: number) {
+		if (!confirm('Вы уверены, что хотите удалить эту секцию?')) {
+			return;
+		}
+
 		try {
 			await apiClient.deleteSection(id);
 			await loadSections();
+			toastStore.success('Секция успешно удалена');
 		} catch (err) {
 			console.error('Error deleting section:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления секции';
+			toastStore.error('Не удалось удалить секцию');
 		}
 	}
 </script>

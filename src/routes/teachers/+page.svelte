@@ -9,6 +9,7 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { toastStore } from '$lib/stores/toast';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -208,12 +209,18 @@
 	}
 
 	async function deleteTeacher(id: number) {
+		if (!confirm('Вы уверены, что хотите удалить этого учителя?')) {
+			return;
+		}
+
 		try {
 			await apiClient.deleteTeacher(id);
 			await loadTeachers();
+			toastStore.success('Учитель успешно удален');
 		} catch (err) {
 			console.error('Error deleting teacher:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления учителя';
+			toastStore.error('Не удалось удалить учителя');
 		}
 	}
 

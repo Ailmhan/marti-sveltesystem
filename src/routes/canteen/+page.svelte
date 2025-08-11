@@ -12,6 +12,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { uploadToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
+	import { toastStore } from '$lib/stores/toast';
 
 	let menus: CanteenMenu[] = [];
 	let loading = false;
@@ -223,13 +224,18 @@
 	}
 
 	async function deleteMenu(id: number) {
-		if (confirm('Вы уверены, что хотите удалить это меню?')) {
-			try {
-				await apiClient.deleteCanteenMenu(id);
-				await loadMenus();
-			} catch (err) {
-				error = err instanceof Error ? err.message : 'Ошибка удаления меню';
-			}
+		if (!confirm('Вы уверены, что хотите удалить это меню?')) {
+			return;
+		}
+
+		try {
+			await apiClient.deleteCanteenMenu(id);
+			await loadMenus();
+			toastStore.success('Меню успешно удалено');
+		} catch (err) {
+			console.error('Error deleting menu:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления меню';
+			toastStore.error('Не удалось удалить меню');
 		}
 	}
 </script>

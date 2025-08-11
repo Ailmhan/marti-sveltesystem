@@ -49,7 +49,20 @@ class ApiClient {
 			throw new Error(Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message);
 		}
 
-		return response.json();
+		// Handle empty responses (e.g., 204 No Content for DELETE operations)
+		if (response.status === 204 || !response.headers.get('content-length') || response.headers.get('content-length') === '0') {
+			return undefined as T;
+		}
+
+		// Check if response has content-type application/json
+		const contentType = response.headers.get('content-type');
+		if (contentType && contentType.includes('application/json')) {
+			return response.json();
+		}
+
+		// For non-JSON responses, return the text content
+		const text = await response.text();
+		return (text === '' ? undefined : text) as T;
 	}
 
 	// Аутентификация

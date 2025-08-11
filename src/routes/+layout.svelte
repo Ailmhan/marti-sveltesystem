@@ -7,6 +7,7 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
     import HeaderSearch from '$lib/components/HeaderSearch.svelte';
+    import ToastContainer from '$lib/components/ToastContainer.svelte';
     import { cn } from '$lib/utils/cn';
     import '../app.css';
 
@@ -251,6 +252,9 @@
 		</main>
 	{/if}
 </div>
+
+<!-- Toast notifications -->
+<ToastContainer />
 
 <style>
 	/* Desktop Header Styles */
