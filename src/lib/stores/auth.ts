@@ -26,14 +26,9 @@ function createAuthStore() {
 
 	async function loadSchoolData() {
 		try {
-			// Сначала получаем информацию о пользователе и ID школы через /auth/me
+			// Сначала получаем ID школы через /auth/me
 			const meResponse = await apiClient.getMe();
-			
-			// Получаем schoolId из ответа
-			const schoolId = meResponse.schoolId || meResponse.id;
-			
-			console.log('Auth me response:', meResponse);
-			console.log('Using schoolId:', schoolId);
+			const schoolId = meResponse.id;
 			
 			// Затем получаем полные данные школы через /api/school/{id}
 			const schoolData = await apiClient.getSchool(schoolId);
@@ -41,7 +36,6 @@ function createAuthStore() {
 			set({ token, isAuthenticated: true, schoolId, schoolData });
 		} catch (error) {
 			console.error('Error loading school data:', error);
-			console.error('Token:', token);
 			set({ token, isAuthenticated: true, schoolId: null, schoolData: null });
 		}
 	}
@@ -49,7 +43,6 @@ function createAuthStore() {
 	return {
 		subscribe,
 		login: async (token: string) => {
-			console.log('Logging in with token:', token ? 'Token received' : 'No token');
 			localStorage.setItem('authToken', token);
 			await loadSchoolData();
 		},

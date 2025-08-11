@@ -49,14 +49,6 @@ export interface AuthResponse {
 	token: string;
 }
 
-// Ответ от /auth/me - информация о текущем пользователе/школе
-export interface AuthMeResponse {
-	id: number; // ID пользователя
-	schoolId: number; // ID школы к которой привязан пользователь
-	email?: string;
-	school?: School; // Может содержать полную информацию о школе
-}
-
 // Ошибки API
 export interface ApiError {
 	statusCode: number;

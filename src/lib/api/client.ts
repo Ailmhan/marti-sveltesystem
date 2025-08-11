@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { API_BASE_URL } from '$lib/constants';
 import type {
 	School, News, HonorBoard, Section, CanteenMenu,
-	Schedule, Teacher, Class, AuthResponse, AuthMeResponse, ApiError,
+	Schedule, Teacher, Class, AuthResponse, ApiError,
 	CreateSchoolRequest, UpdateSchoolRequest, LoginRequest, LoginResponse,
 	NewsApiResponse, SectionApiResponse, CanteenMenuApiResponse, HonorBoardApiResponse
 } from '$lib/types/api';
@@ -74,8 +74,8 @@ class ApiClient {
 		return response;
 	}
 
-	async getMe(): Promise<AuthMeResponse> {
-		return this.request<AuthMeResponse>('/auth/me');
+	async getMe(): Promise<{ id: number }> {
+		return this.request<{ id: number }>('/auth/me');
 	}
 
 	// Школы
