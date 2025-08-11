@@ -4,6 +4,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import type { Teacher } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import EditModal from '$lib/components/EditModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -16,7 +17,24 @@
 	let modalError = '';
 	let modalLoading = false;
 
+	// Edit state
+	let showEditModal = false;
+	let editModalError = '';
+	let editModalLoading = false;
+	let currentEditItem: Teacher | null = null;
+
 	let newTeacher = {
+		nameRu: '',
+		nameKz: '',
+		subjectRu: '',
+		subjectKz: '',
+		email: '',
+		phone: '',
+		birthday: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	let editTeacher = {
 		nameRu: '',
 		nameKz: '',
 		subjectRu: '',
@@ -116,6 +134,79 @@
 		};
 	}
 
+	// Edit functions
+	function openEditModal(item: Teacher) {
+		currentEditItem = item;
+		editTeacher = {
+			nameRu: item.nameRu,
+			nameKz: item.nameKz,
+			subjectRu: item.subjectRu,
+			subjectKz: item.subjectKz,
+			email: item.email,
+			phone: item.phone,
+			birthday: item.birthday,
+			imageUrl: item.imageUrl
+		};
+		showEditModal = true;
+		editModalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editModalError = '';
+		editModalLoading = false;
+		currentEditItem = null;
+		editTeacher = {
+			nameRu: '',
+			nameKz: '',
+			subjectRu: '',
+			subjectKz: '',
+			email: '',
+			phone: '',
+			birthday: '',
+			imageUrl: undefined
+		};
+	}
+
+	async function updateTeacher() {
+		if (!currentEditItem) {
+			editModalError = 'Ошибка: элемент для редактирования не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editTeacher.nameRu.trim() || !editTeacher.nameKz.trim() || 
+			!editTeacher.subjectRu.trim() || !editTeacher.subjectKz.trim() ||
+			!editTeacher.email.trim() || !editTeacher.phone.trim() || !editTeacher.birthday) {
+			editModalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			editModalError = '';
+			editModalLoading = true;
+			
+			await apiClient.updateTeacher(currentEditItem.id, editTeacher);
+			
+			// Закрываем модальное окно после успешного сохранения
+			closeEditModal();
+			
+			// Перезагружаем данные
+			await loadTeachers();
+		} catch (err) {
+			console.error('Error updating teacher:', err);
+			editModalError = err instanceof Error ? err.message : 'Ошибка обновления учителя';
+			editModalLoading = false;
+		}
+	}
+
+	function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url) {
+			editTeacher.imageUrl = url;
+		}
+	}
+
 	async function deleteTeacher(id: number) {
 		try {
 			await apiClient.deleteTeacher(id);
@@ -170,7 +261,7 @@
                         data={teacher}
                         type="teacher"
                         showActions={true}
-                        onEdit={() => console.log('Edit teacher:', teacher.id)}
+                        onEdit={() => openEditModal(teacher)}
                         onDelete={() => deleteTeacher(teacher.id)}
                     />
                 </a>
@@ -316,6 +407,136 @@
 		</div>
 	</div>
 </DataModal>
+
+<!-- Модальное окно редактирования учителя -->
+<EditModal
+	bind:open={showEditModal}
+	title="Редактировать учителя"
+	loading={editModalLoading}
+	on:close={closeEditModal}
+	on:submit={updateTeacher}
+>
+	<div class="space-y-4">
+		{#if editModalError}
+			<div class="alert alert-error">{editModalError}</div>
+		{/if}
+
+		<div>
+			<label for="editNameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя (русский) *
+			</label>
+			<input 
+				type="text" 
+				id="editNameRu" 
+				bind:value={editTeacher.nameRu} 
+				required 
+				placeholder="Введите имя на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editNameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя (казахский) *
+			</label>
+			<input 
+				type="text" 
+				id="editNameKz" 
+				bind:value={editTeacher.nameKz} 
+				required 
+				placeholder="Введите имя на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editSubjectRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Предмет (русский) *
+			</label>
+			<input 
+				type="text" 
+				id="editSubjectRu" 
+				bind:value={editTeacher.subjectRu} 
+				required 
+				placeholder="Введите предмет на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editSubjectKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Предмет (казахский) *
+			</label>
+			<input 
+				type="text" 
+				id="editSubjectKz" 
+				bind:value={editTeacher.subjectKz} 
+				required 
+				placeholder="Введите предмет на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editEmail" class="block text-sm font-medium mb-2 text-gray-700">
+				Email *
+			</label>
+			<input 
+				type="email" 
+				id="editEmail" 
+				bind:value={editTeacher.email} 
+				required 
+				placeholder="teacher@school.com"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editPhone" class="block text-sm font-medium mb-2 text-gray-700">
+				Телефон *
+			</label>
+			<input 
+				type="tel" 
+				id="editPhone" 
+				bind:value={editTeacher.phone} 
+				required 
+				placeholder="+7 (XXX) XXX-XX-XX"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editBirthday" class="block text-sm font-medium mb-2 text-gray-700">
+				Дата рождения *
+			</label>
+			<input 
+				type="date" 
+				id="editBirthday" 
+				bind:value={editTeacher.birthday} 
+				required 
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-teacher-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="edit-teacher-image-upload"
+				bind:value={editTeacher.imageUrl}
+				folder="teachers"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
 .teachers-page {

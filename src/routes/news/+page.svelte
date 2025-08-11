@@ -3,6 +3,7 @@
 	import { apiClient } from '$lib/api/client';
 	import type { News } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import EditModal from '$lib/components/EditModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
@@ -27,7 +28,21 @@
 	let currentView: 'grid' | 'list' | 'calendar' = 'grid';
 	let sortBy = '';
 
+	// Edit state
+	let showEditModal = false;
+	let editModalError = '';
+	let editModalLoading = false;
+	let currentEditItem: News | null = null;
+
 	let newNews = {
+		titleRu: '',
+		titleKz: '',
+		contentRu: '',
+		contentKz: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	let editNews = {
 		titleRu: '',
 		titleKz: '',
 		contentRu: '',
@@ -142,6 +157,72 @@
 		}
 	}
 
+	// Edit functions
+	function openEditModal(item: News) {
+		currentEditItem = item;
+		editNews = {
+			titleRu: item.titleRu,
+			titleKz: item.titleKz,
+			contentRu: item.contentRu,
+			contentKz: item.contentKz,
+			imageUrl: item.imageUrl
+		};
+		showEditModal = true;
+		editModalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editModalError = '';
+		editModalLoading = false;
+		currentEditItem = null;
+		editNews = {
+			titleRu: '',
+			titleKz: '',
+			contentRu: '',
+			contentKz: '',
+			imageUrl: undefined
+		};
+	}
+
+	async function updateNews() {
+		if (!currentEditItem) {
+			editModalError = 'Ошибка: элемент для редактирования не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editNews.titleRu.trim() || !editNews.titleKz.trim() || 
+			!editNews.contentRu.trim() || !editNews.contentKz.trim()) {
+			editModalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			editModalError = '';
+			editModalLoading = true;
+			
+			await apiClient.updateNews(currentEditItem.id, editNews);
+			
+			// Закрываем модальное окно после успешного сохранения
+			closeEditModal();
+			
+			// Перезагружаем данные
+			await loadNews();
+		} catch (err) {
+			console.error('Error updating news:', err);
+			editModalError = err instanceof Error ? err.message : 'Ошибка обновления новости';
+			editModalLoading = false;
+		}
+	}
+
+	function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url) {
+			editNews.imageUrl = url;
+		}
+	}
+
 	function formatDate(date: string | Date) {
 		const dateObj = typeof date === 'string' ? new Date(date) : date;
 		return dateObj.toLocaleDateString('ru-RU', {
@@ -199,7 +280,7 @@
                                 data={item}
                                 type="news"
                                 showActions={true}
-                                onEdit={() => console.log('Edit news:', item.id)}
+                                onEdit={() => openEditModal(item)}
                                 onDelete={() => deleteNews(item.id)}
                             />
                         </a>
@@ -214,7 +295,7 @@
                                     data={item}
                                     type="news"
                                     showActions={true}
-                                    onEdit={() => console.log('Edit news:', item.id)}
+                                    onEdit={() => openEditModal(item)}
                                     onDelete={() => deleteNews(item.id)}
                                 />
                             </a>
@@ -347,6 +428,97 @@
 		</div>
 	</div>
 </DataModal>
+
+<!-- Модальное окно редактирования новости -->
+<EditModal
+	bind:open={showEditModal}
+	title="Редактировать новость"
+	loading={editModalLoading}
+	on:close={closeEditModal}
+	on:submit={updateNews}
+>
+	<div class="space-y-4">
+		{#if editModalError}
+			<div class="alert alert-error">
+				{editModalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editTitleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (Русский) *
+			</label>
+			<input
+				id="editTitleRu"
+				type="text"
+				bind:value={editNews.titleRu}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				placeholder="Введите заголовок новости"
+				required
+			/>
+		</div>
+
+		<div>
+			<label for="editTitleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (Казахский) *
+			</label>
+			<input
+				id="editTitleKz"
+				type="text"
+				bind:value={editNews.titleKz}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				placeholder="Жаңалық тақырыбын енгізіңіз"
+				required
+			/>
+		</div>
+
+		<div>
+			<label for="editContentRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (Русский) *
+			</label>
+			<textarea
+				id="editContentRu"
+				bind:value={editNews.contentRu}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Введите содержание новости"
+				required
+			></textarea>
+		</div>
+
+		<div>
+			<label for="editContentKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (Казахский) *
+			</label>
+			<textarea
+				id="editContentKz"
+				bind:value={editNews.contentKz}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Жаңалық мазмұнын енгізіңіз"
+				required
+			></textarea>
+		</div>
+
+		<div>
+			<label for="edit-news-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="edit-news-image-upload"
+				bind:value={editNews.imageUrl}
+				folder="news"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
 .news-page {
