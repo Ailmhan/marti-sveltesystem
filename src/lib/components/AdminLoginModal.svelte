@@ -8,10 +8,6 @@
 
 	export let open = false;
 
-	$: {
-		console.log('AdminLoginModal open changed:', open);
-	}
-
 	let email = '';
 	let password = '';
 	let loading = false;
