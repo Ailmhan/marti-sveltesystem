@@ -13,24 +13,24 @@
 	$: currentLanguage = language || $languageStore;
 
 	$: title = type === 'news' 
-		? (currentLanguage === 'ru' ? data.titleRu : data.titleKz)
+		? (currentLanguage === 'ru' ? (data.titleRu || data.title || 'Без названия') : (data.titleKz || data.title || data.titleRu || 'Атаусыз'))
 		: type === 'teacher' 
-		? (currentLanguage === 'ru' ? data.nameRu : data.nameKz)
+		? (currentLanguage === 'ru' ? (data.nameRu || data.name || 'Имя не указано') : (data.nameKz || data.name || data.nameRu || 'Аты көрсетілмеген'))
 		: type === 'honor-board'
-		? (currentLanguage === 'ru' ? data.nameRu : data.nameKz)
-		: data.name || data.title;
+		? (currentLanguage === 'ru' ? (data.nameRu || data.name || 'Имя не указано') : (data.nameKz || data.name || data.nameRu || 'Аты көрсетілмеген'))
+		: data.name || data.title || 'Без названия';
 
 	$: content = type === 'news' 
-		? (currentLanguage === 'ru' ? data.contentRu : data.contentKz)
+		? (currentLanguage === 'ru' ? (data.contentRu || data.content || '') : (data.contentKz || data.content || data.contentRu || ''))
 		: type === 'teacher' 
-		? (currentLanguage === 'ru' ? data.subjectRu : data.subjectKz)
+		? (currentLanguage === 'ru' ? (data.subjectRu || data.subject || '') : (data.subjectKz || data.subject || data.subjectRu || ''))
 		: type === 'honor-board'
-		? (currentLanguage === 'ru' ? data.descriptionRu : data.descriptionKz)
+		? (currentLanguage === 'ru' ? (data.descriptionRu || data.description || '') : (data.descriptionKz || data.description || data.descriptionRu || ''))
 		: type === 'section'
-		? (currentLanguage === 'ru' ? data.scheduleRu : data.scheduleKz)
+		? (currentLanguage === 'ru' ? (data.scheduleRu || data.schedule || '') : (data.scheduleKz || data.schedule || data.scheduleRu || ''))
 		: type === 'canteen'
-		? `${t('meals.breakfast', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.breakfast : data.dishesKz?.breakfast}\n${t('meals.lunch', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.lunch : data.dishesKz?.lunch}\n${t('meals.dinner', currentLanguage)}: ${currentLanguage === 'ru' ? data.dishesRu?.dinner : data.dishesKz?.dinner}`
-		: data.content || data.description;
+		? `${t('meals.breakfast', currentLanguage)}: ${currentLanguage === 'ru' ? (data.dishesRu?.breakfast || '') : (data.dishesKz?.breakfast || data.dishesRu?.breakfast || '')}\n${t('meals.lunch', currentLanguage)}: ${currentLanguage === 'ru' ? (data.dishesRu?.lunch || '') : (data.dishesKz?.lunch || data.dishesRu?.lunch || '')}\n${t('meals.dinner', currentLanguage)}: ${currentLanguage === 'ru' ? (data.dishesRu?.dinner || '') : (data.dishesKz?.dinner || data.dishesRu?.dinner || '')}`
+		: data.content || data.description || '';
 
 	$: imageUrl = data.imageUrl || '';
 	$: date = data.createdAt || data.birthday || '';
