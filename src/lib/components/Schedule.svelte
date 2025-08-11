@@ -201,6 +201,9 @@
 										<div class="item-subject">{$languageStore === 'ru' ? item.subjectRu : item.subjectKz}</div>
 										<div class="item-teacher">{($languageStore === 'ru' ? item.Teacher?.nameRu : item.Teacher?.nameKz) || t('messages.teacherNotSpecified', $languageStore)}</div>
 										<div class="item-room">{($languageStore === 'ru' ? item.roomRu : item.roomKz) || t('messages.roomNotSpecified', $languageStore)}</div>
+										{#if item.Class}
+											<div class="item-class">{item.Class.grade}{item.Class.letter}</div>
+										{/if}
 										<div class="item-time">{formatTime(item.startTime)} - {formatTime(item.endTime)}</div>
 									</div>
 								{/each}
@@ -410,40 +413,86 @@
 	}
 
     .schedule-item {
-        background: hsl(var(--primary));
+        background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
         color: hsl(var(--primary-foreground));
-		padding: 0.5rem;
-		border-radius: 0.25rem;
+		padding: 0.75rem;
+		border-radius: 0.375rem;
 		margin-bottom: 0.25rem;
 		cursor: pointer;
-		transition: opacity 0.2s ease;
+		transition: all 0.2s ease;
 		font-size: 0.75rem;
+		border: 1px solid hsl(var(--primary) / 0.3);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
 	.schedule-item:hover {
-		opacity: 0.8;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	}
 
 	.item-subject {
 		font-weight: 600;
-		margin-bottom: 0.125rem;
+		margin-bottom: 0.25rem;
+		font-size: 0.8rem;
 	}
 
 	.item-teacher {
-		font-size: 0.625rem;
-		opacity: 0.9;
+		font-size: 0.65rem;
+		opacity: 0.95;
 		margin-bottom: 0.125rem;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.item-teacher::before {
+		content: "👨‍🏫";
+		font-size: 0.6rem;
 	}
 
 	.item-room {
-		font-size: 0.625rem;
-		opacity: 0.9;
+		font-size: 0.65rem;
+		opacity: 0.95;
+		margin-bottom: 0.125rem;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.item-room::before {
+		content: "🏫";
+		font-size: 0.6rem;
 	}
 
 	.item-time {
-		font-size: 0.625rem;
-		opacity: 0.8;
+		font-size: 0.65rem;
+		opacity: 0.95;
 		margin-top: 0.125rem;
+		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.item-time::before {
+		content: "⏰";
+		font-size: 0.6rem;
+	}
+
+	.item-class {
+		font-size: 0.6rem;
+		opacity: 0.9;
+		font-weight: 600;
+		color: hsl(var(--primary-foreground) / 0.8);
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-bottom: 0.125rem;
+	}
+
+	.item-class::before {
+		content: "🎓";
+		font-size: 0.55rem;
 	}
 
 	/* Вид одного дня */
