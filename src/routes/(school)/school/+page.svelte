@@ -18,10 +18,19 @@
 	let loading = true;
 
 	onMount(async () => {
+		console.log('🏫 School Landing onMount, authStore:', {
+			hasToken: !!$authStore.token,
+			hasSchoolData: !!$authStore.schoolData,
+			schoolId: $authStore.schoolId
+		});
+		
 		// Загружаем данные школы если их еще нет
 		if (!$authStore.schoolData && $authStore.token) {
+			console.log('🏫 Loading school data...');
 			await authStore.loadSchoolData();
+			console.log('🏫 School data loaded:', $authStore.schoolData);
 		}
+		
 		await loadPreviewData();
 	});
 
@@ -133,12 +142,16 @@
 <section class="hero-section">
 	<!-- Фоновое изображение школы -->
 	<div class="hero-background">
-		{#if $authStore.schoolData?.logoUrl}
+		{#if $authStore.schoolData?.imageUrl || $authStore.schoolData?.logoUrl}
 			<img 
-				src={$authStore.schoolData.logoUrl} 
+				src={$authStore.schoolData?.imageUrl || $authStore.schoolData?.logoUrl} 
 				alt="Фото школы" 
 				class="hero-bg-image"
+				on:load={() => console.log('✅ Hero background image loaded')}
+				on:error={(e) => console.error('❌ Hero background image failed to load:', e)}
 			/>
+		{:else}
+			<div class="hero-bg-placeholder"></div>
 		{/if}
 		<div class="hero-overlay"></div>
 	</div>
@@ -192,9 +205,15 @@
 				<button type="button" on:click={() => scrollToSection('schedule')} class="hero-nav-btn">
 					📅 Расписание
 				</button>
-				<a href="/login" class="hero-cta">
-					🔐 Войти в систему
-				</a>
+				{#if !$authStore.token}
+					<a href="/login" class="hero-cta">
+						🔐 Войти в систему
+					</a>
+				{:else}
+					<a href="/" class="hero-cta hero-cta-dashboard">
+						📊 Перейти в панель
+					</a>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -427,6 +446,12 @@
 		filter: brightness(0.4) blur(1px);
 	}
 
+	.hero-bg-placeholder {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, hsl(var(--primary) / 0.6), hsl(var(--accent) / 0.4));
+	}
+
 	.hero-overlay {
 		position: absolute;
 		top: 0;
@@ -552,6 +577,14 @@
 		background: hsl(var(--primary) / 0.9);
 		transform: translateY(-2px);
 		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+	}
+
+	.hero-cta-dashboard {
+		background: hsl(var(--accent)) !important;
+	}
+
+	.hero-cta-dashboard:hover {
+		background: hsl(var(--accent) / 0.9) !important;
 	}
 
 	/* Content Sections */

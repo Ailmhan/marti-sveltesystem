@@ -2,11 +2,29 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
+	import { adminStore } from '$lib/stores/admin';
 	import { t } from '$lib/i18n/translations';
 	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
+	import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
+	import ToastContainer from '$lib/components/ToastContainer.svelte';
 	import '../../app.css';
 
 	let isDark = false;
+	let showAdminModal = false;
+
+	function openAdminModal() {
+		console.log('🔐 School: openAdminModal called, current showAdminModal:', showAdminModal);
+		showAdminModal = true;
+		console.log('🔐 School: showAdminModal set to:', showAdminModal);
+	}
+
+	function closeAdminModal() {
+		showAdminModal = false;
+	}
+
+	function exitAdminMode() {
+		adminStore.exitAdminMode();
+	}
 
 	onMount(() => {
 		if (typeof window !== 'undefined') {
@@ -78,10 +96,40 @@
 			>
 				{isDark ? '☀️' : '🌙'}
 			</button>
-			<a href="/login" class="admin-login-btn">
-				<span>🔐</span>
-				<span>Вход</span>
-			</a>
+			
+			{#if $authStore.token}
+				{#if $adminStore.isAdminMode}
+					<button 
+						type="button"
+						on:click={exitAdminMode} 
+						class="admin-exit-btn"
+						title="Выйти из режима администратора"
+					>
+						<span>🚪</span>
+						<span>Выйти из админа</span>
+					</button>
+				{:else}
+					<button 
+						type="button"
+						on:click={openAdminModal} 
+						class="admin-mode-btn"
+						title="Войти как администратор"
+					>
+						<span>🔐</span>
+						<span>Войти как админ</span>
+					</button>
+				{/if}
+				
+				<a href="/" class="dashboard-btn">
+					<span>📊</span>
+					<span>Панель</span>
+				</a>
+			{:else}
+				<a href="/login" class="admin-login-btn">
+					<span>🔐</span>
+					<span>Вход</span>
+				</a>
+			{/if}
 		</div>
 	</div>
 </nav>
@@ -118,6 +166,12 @@
 		</div>
 	</div>
 </footer>
+
+<!-- Toast уведомления -->
+<ToastContainer />
+
+<!-- Модальное окно входа администратора -->
+<AdminLoginModal bind:open={showAdminModal} on:close={closeAdminModal} />
 
 <style>
 	/* Навбар */
@@ -250,6 +304,65 @@
 		transform: translateY(-1px);
 	}
 
+	.dashboard-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.5rem 1rem;
+		background: hsl(var(--accent));
+		color: hsl(var(--accent-foreground));
+		text-decoration: none;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		transition: all 0.2s ease;
+	}
+
+	.dashboard-btn:hover {
+		background: hsl(var(--accent) / 0.9);
+		transform: translateY(-1px);
+	}
+
+	.admin-mode-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.5rem 1rem;
+		background: hsl(var(--secondary));
+		color: hsl(var(--secondary-foreground));
+		border: none;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.admin-mode-btn:hover {
+		background: hsl(var(--secondary) / 0.8);
+		transform: translateY(-1px);
+	}
+
+	.admin-exit-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.5rem 1rem;
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+		border: none;
+		border-radius: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.admin-exit-btn:hover {
+		background: hsl(var(--destructive) / 0.9);
+		transform: translateY(-1px);
+	}
+
 	/* Основной контент */
 	.school-main {
 		margin-top: 80px; /* Компенсируем высоту навбара */
@@ -353,6 +466,12 @@
 		}
 
 		.admin-login-btn span:last-child {
+			display: none;
+		}
+
+		.admin-mode-btn span:last-child,
+		.admin-exit-btn span:last-child,
+		.dashboard-btn span:last-child {
 			display: none;
 		}
 
