@@ -79,7 +79,9 @@
 	}
 
 	function openAdminModal() {
+		console.log('Opening admin modal...');
 		showAdminModal = true;
+		console.log('showAdminModal set to:', showAdminModal);
 	}
 
 	function closeAdminModal() {
@@ -167,7 +169,7 @@
 									</Button>
 								</div>
 							{:else}
-								<Button variant="secondary" class="w-full justify-start admin-btn" on:click={openAdminModal}>
+								<Button variant="secondary" class="w-full justify-start admin-btn" on:click={() => {console.log('Desktop admin button clicked'); openAdminModal();}}>
 									<span class="mr-2">🔐</span>
 									Войти как администратор
 								</Button>
@@ -240,7 +242,7 @@
 									</button>
 								</div>
 							{:else}
-								<button class="mobile-sidebar-admin" on:click={openAdminModal}>
+								<button class="mobile-sidebar-admin" on:click={() => {console.log('Mobile admin button clicked'); openAdminModal();}}>
 									<span class="mobile-sidebar-icon">🔐</span>
 									<span class="mobile-sidebar-text">Войти как администратор</span>
 								</button>
