@@ -11,6 +11,7 @@
     import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
     import { adminStore } from '$lib/stores/admin';
     import { cn } from '$lib/utils/cn';
+    import { t } from '$lib/i18n/translations';
     import '../app.css';
 
     let sidebarOpen = false;
@@ -52,16 +53,24 @@
         };
     });
 
-	const navigation = [
-		{ name: 'Главная', href: '/', icon: '🏠' },
-		{ name: 'Новости', href: '/news', icon: '📰' },
-		{ name: 'Учителя', href: '/teachers', icon: '👥' },
-		{ name: 'Дни рождения', href: '/teachers/birthdays', icon: '🎂' },
-		{ name: 'Доска почета', href: '/honor-board', icon: '🏆' },
-		{ name: 'Меню', href: '/canteen', icon: '🍽️' },
-		{ name: 'Расписание', href: '/schedule', icon: '📅' },
-		{ name: 'Классы', href: '/classes', icon: '🎓' },
+	const navigationItems = [
+		{ key: 'home', href: '/', icon: '🏠' },
+		{ key: 'news', href: '/news', icon: '📰' },
+		{ key: 'teachers', href: '/teachers', icon: '👥' },
+		{ key: 'birthdays', href: '/teachers/birthdays', icon: '🎂' },
+		{ key: 'honorBoard', href: '/honor-board', icon: '🏆' },
+		{ key: 'canteen', href: '/canteen', icon: '🍽️' },
+		{ key: 'schedule', href: '/schedule', icon: '📅', adminOnly: true },
+		{ key: 'classes', href: '/classes', icon: '🎓', adminOnly: true },
 	];
+
+	// Фильтруем навигацию в зависимости от админ-режима и добавляем переводы
+	$: filteredNavigation = navigationItems.filter(item => 
+		!item.adminOnly || $adminStore.isAdminMode
+	).map(item => ({
+		...item,
+		name: t(`navigation.${item.key}`, $languageStore)
+	}));
 
 	function logout() {
 		authStore.logout();
@@ -142,7 +151,7 @@
 					<ul role="list" class="flex flex-1 flex-col gap-y-2">
 						<li>
 							<ul role="list" class="-mx-2 space-y-1">
-								{#each navigation as item}
+								{#each filteredNavigation as item}
 									<li>
 										<a
 											href={item.href}
@@ -160,18 +169,18 @@
 							{#if $adminStore.isAdminMode}
 								<div class="admin-session-info">
 									<div class="admin-timer">
-										⏱️ Режим администратора
+										⏱️ {t('navigation.adminSession', $languageStore)}
 										<span class="timer-text">{adminTimeRemaining} мин</span>
 									</div>
 									<Button variant="destructive" class="w-full justify-start" on:click={exitAdminMode}>
 										<span class="mr-2">🔒</span>
-										Выйти из режима админа
+										{t('navigation.adminExit', $languageStore)}
 									</Button>
 								</div>
 							{:else}
 								<Button variant="secondary" class="w-full justify-start admin-btn" on:click={() => {console.log('Desktop admin button clicked'); openAdminModal();}}>
 									<span class="mr-2">🔐</span>
-									Войти как администратор
+									{t('navigation.adminMode', $languageStore)}
 								</Button>
 							{/if}
 						</li>
@@ -209,7 +218,7 @@
 					</div>
 					<nav class="mobile-sidebar-nav">
 						<ul role="list" class="mobile-sidebar-menu">
-							{#each navigation as item}
+							{#each filteredNavigation as item}
 								<li>
                                     <a
                                         href={item.href}
@@ -232,19 +241,19 @@
 									<div class="mobile-admin-timer">
 										<span class="mobile-sidebar-icon">⏱️</span>
 										<div class="timer-info">
-											<span class="mobile-sidebar-text">Режим администратора</span>
+											<span class="mobile-sidebar-text">{t('navigation.adminSession', $languageStore)}</span>
 											<span class="timer-text">{adminTimeRemaining} мин осталось</span>
 										</div>
 									</div>
 									<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
 										<span class="mobile-sidebar-icon">🔒</span>
-										<span class="mobile-sidebar-text">Выйти из режима админа</span>
+										<span class="mobile-sidebar-text">{t('navigation.adminExit', $languageStore)}</span>
 									</button>
 								</div>
 							{:else}
 								<button class="mobile-sidebar-admin" on:click={() => {console.log('Mobile admin button clicked'); openAdminModal();}}>
 									<span class="mobile-sidebar-icon">🔐</span>
-									<span class="mobile-sidebar-text">Войти как администратор</span>
+									<span class="mobile-sidebar-text">{t('navigation.adminMode', $languageStore)}</span>
 								</button>
 							{/if}
 							

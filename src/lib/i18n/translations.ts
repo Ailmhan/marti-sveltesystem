@@ -43,6 +43,20 @@ export const translations = {
 				buttonText: "Очистить сортировку"
 			}
 		},
+		// Navigation
+		navigation: {
+			home: "Главная",
+			news: "Новости", 
+			teachers: "Учителя",
+			birthdays: "Дни рождения",
+			honorBoard: "Доска почета",
+			canteen: "Меню",
+			schedule: "Расписание",
+			classes: "Классы",
+			adminMode: "Войти как администратор",
+			adminExit: "Выйти из режима админа",
+			adminSession: "Режим администратора"
+		},
 		// Page headers
 		pageHeaders: {
 			honorBoard: "Доска почета школы",
@@ -148,6 +162,20 @@ export const translations = {
 				description: "Сұрыптау параметрлерін өзгертуге тырысыңыз",
 				buttonText: "Сұрыптауды тазарту"
 			}
+		},
+		// Navigation
+		navigation: {
+			home: "Басты бет",
+			news: "Жаңалықтар", 
+			teachers: "Мұғалімдер",
+			birthdays: "Туған күндер",
+			honorBoard: "Құрмет тақтасы",
+			canteen: "Мәзір",
+			schedule: "Сабақ кестесі",
+			classes: "Сыныптар",
+			adminMode: "Әкімші ретінде кіру",
+			adminExit: "Әкімші режимінен шығу",
+			adminSession: "Әкімші режимі"
 		},
 		// Page headers
 		pageHeaders: {
