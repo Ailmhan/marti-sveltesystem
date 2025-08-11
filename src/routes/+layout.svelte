@@ -17,23 +17,6 @@
     let sidebarOpen = false;
     let isDark = false;
     let showAdminModal = false;
-    let adminTimeRemaining = 0;
-
-    // Обновляем оставшееся время каждую минуту
-    let timeUpdateInterval: ReturnType<typeof setInterval>;
-
-    function updateAdminTime() {
-        if ($adminStore.isAdminMode) {
-            adminTimeRemaining = adminStore.getRemainingTime();
-        }
-    }
-
-    // Реактивно обновляем время при изменении режима администратора
-    $: if ($adminStore.isAdminMode) {
-        updateAdminTime();
-    } else {
-        adminTimeRemaining = 0;
-    }
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -41,16 +24,6 @@
             isDark = saved === 'dark';
             document.documentElement.classList.toggle('dark', isDark);
         }
-
-        // Обновляем время администратора каждые 30 секунд
-        updateAdminTime();
-        timeUpdateInterval = setInterval(updateAdminTime, 30000);
-
-        return () => {
-            if (timeUpdateInterval) {
-                clearInterval(timeUpdateInterval);
-            }
-        };
     });
 
 	const navigationItems = [
@@ -88,7 +61,9 @@
 	}
 
 	function openAdminModal() {
+		console.log('openAdminModal called, current showAdminModal:', showAdminModal);
 		showAdminModal = true;
+		console.log('showAdminModal set to:', showAdminModal);
 	}
 
 	function closeAdminModal() {
@@ -166,10 +141,6 @@
 						<li class="mt-auto">
 							{#if $adminStore.isAdminMode}
 								<div class="admin-session-info">
-									<div class="admin-timer">
-										⏱️ {t('navigation.adminSession', $languageStore)}
-										<span class="timer-text">{adminTimeRemaining} мин</span>
-									</div>
 									<Button variant="destructive" class="w-full justify-start" on:click={exitAdminMode}>
 										<span class="mr-2">🔒</span>
 										{t('navigation.adminExit', $languageStore)}
@@ -235,19 +206,10 @@
 						<div class="mobile-sidebar-footer">
 							<!-- Admin controls for mobile -->
 							{#if $adminStore.isAdminMode}
-								<div class="mobile-admin-session">
-									<div class="mobile-admin-timer">
-										<span class="mobile-sidebar-icon">⏱️</span>
-										<div class="timer-info">
-											<span class="mobile-sidebar-text">{t('navigation.adminSession', $languageStore)}</span>
-											<span class="timer-text">{adminTimeRemaining} мин осталось</span>
-										</div>
-									</div>
-									<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
-										<span class="mobile-sidebar-icon">🔒</span>
-										<span class="mobile-sidebar-text">{t('navigation.adminExit', $languageStore)}</span>
-									</button>
-								</div>
+								<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
+									<span class="mobile-sidebar-icon">🔒</span>
+									<span class="mobile-sidebar-text">{t('navigation.adminExit', $languageStore)}</span>
+								</button>
 							{:else}
 								<button class="mobile-sidebar-admin" on:click={openAdminModal}>
 									<span class="mobile-sidebar-icon">🔐</span>
@@ -704,54 +666,7 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.admin-timer {
-		background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-		border: 1px solid rgba(139, 92, 246, 0.3);
-		border-radius: 0.5rem;
-		padding: 0.75rem;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 0.875rem;
-		color: hsl(var(--foreground));
-		font-weight: 600;
-	}
 
-	.timer-text {
-		color: #8b5cf6;
-		font-weight: 700;
-		font-size: 0.8rem;
-	}
-
-	/* Mobile admin session styles */
-	.mobile-admin-session {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.mobile-admin-timer {
-		background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
-		border: 1px solid rgba(139, 92, 246, 0.3);
-		border-radius: var(--radius);
-		padding: 0.75rem;
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.timer-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.timer-info .timer-text {
-		font-size: 0.75rem;
-		color: #8b5cf6;
-		font-weight: 600;
-	}
 
 	/* Admin Button Styles */
 	:global(.admin-btn) {
