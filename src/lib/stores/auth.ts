@@ -28,11 +28,6 @@ function createAuthStore() {
 		try {
 			// Сначала получаем ID школы через /auth/me
 			const meResponse = await apiClient.getMe();
-			
-			if (!meResponse || typeof meResponse.id === 'undefined') {
-				throw new Error('Invalid response from /auth/me: missing id');
-			}
-			
 			const schoolId = meResponse.id;
 			
 			// Затем получаем полные данные школы через /api/school/{id}
@@ -41,13 +36,7 @@ function createAuthStore() {
 			set({ token, isAuthenticated: true, schoolId, schoolData });
 		} catch (error) {
 			console.error('Error loading school data:', error);
-			
-			// Если токен невалидный, очищаем его
-			if (typeof window !== 'undefined') {
-				localStorage.removeItem('authToken');
-			}
-			
-			set({ token: null, isAuthenticated: false, schoolId: null, schoolData: null });
+			set({ token, isAuthenticated: true, schoolId: null, schoolData: null });
 		}
 	}
 
