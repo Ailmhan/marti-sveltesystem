@@ -200,7 +200,7 @@
 		align-items: center;
 		gap: 0.5rem;
 		font-weight: 600;
-		color: var(--gray-700);
+		color: hsl(var(--foreground));
 		margin-bottom: 0.75rem;
 		font-size: 0.875rem;
 	}
@@ -212,18 +212,18 @@
 	.form-input {
 		width: 100%;
 		padding: 1rem 1.25rem;
-		border: 2px solid var(--gray-200);
-		border-radius: var(--radius-lg);
+		border: 2px solid hsl(var(--border));
+		border-radius: 0.5rem;
 		font-size: 1rem;
-		transition: all var(--transition-fast);
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		transition: all 0.2s ease;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
 	}
 
 	.form-input:focus {
 		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+		border-color: hsl(var(--primary));
+		box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
 		transform: translateY(-1px);
 	}
 
@@ -238,10 +238,10 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 1rem;
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.2);
-		border-radius: var(--radius-lg);
-		color: var(--error);
+		background: hsl(var(--destructive) / 0.1);
+		border: 1px solid hsl(var(--destructive) / 0.3);
+		border-radius: 0.5rem;
+		color: hsl(var(--destructive));
 		font-size: 0.875rem;
 		margin-bottom: 1.5rem;
 	}
@@ -251,7 +251,7 @@
 	}
 
 	.register-link {
-		color: var(--primary);
+		color: hsl(var(--primary));
 		text-decoration: underline;
 		font-weight: 500;
 		margin-left: 0.5rem;
@@ -270,7 +270,7 @@
 	}
 
 	.register-link-inline {
-		color: var(--primary);
+		color: hsl(var(--primary));
 		text-decoration: underline;
 		font-weight: 500;
 	}
@@ -351,87 +351,14 @@
 		padding-top: 2rem;
 	}
 
-
-		font-size: 0.875rem;
-		color: var(--text-primary);
-		background: var(--bg-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-primary);
-	}
-
 	.auth-links {
 		text-align: center;
 	}
 
 	.register-text {
-		color: var(--gray-600);
+		color: hsl(var(--muted-foreground));
 		font-size: 0.875rem;
 		margin: 0;
-	}
-
-	.register-link {
-		color: var(--primary);
-		text-decoration: none;
-		font-weight: 600;
-		transition: color var(--transition-fast);
-	}
-
-	.register-link:hover {
-		color: var(--primary-dark);
-		text-decoration: underline;
-	}
-
-	/* Test Credentials Styles */
-	.test-credentials {
-		margin-top: 2rem;
-		padding: 1.5rem;
-		background: var(--primary-lighter);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--primary-light);
-	}
-
-	.test-credentials h3 {
-		font-size: 1rem;
-		font-weight: 600;
-		color: var(--primary-dark);
-		margin-bottom: 1rem;
-		text-align: center;
-	}
-
-	.credential-box {
-		background: var(--bg-primary);
-		padding: 1rem;
-		border-radius: var(--radius-md);
-		border: 1px solid var(--border-primary);
-	}
-
-	.credential-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--border-primary);
-	}
-
-	.credential-row:last-child {
-		border-bottom: none;
-	}
-
-	.credential-label {
-		font-weight: 500;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-	}
-
-	.credential-value {
-		font-weight: 600;
-		color: var(--text-primary);
-		font-size: 0.875rem;
-		font-family: var(--font-mono);
-		background: var(--bg-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
 	}
 
 	/* Responsive Design */
@@ -448,10 +375,6 @@
 		.logo-icon {
 			font-size: 2.5rem;
 		}
-
-		.shape {
-			font-size: 1.5rem;
-		}
 	}
 
 	@media (max-width: 480px) {
@@ -461,12 +384,6 @@
 
 		.auth-title {
 			font-size: 1.5rem;
-		}
-
-		.credential-item {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.25rem;
 		}
 	}
 </style> 
