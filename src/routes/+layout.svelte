@@ -33,8 +33,8 @@
 		{ key: 'birthdays', href: '/teachers/birthdays', icon: '🎂' },
 		{ key: 'honorBoard', href: '/honor-board', icon: '🏆' },
 		{ key: 'canteen', href: '/canteen', icon: '🍽️' },
-		{ key: 'schedule', href: '/schedule', icon: '📅', adminOnly: true },
-		{ key: 'classes', href: '/classes', icon: '🎓', adminOnly: true },
+		{ key: 'schedule', href: '/schedule', icon: '📅' },
+		{ key: 'classes', href: '/classes', icon: '🎓' },
 	];
 
 	// Фильтруем навигацию в зависимости от админ-режима и добавляем переводы

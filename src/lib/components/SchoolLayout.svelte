@@ -7,7 +7,6 @@
 	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 	import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
 	import ToastContainer from '$lib/components/ToastContainer.svelte';
-	import '../../app.css';
 
 	let isDark = false;
 	let showAdminModal = false;
@@ -50,11 +49,6 @@
 		{ key: 'classes', href: '/school#classes', icon: '🎓', label: 'Классы' },
 	];
 </script>
-
-<svelte:head>
-	<title>{$authStore.schoolData?.nameRu || 'Школа'} - Официальный сайт</title>
-	<meta name="description" content={$authStore.schoolData?.descriptionRu || 'Официальный сайт школы'} />
-</svelte:head>
 
 <!-- Фиксированный навбар -->
 <nav class="school-navbar">

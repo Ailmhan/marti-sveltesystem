@@ -6,7 +6,11 @@
 	import DataCard from '$lib/components/DataCard.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
+	import SchoolLayout from '$lib/components/SchoolLayout.svelte';
 	import type { News, Teacher, HonorBoard, CanteenMenu, Schedule as ScheduleType, Class } from '$lib/types/api';
+	
+	// Подключаем CSS темы
+	import '../../app.css';
 
 	// Данные для превью
 	let news: News[] = [];
@@ -138,6 +142,7 @@
 	<meta name="description" content={$languageStore === 'ru' ? $authStore.schoolData?.descriptionRu : $authStore.schoolData?.descriptionKz} />
 </svelte:head>
 
+<SchoolLayout>
 <!-- Hero Section -->
 <section class="hero-section">
 	<!-- Фоновое изображение школы -->
@@ -884,5 +889,4 @@
 		}
 	}
 </style>
-
-
+</SchoolLayout>
