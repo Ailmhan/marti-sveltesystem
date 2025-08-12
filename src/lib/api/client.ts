@@ -396,13 +396,13 @@ class ApiClient {
 	async getSchedule(schoolId?: number, teacherId?: number, classId?: number): Promise<Schedule[]> {
 		let endpoint = '/schedule';
 		if (schoolId) {
-			endpoint += `/school/${schoolId}`;
+			endpoint = `/schedule/school/${schoolId}`;
 		}
 		if (teacherId) {
-			endpoint += `/teacher/${teacherId}`;
+			endpoint = `/schedule/teacher/${teacherId}`;
 		}
 		if (classId) {
-			endpoint += `/class/${classId}`;
+			endpoint = `/schedule/class/${classId}`;
 		}
 		return this.request<Schedule[]>(endpoint);
 	}

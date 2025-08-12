@@ -40,39 +40,39 @@
 
 {#if open}
 	<div 
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+		class="modal-overlay"
 		on:click={handleBackdropClick}
 		on:keydown={handleKeyDown}
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<div class="relative w-full max-w-lg mx-4 bg-white rounded-xl shadow-2xl border border-gray-200">
+		<div class="modal-content">
 			<!-- Header -->
-			<div class="flex items-center justify-between p-6 border-b border-gray-100">
-				<h2 class="text-xl font-semibold text-gray-900">{title}</h2>
+			<div class="modal-header">
+				<h2 class="modal-title">{title}</h2>
 				<button 
 					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="p-2 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+					class="close-button"
 				>
 					<span>✕</span>
 				</button>
 			</div>
 
 			<!-- Content -->
-			<div class="p-6">
+			<div class="modal-body">
 				<slot />
 			</div>
 
 			<!-- Footer -->
-			<div class="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+			<div class="modal-footer">
 				<button 
 					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 transition-colors"
+					class="btn btn-cancel"
 				>
 					{cancelText}
 				</button>
@@ -80,14 +80,194 @@
 					type="button"
 					on:click={handleSubmit}
 					disabled={loading}
-					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 transition-colors flex items-center"
+					class="btn btn-submit"
 				>
 					{#if loading}
-						<span class="mr-2 animate-spin">⏳</span>
+						<span class="loading-spinner">⏳</span>
 					{/if}
 					{submitText}
 				</button>
 			</div>
 		</div>
 	</div>
-{/if} 
+{/if}
+
+<style>
+	.modal-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: hsl(var(--background) / 0.8);
+		backdrop-filter: blur(8px);
+		padding: 1rem;
+	}
+
+	.modal-content {
+		position: relative;
+		width: 100%;
+		max-width: 32rem;
+		background: hsl(var(--card));
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-xl);
+		border: 1px solid hsl(var(--border));
+		overflow: hidden;
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.5rem;
+		border-bottom: 1px solid hsl(var(--border));
+		background: hsl(var(--card));
+	}
+
+	.modal-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		margin: 0;
+	}
+
+	.close-button {
+		padding: 0.5rem;
+		border-radius: calc(var(--radius) - 0.25rem);
+		border: none;
+		background: transparent;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 2rem;
+	}
+
+	.close-button:hover:not(:disabled) {
+		background: hsl(var(--muted));
+		color: hsl(var(--foreground));
+	}
+
+	.close-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+
+	.modal-footer {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		border-top: 1px solid hsl(var(--border));
+		background: hsl(var(--muted) / 0.3);
+	}
+
+	.btn {
+		padding: 0.5rem 1rem;
+		border-radius: calc(var(--radius) - 0.25rem);
+		border: none;
+		cursor: pointer;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		font-size: 0.875rem;
+		min-width: 5rem;
+	}
+
+	.btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-cancel {
+		background: hsl(var(--secondary));
+		color: hsl(var(--secondary-foreground));
+		border: 1px solid hsl(var(--border));
+	}
+
+	.btn-cancel:hover:not(:disabled) {
+		background: hsl(var(--secondary) / 0.8);
+	}
+
+	.btn-submit {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.btn-submit:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.9);
+		transform: translateY(-1px);
+	}
+
+	.loading-spinner {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+
+	/* Темная тема */
+	:global(.dark) .modal-overlay {
+		background: hsl(var(--background) / 0.9);
+	}
+
+	:global(.dark) .modal-content {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-header {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-title {
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .close-button {
+		color: hsl(var(--muted-foreground));
+	}
+
+	:global(.dark) .close-button:hover:not(:disabled) {
+		background: hsl(var(--muted));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .modal-footer {
+		background: hsl(var(--muted) / 0.2);
+		border-color: hsl(var(--border));
+	}
+
+	@media (max-width: 640px) {
+		.modal-overlay {
+			padding: 0.5rem;
+		}
+
+		.modal-content {
+			max-width: 100%;
+		}
+
+		.modal-footer {
+			flex-direction: column;
+		}
+
+		.btn {
+			width: 100%;
+		}
+	}
+</style> 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import Button from './ui/button/button.svelte';
+	import { adminStore } from '$lib/stores/admin';
 
 	export let open = false;
 
@@ -23,11 +23,13 @@
 			error = '';
 			
 			// Здесь должна быть логика входа администратора
-			// Пока что просто закрываем модальное окно
 			console.log('🔐 Admin login attempt:', { email, password });
 			
 			// В реальном приложении здесь был бы API вызов
 			// await authStore.adminLogin(email, password);
+			
+			// Пока что просто входим в админ-режим для демонстрации
+			adminStore.enterAdminMode({ email });
 			
 			closeModal();
 		} catch (err) {
@@ -56,8 +58,8 @@
 	<div class="modal-overlay" on:click={closeModal}>
 		<div class="modal-content" on:click|stopPropagation>
 			<div class="modal-header">
-				<h2>Вход для администратора</h2>
-				<button class="close-btn" on:click={closeModal}>✕</button>
+				<h2 class="modal-title">Вход для администратора</h2>
+				<button class="close-button" on:click={closeModal}>✕</button>
 			</div>
 
 			<form on:submit|preventDefault={handleSubmit} class="modal-body">
@@ -70,6 +72,7 @@
 						placeholder="admin@school.com"
 						required
 						disabled={loading}
+						class="form-input"
 					/>
 				</div>
 
@@ -82,6 +85,7 @@
 						placeholder="Введите пароль"
 						required
 						disabled={loading}
+						class="form-input"
 					/>
 				</div>
 
@@ -90,12 +94,24 @@
 				{/if}
 
 				<div class="form-actions">
-					<Button type="button" variant="outline" on:click={closeModal} disabled={loading}>
+					<button 
+						type="button" 
+						class="btn btn-cancel" 
+						on:click={closeModal} 
+						disabled={loading}
+					>
 						Отмена
-					</Button>
-					<Button type="submit" disabled={loading}>
+					</button>
+					<button 
+						type="submit" 
+						class="btn btn-submit" 
+						disabled={loading}
+					>
+						{#if loading}
+							<span class="loading-spinner">⏳</span>
+						{/if}
 						{loading ? 'Вход...' : 'Войти'}
-					</Button>
+					</button>
 				</div>
 			</form>
 		</div>
@@ -111,24 +127,25 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: rgba(0, 0, 0, 0.5);
+		background: hsl(var(--background) / 0.8);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		z-index: 1000;
-		backdrop-filter: blur(4px);
+		backdrop-filter: blur(8px);
+		padding: 1rem;
 	}
 
 	.modal-content {
-		background: hsl(var(--background));
-		border-radius: 0.75rem;
+		background: hsl(var(--card));
+		border-radius: var(--radius);
 		padding: 0;
 		max-width: 400px;
 		width: 90%;
 		max-height: 90vh;
 		overflow-y: auto;
 		border: 1px solid hsl(var(--border));
-		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+		box-shadow: var(--shadow-xl);
 	}
 
 	.modal-header {
@@ -140,27 +157,37 @@
 		padding-bottom: 1rem;
 	}
 
-	.modal-header h2 {
+	.modal-title {
 		margin: 0;
 		font-size: 1.25rem;
 		font-weight: 600;
 		color: hsl(var(--foreground));
 	}
 
-	.close-btn {
+	.close-button {
 		background: none;
 		border: none;
 		font-size: 1.5rem;
 		cursor: pointer;
 		padding: 0.25rem;
-		border-radius: 0.25rem;
+		border-radius: calc(var(--radius) - 0.25rem);
 		color: hsl(var(--muted-foreground));
 		transition: all 0.2s ease;
+		width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.close-btn:hover {
+	.close-button:hover:not(:disabled) {
 		background: hsl(var(--muted));
 		color: hsl(var(--foreground));
+	}
+
+	.close-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.modal-body {
@@ -176,35 +203,38 @@
 		margin-bottom: 0.5rem;
 		font-weight: 500;
 		color: hsl(var(--foreground));
+		font-size: 0.875rem;
 	}
 
-	.form-group input {
+	.form-input {
 		width: 100%;
 		padding: 0.75rem;
 		border: 1px solid hsl(var(--border));
-		border-radius: 0.5rem;
+		border-radius: calc(var(--radius) - 0.25rem);
 		background: hsl(var(--background));
 		color: hsl(var(--foreground));
 		font-size: 0.875rem;
-		transition: border-color 0.2s ease;
+		transition: all 0.2s ease;
+		box-sizing: border-box;
 	}
 
-	.form-group input:focus {
+	.form-input:focus {
 		outline: none;
 		border-color: hsl(var(--primary));
 		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
 	}
 
-	.form-group input:disabled {
+	.form-input:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+		background: hsl(var(--muted));
 	}
 
 	.error-message {
 		padding: 0.75rem;
 		background: hsl(var(--destructive) / 0.1);
 		border: 1px solid hsl(var(--destructive) / 0.2);
-		border-radius: 0.5rem;
+		border-radius: calc(var(--radius) - 0.25rem);
 		color: hsl(var(--destructive));
 		font-size: 0.875rem;
 		margin-bottom: 1.5rem;
@@ -216,14 +246,112 @@
 		justify-content: flex-end;
 	}
 
+	.btn {
+		padding: 0.75rem 1.5rem;
+		border-radius: calc(var(--radius) - 0.25rem);
+		border: none;
+		cursor: pointer;
+		font-weight: 500;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-width: 5rem;
+	}
+
+	.btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-cancel {
+		background: hsl(var(--secondary));
+		color: hsl(var(--secondary-foreground));
+		border: 1px solid hsl(var(--border));
+	}
+
+	.btn-cancel:hover:not(:disabled) {
+		background: hsl(var(--secondary) / 0.8);
+	}
+
+	.btn-submit {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.btn-submit:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.9);
+		transform: translateY(-1px);
+	}
+
+	.loading-spinner {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+
+	/* Темная тема */
+	:global(.dark) .modal-overlay {
+		background: hsl(var(--background) / 0.9);
+	}
+
+	:global(.dark) .modal-content {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-header {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-title {
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .close-button {
+		color: hsl(var(--muted-foreground));
+	}
+
+	:global(.dark) .close-button:hover:not(:disabled) {
+		background: hsl(var(--muted));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .form-input {
+		background: hsl(var(--background));
+		border-color: hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .form-input:focus {
+		border-color: hsl(var(--primary));
+	}
+
+	:global(.dark) .form-input:disabled {
+		background: hsl(var(--muted));
+	}
+
 	@media (max-width: 640px) {
+		.modal-overlay {
+			padding: 0.5rem;
+		}
+
 		.modal-content {
 			width: 95%;
-			margin: 1rem;
 		}
 
 		.form-actions {
 			flex-direction: column;
+		}
+
+		.btn {
+			width: 100%;
+			justify-content: center;
 		}
 	}
 </style>
