@@ -7,11 +7,16 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
     import HeaderSearch from '$lib/components/HeaderSearch.svelte';
+    import ToastContainer from '$lib/components/ToastContainer.svelte';
+    import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
+    import { adminStore } from '$lib/stores/admin';
     import { cn } from '$lib/utils/cn';
+    import { t } from '$lib/i18n/translations';
     import '../app.css';
 
     let sidebarOpen = false;
     let isDark = false;
+    let showAdminModal = false;
 
     onMount(() => {
         if (typeof window !== 'undefined') {
@@ -21,16 +26,22 @@
         }
     });
 
-	const navigation = [
-		{ name: 'Главная', href: '/', icon: '🏠' },
-		{ name: 'Новости', href: '/news', icon: '📰' },
-		{ name: 'Учителя', href: '/teachers', icon: '👥' },
-		{ name: 'Дни рождения', href: '/teachers/birthdays', icon: '🎂' },
-		{ name: 'Доска почета', href: '/honor-board', icon: '🏆' },
-		{ name: 'Меню', href: '/canteen', icon: '🍽️' },
-		{ name: 'Расписание', href: '/schedule', icon: '📅' },
-		{ name: 'Классы', href: '/classes', icon: '🎓' },
+	const navigationItems = [
+		{ key: 'home', href: '/', icon: '🏠' },
+		{ key: 'news', href: '/news', icon: '📰' },
+		{ key: 'teachers', href: '/teachers', icon: '👥' },
+		{ key: 'birthdays', href: '/teachers/birthdays', icon: '🎂' },
+		{ key: 'honorBoard', href: '/honor-board', icon: '🏆' },
+		{ key: 'canteen', href: '/canteen', icon: '🍽️' },
+		{ key: 'schedule', href: '/schedule', icon: '📅' },
+		{ key: 'classes', href: '/classes', icon: '🎓' },
 	];
+
+	// Фильтруем навигацию и добавляем переводы
+	$: filteredNavigation = navigationItems.map(item => ({
+		...item,
+		name: (t.navigation as any)[item.key]?.[$languageStore] || item.key
+	}));
 
 	function logout() {
 		authStore.logout();
@@ -45,6 +56,20 @@
 
 	function handleLanguageChange(event: CustomEvent<'ru' | 'kz'>) {
 		languageStore.set(event.detail);
+	}
+
+	function openAdminModal() {
+		console.log('openAdminModal called, current showAdminModal:', showAdminModal);
+		showAdminModal = true;
+		console.log('showAdminModal set to:', showAdminModal);
+	}
+
+	function closeAdminModal() {
+		showAdminModal = false;
+	}
+
+	function exitAdminMode() {
+		adminStore.exitAdminMode();
 	}
 
 	function handleSearch(event: CustomEvent<string>) {
@@ -75,8 +100,8 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background">
-    <!-- Показываем навигацию только если пользователь авторизован и не на страницах авторизации -->
-    {#if $authStore.isAuthenticated && !$page.url.pathname.startsWith('/login') && !$page.url.pathname.startsWith('/register')}
+    <!-- Показываем навигацию только если пользователь авторизован и не на страницах авторизации и не на странице школы -->
+    {#if $authStore.isAuthenticated && !$page.url.pathname.startsWith('/login') && !$page.url.pathname.startsWith('/register') && !$page.url.pathname.startsWith('/school')}
 		<!-- Sidebar for desktop -->
 		<div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
 			<div class="sidebar-surface flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
@@ -97,7 +122,7 @@
 					<ul role="list" class="flex flex-1 flex-col gap-y-2">
 						<li>
 							<ul role="list" class="-mx-2 space-y-1">
-								{#each navigation as item}
+								{#each filteredNavigation as item}
 									<li>
 										<a
 											href={item.href}
@@ -110,7 +135,33 @@
 								{/each}
 							</ul>
 						</li>
+						<!-- Admin controls -->
 						<li class="mt-auto">
+							{#if $adminStore.isAdminMode}
+								<div class="admin-session-info">
+									<Button variant="destructive" class="w-full justify-start" on:click={exitAdminMode}>
+										<span class="mr-2">🔒</span>
+										{t.navigation.adminExit?.[$languageStore] || 'Выйти из режима администратора'}
+									</Button>
+								</div>
+							{:else}
+								<Button variant="secondary" class="w-full justify-start admin-btn" on:click={openAdminModal}>
+									<span class="mr-2">🔐</span>
+									{t.navigation.adminMode?.[$languageStore] || 'Режим администратора'}
+								</Button>
+							{/if}
+						</li>
+						
+						<li>
+							<a href="/school" class="sidebar-school-link">
+								<Button variant="outline" class="w-full justify-start">
+									<span class="mr-2">🌐</span>
+									Сайт школы
+								</Button>
+							</a>
+						</li>
+						
+						<li>
 							<Button variant="outline" class="w-full justify-start" on:click={logout}>
 								<span class="mr-2">🚪</span>
 								Выйти
@@ -143,7 +194,7 @@
 					</div>
 					<nav class="mobile-sidebar-nav">
 						<ul role="list" class="mobile-sidebar-menu">
-							{#each navigation as item}
+							{#each filteredNavigation as item}
 								<li>
                                     <a
                                         href={item.href}
@@ -160,6 +211,24 @@
 							{/each}
 						</ul>
 						<div class="mobile-sidebar-footer">
+							<!-- Admin controls for mobile -->
+							{#if $adminStore.isAdminMode}
+								<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
+									<span class="mobile-sidebar-icon">🔒</span>
+									<span class="mobile-sidebar-text">{t.navigation.adminExit?.[$languageStore] || 'Выйти из режима администратора'}</span>
+								</button>
+							{:else}
+								<button class="mobile-sidebar-admin" on:click={openAdminModal}>
+									<span class="mobile-sidebar-icon">🔐</span>
+									<span class="mobile-sidebar-text">{t.navigation.adminMode?.[$languageStore] || 'Режим администратора'}</span>
+								</button>
+							{/if}
+							
+							<a href="/school" class="mobile-sidebar-school">
+								<span class="mobile-sidebar-icon">🌐</span>
+								<span class="mobile-sidebar-text">Сайт школы</span>
+							</a>
+							
 							<button class="mobile-sidebar-logout" on:click={logout}>
 								<span class="mobile-sidebar-icon">🚪</span>
 								<span class="mobile-sidebar-text">Выйти</span>
@@ -244,6 +313,9 @@
 				</div>
 			</main>
 		</div>
+	{:else if $page.url.pathname.startsWith('/school')}
+		<!-- Для страницы школы показываем только контент без основного лайаута -->
+		<slot />
 	{:else}
 		<!-- Для неавторизованных пользователей показываем только контент -->
 		<main>
@@ -251,6 +323,12 @@
 		</main>
 	{/if}
 </div>
+
+<!-- Toast notifications -->
+<ToastContainer />
+
+<!-- Admin login modal -->
+<AdminLoginModal bind:open={showAdminModal} on:close={closeAdminModal} />
 
 <style>
 	/* Desktop Header Styles */
@@ -549,6 +627,99 @@
 	.mobile-sidebar-logout:hover {
 		background: hsl(var(--destructive));
 		color: hsl(var(--destructive-foreground));
+	}
+
+	.sidebar-school-link {
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.mobile-sidebar-school {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: none;
+		border: none;
+		border-radius: 0.5rem;
+		color: hsl(var(--muted-foreground));
+		text-decoration: none;
+		transition: all 0.2s ease;
+		font-weight: 500;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-school:hover {
+		background: hsl(var(--primary) / 0.1);
+		color: hsl(var(--primary));
+	}
+
+	.mobile-sidebar-admin {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+		color: white;
+		border: none;
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-admin:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+	}
+
+	.mobile-sidebar-admin-exit {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+		padding: 1rem;
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+		border: none;
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.mobile-sidebar-admin-exit:hover {
+		background: hsl(var(--destructive) / 0.9);
+		transform: translateY(-1px);
+		box-shadow: var(--shadow-md);
+	}
+
+	/* Admin session info styles */
+	.admin-session-info {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+
+
+	/* Admin Button Styles */
+	:global(.admin-btn) {
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(139, 92, 246, 0.4) !important;
+		box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3) !important;
+	}
+
+	:global(.admin-btn:hover) {
+		transform: translateY(-2px) !important;
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4) !important;
 	}
 
 	/* Enhanced Button Styles */
