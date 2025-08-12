@@ -40,39 +40,39 @@
 
 {#if open}
 	<div 
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+		class="modal-backdrop"
 		on:click={handleBackdropClick}
 		on:keydown={handleKeyDown}
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 	>
-		<div class="relative w-full max-w-lg mx-4 bg-white rounded-xl shadow-2xl border border-gray-200">
+		<div class="modal-container">
 			<!-- Header -->
-			<div class="flex items-center justify-between p-6 border-b border-gray-100">
-				<h2 class="text-xl font-semibold text-gray-900">{title}</h2>
+			<div class="modal-header">
+				<h2 class="modal-title">{title}</h2>
 				<button 
 					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="p-2 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+					class="close-btn"
 				>
 					<span>✕</span>
 				</button>
 			</div>
 
 			<!-- Content -->
-			<div class="p-6">
+			<div class="modal-body">
 				<slot />
 			</div>
 
 			<!-- Footer -->
-			<div class="flex items-center justify-end gap-3 p-6 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+			<div class="modal-footer">
 				<button 
 					type="button"
 					on:click={handleClose}
 					disabled={loading}
-					class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-100 disabled:opacity-50 transition-colors"
+					class="btn-cancel"
 				>
 					{cancelText}
 				</button>
@@ -80,14 +80,171 @@
 					type="button"
 					on:click={handleSubmit}
 					disabled={loading}
-					class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 transition-colors flex items-center"
+					class="btn-submit"
 				>
 					{#if loading}
-						<span class="mr-2 animate-spin">⏳</span>
+						<span class="loading-spinner">⏳</span>
 					{/if}
 					{submitText}
 				</button>
 			</div>
 		</div>
 	</div>
-{/if} 
+{/if}
+
+<style>
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 50;
+		padding: 1rem;
+	}
+
+	.modal-container {
+		background: hsl(var(--background));
+		border: 1px solid hsl(var(--border));
+		border-radius: 0.75rem;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+		width: 100%;
+		max-width: 32rem;
+		max-height: 90vh;
+		overflow: hidden;
+		position: relative;
+		animation: modal-appear 0.3s ease-out;
+	}
+
+	@keyframes modal-appear {
+		from {
+			opacity: 0;
+			transform: scale(0.9) translateY(-20px);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1) translateY(0);
+		}
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.5rem;
+		border-bottom: 1px solid hsl(var(--border));
+		background: hsl(var(--background));
+	}
+
+	.modal-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		margin: 0;
+	}
+
+	.close-btn {
+		background: none;
+		border: none;
+		font-size: 1.25rem;
+		color: hsl(var(--muted-foreground));
+		cursor: pointer;
+		padding: 0.5rem;
+		border-radius: 0.375rem;
+		width: 2rem;
+		height: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s ease;
+	}
+
+	.close-btn:hover:not(:disabled) {
+		color: hsl(var(--foreground));
+		background: hsl(var(--muted));
+	}
+
+	.close-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+		max-height: 60vh;
+		overflow-y: auto;
+	}
+
+	.modal-footer {
+		display: flex;
+		align-items: center;
+		justify-content: end;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		border-top: 1px solid hsl(var(--border));
+		background: hsl(var(--muted) / 0.3);
+	}
+
+	.btn-cancel {
+		padding: 0.5rem 1rem;
+		border: 1px solid hsl(var(--border));
+		border-radius: 0.375rem;
+		color: hsl(var(--foreground));
+		background: hsl(var(--background));
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		font-weight: 500;
+	}
+
+	.btn-cancel:hover:not(:disabled) {
+		background: hsl(var(--muted));
+	}
+
+	.btn-cancel:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.btn-submit {
+		padding: 0.5rem 1rem;
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+		border: none;
+		border-radius: 0.375rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		font-weight: 500;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.btn-submit:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.9);
+	}
+
+	.btn-submit:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.loading-spinner {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style> 

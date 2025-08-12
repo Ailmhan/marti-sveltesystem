@@ -7,10 +7,15 @@
 	import { ru, kk } from 'date-fns/locale';
 	import DataCard from '$lib/components/DataCard.svelte';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import EditModal from '$lib/components/EditModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { uploadToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
+	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let menus: CanteenMenu[] = [];
 	let loading = false;
@@ -18,7 +23,28 @@
 	let showAddModal = false;
 	let modalError = '';
 
+	// Edit state
+	let showEditModal = false;
+	let editModalError = '';
+	let editModalLoading = false;
+	let currentEditItem: CanteenMenu | null = null;
+
 	let newMenu = {
+		date: '',
+		dishesRu: {
+			breakfast: '',
+			lunch: '',
+			dinner: ''
+		},
+		dishesKz: {
+			breakfast: '',
+			lunch: '',
+			dinner: ''
+		},
+		imageUrl: undefined as string | undefined
+	};
+
+	let editMenu = {
 		date: '',
 		dishesRu: {
 			breakfast: '',
@@ -121,6 +147,79 @@
 		newMenu.imageUrl = event.detail.value;
 	}
 
+	// Edit functions
+	function openEditModal(item: CanteenMenu) {
+		currentEditItem = item;
+		editMenu = {
+			date: item.date,
+			dishesRu: {
+				breakfast: item.dishesRu.breakfast,
+				lunch: item.dishesRu.lunch,
+				dinner: item.dishesRu.dinner
+			},
+			dishesKz: {
+				breakfast: item.dishesKz.breakfast,
+				lunch: item.dishesKz.lunch,
+				dinner: item.dishesKz.dinner
+			},
+			imageUrl: item.imageUrl
+		};
+		showEditModal = true;
+		editModalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editModalError = '';
+		editModalLoading = false;
+		currentEditItem = null;
+		editMenu = {
+			date: '',
+			dishesRu: { breakfast: '', lunch: '', dinner: '' },
+			dishesKz: { breakfast: '', lunch: '', dinner: '' },
+			imageUrl: undefined
+		};
+	}
+
+	async function updateMenu() {
+		if (!currentEditItem) {
+			editModalError = 'Ошибка: элемент для редактирования не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editMenu.date || 
+			!editMenu.dishesRu.breakfast.trim() || !editMenu.dishesRu.lunch.trim() || !editMenu.dishesRu.dinner.trim() ||
+			!editMenu.dishesKz.breakfast.trim() || !editMenu.dishesKz.lunch.trim() || !editMenu.dishesKz.dinner.trim()) {
+			editModalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			editModalError = '';
+			editModalLoading = true;
+			
+			await apiClient.updateCanteenMenu(currentEditItem.id, editMenu);
+			
+			// Закрываем модальное окно после успешного сохранения
+			closeEditModal();
+			
+			// Перезагружаем данные
+			await loadMenus();
+		} catch (err) {
+			console.error('Error updating menu:', err);
+			editModalError = err instanceof Error ? err.message : 'Ошибка обновления меню';
+			editModalLoading = false;
+		}
+	}
+
+	function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url) {
+			editMenu.imageUrl = url;
+		}
+	}
+
 	function formatDate(date: Date | string) {
 		return format(new Date(date), 'dd MMMM yyyy', {
 			locale: ru // Always use ru for date formatting
@@ -128,13 +227,18 @@
 	}
 
 	async function deleteMenu(id: number) {
-		if (confirm('Вы уверены, что хотите удалить это меню?')) {
-			try {
-				await apiClient.deleteCanteenMenu(id);
-				await loadMenus();
-			} catch (err) {
-				error = err instanceof Error ? err.message : 'Ошибка удаления меню';
-			}
+		if (!confirm('Вы уверены, что хотите удалить это меню?')) {
+			return;
+		}
+
+		try {
+			await apiClient.deleteCanteenMenu(id);
+			await loadMenus();
+			toastStore.success('Меню успешно удалено');
+		} catch (err) {
+			console.error('Error deleting menu:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления меню';
+			toastStore.error('Не удалось удалить меню');
 		}
 	}
 </script>
@@ -145,12 +249,14 @@
 
 <div class="canteen-page">
 	<div class="page-header">
-		<h1>Меню столовой</h1>
+		<h1>{t('pageHeaders.canteen', $languageStore)}</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить меню
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					{t('buttons.addMenu', $languageStore)}
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -171,19 +277,19 @@
 				<DataCard
 					data={menu}
 					type="canteen"
-					showActions={true}
-					onEdit={() => console.log('Edit menu:', menu.id)}
+					showActions={$adminStore.isAdminMode}
+					onEdit={() => openEditModal(menu)}
 					onDelete={() => deleteMenu(menu.id)}
 				/>
 			{/each}
 		</div>
 	{:else}
 		<EmptyState
-			title="Меню пока нет"
-			description="Добавьте первое меню в систему!"
+			title={t('emptyStates.canteen.title', $languageStore)}
+			description={t('emptyStates.canteen.description', $languageStore)}
 			icon="🍽️"
-			buttonText="Добавить меню"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.canteen.buttonText', $languageStore) : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
 </div>
@@ -191,7 +297,7 @@
 <!-- Модальное окно добавления меню -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить меню"
+	title={t('modalTitles.addMenu', $languageStore)}
 	loading={false}
 	on:close={closeModal}
 	on:submit={addMenu}
@@ -291,6 +397,110 @@
 		</div>
 	</div>
 </DataModal>
+
+<!-- Модальное окно редактирования меню -->
+<EditModal
+	bind:open={showEditModal}
+	title="Редактировать меню"
+	loading={editModalLoading}
+	on:close={closeEditModal}
+	on:submit={updateMenu}
+>
+	<div class="space-y-4">
+		{#if editModalError}
+			<div class="alert alert-error">
+				{editModalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editDate" class="block text-sm font-medium mb-2 text-gray-700">
+				Дата *
+			</label>
+			<input
+				id="editDate"
+				type="date"
+				bind:value={editMenu.date}
+				required
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div class="grid grid-cols-2 gap-4">
+			<div>
+				<h4 class="font-medium text-gray-700 mb-2">Завтрак</h4>
+				<input
+					type="text"
+					bind:value={editMenu.dishesRu.breakfast}
+					placeholder="Завтрак (русский)"
+					required
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mb-2"
+				/>
+				<input
+					type="text"
+					bind:value={editMenu.dishesKz.breakfast}
+					placeholder="Завтрак (казахский)"
+					required
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				/>
+			</div>
+
+			<div>
+				<h4 class="font-medium text-gray-700 mb-2">Обед</h4>
+				<input
+					type="text"
+					bind:value={editMenu.dishesRu.lunch}
+					placeholder="Обед (русский)"
+					required
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mb-2"
+				/>
+				<input
+					type="text"
+					bind:value={editMenu.dishesKz.lunch}
+					placeholder="Обед (казахский)"
+					required
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				/>
+			</div>
+		</div>
+
+		<div>
+			<h4 class="font-medium text-gray-700 mb-2">Ужин</h4>
+			<input
+				type="text"
+				bind:value={editMenu.dishesRu.dinner}
+				placeholder="Ужин (русский)"
+				required
+				class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors mb-2"
+			/>
+			<input
+				type="text"
+				bind:value={editMenu.dishesKz.dinner}
+				placeholder="Ужин (казахский)"
+				required
+				class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-menu-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение меню
+			</label>
+			<ImageUpload
+				id="edit-menu-image-upload"
+				bind:value={editMenu.imageUrl}
+				folder="canteen"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
 	.canteen-page {

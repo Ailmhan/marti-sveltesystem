@@ -3,13 +3,17 @@
 	import { apiClient } from '$lib/api/client';
 	import type { News } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import EditModal from '$lib/components/EditModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
 	import DataPage from '$lib/components/DataPage.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
+	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 	import { 
 		searchItems, 
 		sortItems, 
@@ -24,10 +28,25 @@
 	let showAddModal = false;
 	let modalError = '';
 	let modalLoading = false;
+	let imageUploading = false;
 	let currentView: 'grid' | 'list' | 'calendar' = 'grid';
 	let sortBy = '';
 
+	// Edit state
+	let showEditModal = false;
+	let editModalError = '';
+	let editModalLoading = false;
+	let currentEditItem: News | null = null;
+
 	let newNews = {
+		titleRu: '',
+		titleKz: '',
+		contentRu: '',
+		contentKz: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	let editNews = {
 		titleRu: '',
 		titleKz: '',
 		contentRu: '',
@@ -136,9 +155,92 @@
 	function handleImageChange(event: CustomEvent) {
 		// ImageUpload уже обрабатывает загрузку, просто получаем URL
 		const url = event.detail.value;
+		const uploading = event.detail.uploading;
+		
 		if (url) {
 			newNews.imageUrl = url;
 			console.log('Image URL set:', url);
+		}
+		
+		if (uploading !== undefined) {
+			imageUploading = uploading;
+			console.log('Image uploading state:', uploading);
+		}
+	}
+	
+	function handleImageUploadStart() {
+		imageUploading = true;
+		console.log('🔄 Image upload started');
+	}
+	
+	function handleImageUploadEnd() {
+		imageUploading = false;
+		console.log('✅ Image upload ended');
+	}
+
+	// Edit functions
+	function openEditModal(item: News) {
+		currentEditItem = item;
+		editNews = {
+			titleRu: item.titleRu,
+			titleKz: item.titleKz,
+			contentRu: item.contentRu,
+			contentKz: item.contentKz,
+			imageUrl: item.imageUrl
+		};
+		showEditModal = true;
+		editModalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editModalError = '';
+		editModalLoading = false;
+		currentEditItem = null;
+		editNews = {
+			titleRu: '',
+			titleKz: '',
+			contentRu: '',
+			contentKz: '',
+			imageUrl: undefined
+		};
+	}
+
+	async function updateNews() {
+		if (!currentEditItem) {
+			editModalError = 'Ошибка: элемент для редактирования не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editNews.titleRu.trim() || !editNews.titleKz.trim() || 
+			!editNews.contentRu.trim() || !editNews.contentKz.trim()) {
+			editModalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			editModalError = '';
+			editModalLoading = true;
+			
+			await apiClient.updateNews(currentEditItem.id, editNews);
+			
+			// Закрываем модальное окно после успешного сохранения
+			closeEditModal();
+			
+			// Перезагружаем данные
+			await loadNews();
+		} catch (err) {
+			console.error('Error updating news:', err);
+			editModalError = err instanceof Error ? err.message : 'Ошибка обновления новости';
+			editModalLoading = false;
+		}
+	}
+
+	function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url) {
+			editNews.imageUrl = url;
 		}
 	}
 
@@ -152,13 +254,18 @@
 	}
 
 	async function deleteNews(id: number) {
-		if (confirm('Вы уверены, что хотите удалить эту новость?')) {
-			try {
-				await apiClient.deleteNews(id);
-				await loadNews();
-			} catch (err) {
-				error = err instanceof Error ? err.message : 'Ошибка удаления новости';
-			}
+		if (!confirm('Вы уверены, что хотите удалить эту новость?')) {
+			return;
+		}
+
+		try {
+			await apiClient.deleteNews(id);
+			await loadNews();
+			toastStore.success('Новость успешно удалена');
+		} catch (err) {
+			console.error('Error deleting news:', err);
+			error = err instanceof Error ? err.message : 'Ошибка удаления новости';
+			toastStore.error('Не удалось удалить новость');
 		}
 	}
 </script>
@@ -168,7 +275,7 @@
 </svelte:head>
 
 		<DataPage
-			title="Новости школы"
+			title={t('pageHeaders.news', $languageStore)}
 			{loading}
 			{error}
 			showSearch={false}
@@ -183,10 +290,12 @@
 			let:pageState
 		>
 	<svelte:fragment slot="actions">
-		<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
-			<span class="btn-icon">➕</span>
-			Добавить новость
-		</button>
+		{#if $adminStore.isAdminMode}
+			<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
+				<span class="btn-icon">➕</span>
+				{t('buttons.addNews', $languageStore)}
+			</button>
+		{/if}
 	</svelte:fragment>
 
 	<svelte:fragment slot="default">
@@ -198,8 +307,8 @@
                             <DataCard
                                 data={item}
                                 type="news"
-                                showActions={true}
-                                onEdit={() => console.log('Edit news:', item.id)}
+                                showActions={$adminStore.isAdminMode}
+                                onEdit={() => openEditModal(item)}
                                 onDelete={() => deleteNews(item.id)}
                             />
                         </a>
@@ -213,8 +322,8 @@
                                 <DataCard
                                     data={item}
                                     type="news"
-                                    showActions={true}
-                                    onEdit={() => console.log('Edit news:', item.id)}
+                                    showActions={$adminStore.isAdminMode}
+                                    onEdit={() => openEditModal(item)}
                                     onDelete={() => deleteNews(item.id)}
                                 />
                             </a>
@@ -237,31 +346,31 @@
 			{/if}
 		{:else if news.length > 0}
 			<EmptyState
-				title="Новости не найдены"
-				description="Попробуйте изменить параметры сортировки"
+				title={t('emptyStates.newsNotFound.title', $languageStore)}
+				description={t('emptyStates.newsNotFound.description', $languageStore)}
 				icon="🔍"
-				buttonText="Очистить сортировку"
+				buttonText={t('emptyStates.newsNotFound.buttonText', $languageStore)}
 				onAction={() => {
 					sortBy = '';
 				}}
 			/>
 		{:else}
 			<EmptyState
-				title="Новостей пока нет"
-				description="Добавьте первую новость в систему!"
+				title={t('emptyStates.news.title', $languageStore)}
+				description={t('emptyStates.news.description', $languageStore)}
 				icon="📰"
-				buttonText="Добавить новость"
-				onAction={openModal}
+				buttonText={$adminStore.isAdminMode ? t('emptyStates.news.buttonText', $languageStore) : null}
+				onAction={$adminStore.isAdminMode ? openModal : null}
 			/>
 		{/if}
 	</svelte:fragment>
 </DataPage>
 
 <!-- Модальное окно добавления новости -->
-<DataModal
-	bind:open={showAddModal}
-	title="Добавить новость"
-	loading={modalLoading}
+	<DataModal
+		bind:open={showAddModal}
+		title={t('modalTitles.addNews', $languageStore)}
+		loading={modalLoading || imageUploading}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -337,6 +446,8 @@
 				bind:value={newNews.imageUrl}
 				folder="news"
 				on:change={handleImageChange}
+				on:uploadStart={handleImageUploadStart}
+				on:uploadEnd={handleImageUploadEnd}
 				on:error={(event) => {
 					modalError = event.detail.message;
 				}}
@@ -347,6 +458,97 @@
 		</div>
 	</div>
 </DataModal>
+
+<!-- Модальное окно редактирования новости -->
+<EditModal
+	bind:open={showEditModal}
+	title="Редактировать новость"
+	loading={editModalLoading}
+	on:close={closeEditModal}
+	on:submit={updateNews}
+>
+	<div class="space-y-4">
+		{#if editModalError}
+			<div class="alert alert-error">
+				{editModalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editTitleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (Русский) *
+			</label>
+			<input
+				id="editTitleRu"
+				type="text"
+				bind:value={editNews.titleRu}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				placeholder="Введите заголовок новости"
+				required
+			/>
+		</div>
+
+		<div>
+			<label for="editTitleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (Казахский) *
+			</label>
+			<input
+				id="editTitleKz"
+				type="text"
+				bind:value={editNews.titleKz}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+				placeholder="Жаңалық тақырыбын енгізіңіз"
+				required
+			/>
+		</div>
+
+		<div>
+			<label for="editContentRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (Русский) *
+			</label>
+			<textarea
+				id="editContentRu"
+				bind:value={editNews.contentRu}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Введите содержание новости"
+				required
+			></textarea>
+		</div>
+
+		<div>
+			<label for="editContentKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (Казахский) *
+			</label>
+			<textarea
+				id="editContentKz"
+				bind:value={editNews.contentKz}
+				rows={4}
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+				placeholder="Жаңалық мазмұнын енгізіңіз"
+				required
+			></textarea>
+		</div>
+
+		<div>
+			<label for="edit-news-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="edit-news-image-upload"
+				bind:value={editNews.imageUrl}
+				folder="news"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
 .news-page {

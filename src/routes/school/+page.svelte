@@ -1,15 +1,47 @@
 <script lang="ts">
-  import { authStore } from '$lib/stores/auth';
-  import { languageStore } from '$lib/stores/language';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+
+	// Автоматически перенаправляем на новый лендинг
+	onMount(() => {
+		console.log('🔄 Redirecting from /school to /school-landing');
+		goto('/school-landing', { replaceState: true });
+	});
 </script>
 
 <svelte:head>
-  <title>Страница школы</title>
+	<title>Переадресация...</title>
 </svelte:head>
 
-<div class="container" style="max-width:1210px;margin:0 auto;padding:2rem;">
-  <h1 style="font-size:2rem;font-weight:700;margin:0 0 1rem 0;">{$languageStore === 'ru' ? $authStore.schoolData?.nameRu : $authStore.schoolData?.nameKz || 'Школа'}</h1>
-  <p style="color:hsl(var(--muted-foreground));">Скоро здесь будет страница школы (лендинг).</p>
+<div class="redirect-page">
+	<div class="redirect-content">
+		<div class="spinner">🔄</div>
+		<p>Переходим на лендинг школы...</p>
+	</div>
 </div>
 
+<style>
+	.redirect-page {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: hsl(var(--background));
+	}
 
+	.redirect-content {
+		text-align: center;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.spinner {
+		font-size: 2rem;
+		animation: spin 1s linear infinite;
+		margin-bottom: 1rem;
+	}
+
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+</style>

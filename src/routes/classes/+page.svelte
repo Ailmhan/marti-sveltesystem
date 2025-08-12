@@ -2,11 +2,14 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import type { Class, Teacher } from '$lib/types/api';
 	import ClassCard from '$lib/components/ClassCard.svelte';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let classes: Class[] = [];
 	let teachers: Teacher[] = [];
@@ -137,13 +140,15 @@
 
 <div class="classes-page">
 	<div class="page-header">
-		<h1>Классы школы</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openAddModal}>
-				<span class="btn-icon">➕</span>
-				Добавить класс
-			</button>
-		</div>
+		<h1>{t('pageHeaders.classes', $languageStore)}</h1>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openAddModal}>
+					<span class="btn-icon">➕</span>
+					{t('buttons.addClass', $languageStore)}
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -168,11 +173,11 @@
 		</div>
 	{:else}
 		<EmptyState
-			title="Классов пока нет"
-			description="Добавьте первый класс в систему!"
+			title={t('emptyStates.classes.title', $languageStore)}
+			description={t('emptyStates.classes.description', $languageStore)}
 			icon="🏫"
-			buttonText="Добавить класс"
-			onAction={openAddModal}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.classes.buttonText', $languageStore) : undefined}
+			onAction={$adminStore.isAdminMode ? openAddModal : undefined}
 		/>
 	{/if}
 </div>
@@ -180,7 +185,7 @@
 <!-- Модальное окно добавления класса -->
 <DataModal 
 	bind:open={showAddModal} 
-	title="Добавить класс" 
+	title={t('modalTitles.addClass', $languageStore)} 
 	loading={addLoading}
 	on:close={closeAddModal}
 	on:submit={addClass}

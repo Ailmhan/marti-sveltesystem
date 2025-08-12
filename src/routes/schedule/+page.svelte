@@ -9,6 +9,9 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
+	import { languageStore } from '$lib/stores/language';
+	import { adminStore } from '$lib/stores/admin';
+	import { t } from '$lib/i18n/translations';
 
 	let schedule: ScheduleType[] = [];
 	let teachers: Teacher[] = [];
@@ -32,25 +35,64 @@
 	};
 
 	onMount(() => {
-		loadData();
+		// Ждем пока authStore загрузится
+		const unsubscribe = authStore.subscribe(($authStore) => {
+			if ($authStore.schoolId && !loading && schedule.length === 0) {
+				console.log('📅 Загружаем данные расписания для школы:', $authStore.schoolId);
+				loadData();
+			}
+		});
+		
+		// Если данные уже есть, загружаем сразу
+		if ($authStore.schoolId) {
+			loadData();
+		}
+
+		return () => unsubscribe();
 	});
 
 	async function loadData() {
-		if (!$authStore.schoolId) return;
+		const schoolId = $authStore.schoolId;
 		
+		if (!schoolId) {
+			console.warn('⚠️ School ID не доступен, ждем загрузки...');
+			return;
+		}
+
 		try {
 			loading = true;
 			error = '';
-			const [scheduleData, teachersData, classesData] = await Promise.all([
-				apiClient.getSchedule($authStore.schoolId),
-				apiClient.getTeachers($authStore.schoolId),
-				apiClient.getClasses($authStore.schoolId)
-			]);
-			schedule = scheduleData;
-			teachers = teachersData;
-			classes = classesData;
+			console.log('📅 Начинаем загрузку данных расписания...');
+
+			// Загружаем данные по отдельности для лучшей отладки
+			const scheduleData = await apiClient.getSchedule(schoolId).catch(err => {
+				console.error('❌ Ошибка загрузки расписания:', err);
+				return [];
+			});
+
+			const teachersData = await apiClient.getTeachers(schoolId).catch(err => {
+				console.error('❌ Ошибка загрузки учителей:', err);
+				return [];
+			});
+
+			const classesData = await apiClient.getClasses(schoolId).catch(err => {
+				console.error('❌ Ошибка загрузки классов:', err);
+				return [];
+			});
+
+			// Присваиваем данные
+			schedule = scheduleData || [];
+			teachers = teachersData || [];
+			classes = classesData || [];
+
+			console.log('✅ Данные загружены:', {
+				schedule: schedule.length,
+				teachers: teachers.length,
+				classes: classes.length
+			});
+
 		} catch (err) {
-			console.error('Error loading data:', err);
+			console.error('❌ Критическая ошибка загрузки данных:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки данных';
 		} finally {
 			loading = false;
@@ -149,27 +191,38 @@
 
 <div class="schedule-page">
 	<div class="page-header">
-		<h1>Расписание занятий</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить занятие
-			</button>
-		</div>
+		<h1>{t('pageHeaders.schedule', $languageStore)}</h1>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					{t('buttons.addSchedule', $languageStore)}
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
 		<div class="loading-container">
-			<div class="spinner"></div>
-			<p>Загрузка расписания...</p>
+			<LoadingSpinner />
+			<p>Загрузка данных расписания...</p>
+			<p class="loading-details">Загружаем расписание, учителей и классы...</p>
 		</div>
 	{:else if error}
 		<div class="error-container">
-			<h2>Ошибка</h2>
+			<h2>❌ Ошибка загрузки</h2>
 			<p>{error}</p>
-			<button class="btn btn-primary" on:click={loadData}>Попробовать снова</button>
+			<div class="error-actions">
+				<button class="btn btn-primary" on:click={loadData}>🔄 Попробовать снова</button>
+				<button class="btn btn-secondary" on:click={() => window.location.reload()}>🔄 Обновить страницу</button>
+			</div>
 		</div>
 	{:else if schedule.length > 0}
+		<!-- Статистика по загруженным данным -->
+		<div class="data-info">
+			<p>📊 Загружено: <strong>{schedule.length}</strong> занятий, <strong>{teachers.length}</strong> учителей, <strong>{classes.length}</strong> классов</p>
+		</div>
+
 		<Schedule 
 			{schedule}
 			on:itemClick={(event: CustomEvent<ScheduleType>) => {
@@ -183,13 +236,38 @@
 				console.log('View changed:', event.detail);
 			}}
 		/>
+
+		<!-- Список всех занятий для отладки -->
+		{#if schedule.length > 0}
+			<details class="debug-info">
+				<summary>🔍 Все занятия (для отладки)</summary>
+				<div class="schedule-debug-list">
+					{#each schedule as item, index}
+						<div class="schedule-debug-item">
+							<strong>#{index + 1}.</strong>
+							📅 {new Date(item.date).toLocaleDateString('ru-RU')} 
+							⏰ {item.startTime} - {item.endTime} 
+							📚 {$languageStore === 'ru' ? item.subjectRu : item.subjectKz}
+							👨‍🏫 {item.Teacher ? ($languageStore === 'ru' ? item.Teacher.nameRu : item.Teacher.nameKz) : 'Не указан'}
+							🏫 {$languageStore === 'ru' ? item.roomRu : item.roomKz}
+							🎓 {item.Class ? `${item.Class.grade}${item.Class.letter}` : 'Не указан'}
+						</div>
+					{/each}
+				</div>
+			</details>
+		{/if}
 	{:else}
+		<!-- Показываем количество данных даже если расписание пустое -->
+		<div class="data-info">
+			<p>📊 В базе: <strong>{teachers.length}</strong> учителей, <strong>{classes.length}</strong> классов</p>
+		</div>
+
 		<EmptyState
-			title="Расписание пусто"
-			description="Добавьте первое занятие в расписание!"
+			title={t('emptyStates.schedule.title', $languageStore)}
+			description={t('emptyStates.schedule.description', $languageStore)}
 			icon="📅"
-			buttonText="Добавить занятие"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.schedule.buttonText', $languageStore) : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
 </div>
@@ -197,7 +275,7 @@
 <!-- Модальное окно добавления расписания -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить занятие"
+	title={t('modalTitles.addSchedule', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addSchedule}
@@ -620,6 +698,90 @@
 
 		.schedule-actions {
 			flex-direction: column;
+		}
+	}
+
+	/* Новые стили для улучшенного отображения */
+	.loading-details {
+		font-size: 0.875rem;
+		color: hsl(var(--muted-foreground));
+		margin-top: 0.5rem;
+	}
+
+	.error-actions {
+		display: flex;
+		gap: 1rem;
+		margin-top: 1rem;
+		flex-wrap: wrap;
+	}
+
+	.data-info {
+		background: hsl(var(--muted) / 0.3);
+		border: 1px solid hsl(var(--border));
+		border-radius: 0.5rem;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+		text-align: center;
+	}
+
+	.data-info p {
+		margin: 0;
+		color: hsl(var(--foreground));
+		font-size: 0.875rem;
+	}
+
+	.debug-info {
+		margin-top: 2rem;
+		border: 1px solid hsl(var(--border));
+		border-radius: 0.5rem;
+		background: hsl(var(--muted) / 0.1);
+	}
+
+	.debug-info summary {
+		padding: 1rem;
+		cursor: pointer;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		background: hsl(var(--muted) / 0.3);
+		border-radius: 0.5rem 0.5rem 0 0;
+	}
+
+	.debug-info summary:hover {
+		background: hsl(var(--muted) / 0.5);
+	}
+
+	.schedule-debug-list {
+		max-height: 300px;
+		overflow-y: auto;
+		padding: 1rem;
+	}
+
+	.schedule-debug-item {
+		background: hsl(var(--background));
+		border: 1px solid hsl(var(--border));
+		border-radius: 0.375rem;
+		padding: 0.75rem;
+		margin-bottom: 0.5rem;
+		font-size: 0.875rem;
+		line-height: 1.4;
+		word-wrap: break-word;
+	}
+
+	.schedule-debug-item:last-child {
+		margin-bottom: 0;
+	}
+
+	@media (max-width: 640px) {
+		.error-actions {
+			flex-direction: column;
+		}
+		
+		.error-actions button {
+			width: 100%;
+		}
+
+		.schedule-debug-list {
+			max-height: 200px;
 		}
 	}
 </style> 

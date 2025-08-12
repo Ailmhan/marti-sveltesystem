@@ -4,10 +4,15 @@
 	import { authStore } from '$lib/stores/auth';
 	import type { Section } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
+	import EditModal from '$lib/components/EditModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import { toastStore } from '$lib/stores/toast';
+	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
+	import { t } from '$lib/i18n/translations';
 
 	let sections: Section[] = [];
 	let loading = false;
@@ -16,7 +21,22 @@
 	let modalError = '';
 	let modalLoading = false;
 
+	// Edit state
+	let showEditModal = false;
+	let editModalError = '';
+	let editModalLoading = false;
+	let currentEditItem: Section | null = null;
+
 	let newSection = {
+		nameRu: '',
+		nameKz: '',
+		scheduleRu: '',
+		scheduleKz: '',
+		teacher: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	let editSection = {
 		nameRu: '',
 		nameKz: '',
 		scheduleRu: '',
@@ -119,13 +139,88 @@
 		}
 	}
 
+	// Edit functions
+	function openEditModal(item: Section) {
+		currentEditItem = item;
+		editSection = {
+			nameRu: item.nameRu,
+			nameKz: item.nameKz,
+			scheduleRu: item.scheduleRu,
+			scheduleKz: item.scheduleKz,
+			teacher: item.teacher,
+			imageUrl: item.imageUrl
+		};
+		showEditModal = true;
+		editModalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editModalError = '';
+		editModalLoading = false;
+		currentEditItem = null;
+		editSection = {
+			nameRu: '',
+			nameKz: '',
+			scheduleRu: '',
+			scheduleKz: '',
+			teacher: '',
+			imageUrl: undefined
+		};
+	}
+
+	async function updateSection() {
+		if (!currentEditItem) {
+			editModalError = 'Ошибка: элемент для редактирования не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editSection.nameRu.trim() || !editSection.nameKz.trim() || 
+			!editSection.scheduleRu.trim() || !editSection.scheduleKz.trim() ||
+			!editSection.teacher.trim()) {
+			editModalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			editModalError = '';
+			editModalLoading = true;
+			
+			await apiClient.updateSection(currentEditItem.id, editSection);
+			
+			// Закрываем модальное окно после успешного сохранения
+			closeEditModal();
+			
+			// Перезагружаем данные
+			await loadSections();
+		} catch (err) {
+			console.error('Error updating section:', err);
+			editModalError = err instanceof Error ? err.message : 'Ошибка обновления секции';
+			editModalLoading = false;
+		}
+	}
+
+	function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url) {
+			editSection.imageUrl = url;
+		}
+	}
+
 	async function deleteSection(id: number) {
+		if (!confirm('Вы уверены, что хотите удалить эту секцию?')) {
+			return;
+		}
+
 		try {
 			await apiClient.deleteSection(id);
 			await loadSections();
+			toastStore.success('Секция успешно удалена');
 		} catch (err) {
 			console.error('Error deleting section:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления секции';
+			toastStore.error('Не удалось удалить секцию');
 		}
 	}
 </script>
@@ -136,12 +231,14 @@
 
 <div class="sections-page">
 	<div class="page-header">
-		<h1>Секции школы</h1>
+		<h1>{t('pageHeaders.sections', $languageStore)}</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить секцию
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					{t('buttons.addSection', $languageStore)}
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -162,19 +259,19 @@
 				<DataCard
 					data={section}
 					type="section"
-					showActions={true}
-					onEdit={() => console.log('Edit section:', section.id)}
+					showActions={$adminStore.isAdminMode}
+					onEdit={() => openEditModal(section)}
 					onDelete={() => deleteSection(section.id)}
 				/>
 			{/each}
 		</div>
 	{:else}
 		<EmptyState
-			title="Секций пока нет"
-			description="Добавьте первую секцию в систему!"
+			title={t('emptyStates.sections.title', $languageStore)}
+			description={t('emptyStates.sections.description', $languageStore)}
 			icon="🎨"
-			buttonText="Добавить секцию"
-			onAction={openModal}
+			buttonText={$adminStore.isAdminMode ? t('emptyStates.sections.buttonText', $languageStore) : null}
+			onAction={$adminStore.isAdminMode ? openModal : null}
 		/>
 	{/if}
 </div>
@@ -182,7 +279,7 @@
 <!-- Модальное окно добавления секции -->
 <DataModal
 	bind:open={showAddModal}
-	title="Добавить секцию"
+	title={t('modalTitles.addSection', $languageStore)}
 	loading={modalLoading}
 	on:close={closeModal}
 	on:submit={addSection}
@@ -283,6 +380,111 @@
 		</div>
 	</div>
 </DataModal>
+
+<!-- Модальное окно редактирования секции -->
+<EditModal
+	bind:open={showEditModal}
+	title="Редактировать секцию"
+	loading={editModalLoading}
+	on:close={closeEditModal}
+	on:submit={updateSection}
+>
+	<div class="space-y-4">
+		{#if editModalError}
+			<div class="alert alert-error">
+				{editModalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editNameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (русский) *
+			</label>
+			<input
+				id="editNameRu"
+				type="text"
+				bind:value={editSection.nameRu}
+				required
+				placeholder="Введите название секции на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editNameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (казахский) *
+			</label>
+			<input
+				id="editNameKz"
+				type="text"
+				bind:value={editSection.nameKz}
+				required
+				placeholder="Введите название секции на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editScheduleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (русский) *
+			</label>
+			<input
+				id="editScheduleRu"
+				type="text"
+				bind:value={editSection.scheduleRu}
+				required
+				placeholder="Например: Понедельник, Среда 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editScheduleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (казахский) *
+			</label>
+			<input
+				id="editScheduleKz"
+				type="text"
+				bind:value={editSection.scheduleKz}
+				required
+				placeholder="Например: Дүйсенбі, Сәрсенбі 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editTeacher" class="block text-sm font-medium mb-2 text-gray-700">
+				Руководитель *
+			</label>
+			<input
+				id="editTeacher"
+				type="text"
+				bind:value={editSection.teacher}
+				required
+				placeholder="ФИО руководителя секции"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-section-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="edit-section-image-upload"
+				bind:value={editSection.imageUrl}
+				folder="sections"
+				on:change={handleEditImageChange}
+				on:error={(event) => {
+					editModalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					editModalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</EditModal>
 
 <style>
 	.sections-page {

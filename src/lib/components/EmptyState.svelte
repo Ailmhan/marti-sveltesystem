@@ -2,8 +2,8 @@
 	export let title: string;
 	export let description: string;
 	export let icon: string;
-	export let buttonText: string;
-	export let onAction: () => void;
+	export let buttonText: string | null = null;
+	export let onAction: (() => void) | null = null;
 </script>
 
 <div class="empty-state">
@@ -12,10 +12,12 @@
 	</div>
 	<h2 class="empty-title">{title}</h2>
 	<p class="empty-description">{description}</p>
-	<button class="btn btn-primary add-btn" on:click={onAction}>
-		<span class="btn-icon">➕</span>
-		{buttonText}
-	</button>
+	{#if buttonText && onAction}
+		<button class="btn btn-primary add-btn" on:click={onAction}>
+			<span class="btn-icon">➕</span>
+			{buttonText}
+		</button>
+	{/if}
 </div>
 
 <style>

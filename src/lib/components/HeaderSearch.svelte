@@ -11,7 +11,7 @@
 		clear: void;
 	}>();
 
-  let searchTimeout: NodeJS.Timeout;
+  let searchTimeout: ReturnType<typeof setTimeout>;
   let expanded = false; // для compact
 
 	function handleInput(event: Event) {
