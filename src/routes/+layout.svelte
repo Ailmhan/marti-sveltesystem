@@ -69,8 +69,36 @@
 	}
 
 	function exitAdminMode() {
-		adminStore.exitAdminMode();
+		console.log('=== exitAdminMode called ===');
+		console.log('Current adminStore state:', $adminStore);
+		console.log('showAdminModal before:', showAdminModal);
+		
+		try {
+			// Очищаем localStorage напрямую
+			console.log('Clearing localStorage directly...');
+			if (typeof window !== 'undefined') {
+				localStorage.removeItem('adminMode');
+				localStorage.removeItem('adminData');
+				console.log('localStorage cleared directly');
+			}
+			
+			// Вызываем метод store для изменения состояния
+			console.log('Calling adminStore.exitAdminMode()...');
+			adminStore.exitAdminMode();
+			console.log('adminStore.exitAdminMode() called successfully');
+			console.log('New adminStore state:', $adminStore);
+			
+			// Также закрываем модальное окно, если оно открыто
+			showAdminModal = false;
+			console.log('showAdminModal after:', showAdminModal);
+			
+			console.log('=== exitAdminMode completed ===');
+		} catch (error) {
+			console.error('Error in exitAdminMode:', error);
+		}
 	}
+	
+
 
 	function handleSearch(event: CustomEvent<string>) {
 		// Здесь можно добавить глобальную логику поиска
@@ -137,14 +165,7 @@
 						</li>
 						<!-- Admin controls -->
 						<li class="mt-auto">
-							{#if $adminStore.isAdminMode}
-								<div class="admin-session-info">
-									<Button variant="destructive" class="w-full justify-start" on:click={exitAdminMode}>
-										<span class="mr-2">🔒</span>
-										{t.navigation.adminExit?.[$languageStore] || 'Выйти из режима администратора'}
-									</Button>
-								</div>
-							{:else}
+							{#if !$adminStore.isAdminMode}
 								<Button variant="secondary" class="w-full justify-start admin-btn" on:click={openAdminModal}>
 									<span class="mr-2">🔐</span>
 									{t.navigation.adminMode?.[$languageStore] || 'Режим администратора'}
@@ -212,12 +233,7 @@
 						</ul>
 						<div class="mobile-sidebar-footer">
 							<!-- Admin controls for mobile -->
-							{#if $adminStore.isAdminMode}
-								<button class="mobile-sidebar-admin-exit" on:click={exitAdminMode}>
-									<span class="mobile-sidebar-icon">🔒</span>
-									<span class="mobile-sidebar-text">{t.navigation.adminExit?.[$languageStore] || 'Выйти из режима администратора'}</span>
-								</button>
-							{:else}
+							{#if !$adminStore.isAdminMode}
 								<button class="mobile-sidebar-admin" on:click={openAdminModal}>
 									<span class="mobile-sidebar-icon">🔐</span>
 									<span class="mobile-sidebar-text">{t.navigation.adminMode?.[$languageStore] || 'Режим администратора'}</span>
@@ -255,6 +271,26 @@
 				</div>
                 <div class="header-right">
                     <div class="header-actions">
+                        {#if $adminStore.isAdminMode}
+                            <button 
+                                type="button" 
+                                class="admin-exit-btn" 
+                                on:click={exitAdminMode}
+                            >
+                                <span class="btn-icon">🔒</span>
+                                Выйти из режима администратора
+                            </button>
+                        {:else}
+                            <button 
+                                type="button" 
+                                class="admin-entry-btn" 
+                                on:click={openAdminModal}
+                            >
+                                <span class="btn-icon">🔐</span>
+                                Войти в режим администратора
+                            </button>
+                        {/if}
+                        
                         <Button class="btn-modern" on:click={openSchoolPage}>
                             <span class="btn-icon">🏫</span>
                             О школе
@@ -289,6 +325,25 @@
                             on:clear={handleSearchClear}
                         />
                     </div>
+                    
+                    {#if $adminStore.isAdminMode}
+                        <button 
+                            type="button" 
+                            class="mobile-admin-exit-btn" 
+                            on:click={exitAdminMode}
+                        >
+                            🔒
+                        </button>
+                    {:else}
+                        <button 
+                            type="button" 
+                            class="mobile-admin-entry-btn" 
+                            on:click={openAdminModal}
+                        >
+                            🔐
+                        </button>
+                    {/if}
+                    
                     <Button variant="outline" on:click={openSchoolPage}>
                         🏫
                     </Button>
@@ -696,6 +751,97 @@
 		background: hsl(var(--destructive) / 0.9);
 		transform: translateY(-1px);
 		box-shadow: var(--shadow-md);
+	}
+
+	/* Admin exit button styles */
+	.admin-exit-btn {
+		background: hsl(var(--destructive)) !important;
+		color: hsl(var(--destructive-foreground)) !important;
+		border: none !important;
+		border-radius: var(--radius) !important;
+		padding: 0.75rem 1.5rem !important;
+		font-weight: 600 !important;
+		font-size: 0.875rem !important;
+		cursor: pointer !important;
+		transition: all 0.3s ease !important;
+		box-shadow: var(--shadow-md) !important;
+		margin-right: 0.5rem !important;
+	}
+
+	.admin-exit-btn:hover {
+		background: hsl(var(--destructive) / 0.9) !important;
+		transform: translateY(-2px) !important;
+		box-shadow: var(--shadow-lg) !important;
+	}
+
+	.admin-exit-btn:active {
+		transform: translateY(0) !important;
+		box-shadow: var(--shadow-sm) !important;
+	}
+
+	/* Admin entry button styles */
+	.admin-entry-btn {
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(139, 92, 246, 0.4) !important;
+		box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3) !important;
+		border-radius: var(--radius) !important;
+		padding: 0.75rem 1.5rem !important;
+		font-weight: 600 !important;
+		font-size: 0.875rem !important;
+		cursor: pointer !important;
+		transition: all 0.3s ease !important;
+		margin-right: 0.5rem !important;
+	}
+
+	.admin-entry-btn:hover {
+		transform: translateY(-2px) !important;
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4) !important;
+	}
+
+	.admin-entry-btn:active {
+		transform: translateY(0) !important;
+		box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3) !important;
+	}
+
+	/* Mobile admin exit button styles */
+	.mobile-admin-exit-btn {
+		background: hsl(var(--destructive)) !important;
+		color: hsl(var(--destructive-foreground)) !important;
+		border: none !important;
+		border-radius: var(--radius) !important;
+		padding: 0.5rem !important;
+		cursor: pointer !important;
+		transition: all 0.2s ease !important;
+		min-width: 2.5rem !important;
+		height: 2.5rem !important;
+		font-size: 0.875rem !important;
+	}
+
+	.mobile-admin-exit-btn:hover {
+		background: hsl(var(--destructive) / 0.9) !important;
+		transform: translateY(-1px) !important;
+		box-shadow: var(--shadow-md) !important;
+	}
+
+	/* Mobile admin entry button styles */
+	.mobile-admin-entry-btn {
+		background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(139, 92, 246, 0.4) !important;
+		box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.3) !important;
+		border-radius: var(--radius) !important;
+		padding: 0.5rem !important;
+		cursor: pointer !important;
+		transition: all 0.2s ease !important;
+		min-width: 2.5rem !important;
+		height: 2.5rem !important;
+		font-size: 0.875rem !important;
+	}
+
+	.mobile-admin-entry-btn:hover {
+		transform: translateY(-1px) !important;
+		box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4) !important;
 	}
 
 	/* Admin session info styles */

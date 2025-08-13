@@ -451,7 +451,7 @@
 					<p class="welcome-text">Чтобы увидеть информацию о школе, войдите в систему.</p>
 					<a href="/" class="btn btn-primary">Перейти в систему</a>
 				</div>
-			</div>
+	</div>
 		</section>
 	{/if}
 </div>

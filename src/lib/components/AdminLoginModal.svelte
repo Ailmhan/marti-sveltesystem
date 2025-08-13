@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { authStore } from '$lib/stores/auth';
 	import { adminStore } from '$lib/stores/admin';
+	import { apiClient } from '$lib/api/client';
 
 	export let open = false;
 
@@ -22,18 +22,24 @@
 			loading = true;
 			error = '';
 			
-			// Здесь должна быть логика входа администратора
-			console.log('🔐 Admin login attempt:', { email, password });
+			// Используем тот же API endpoint для авторизации
+			const loginResponse = await apiClient.login(email, password);
 			
-			// В реальном приложении здесь был бы API вызов
-			// await authStore.adminLogin(email, password);
-			
-			// Пока что просто входим в админ-режим для демонстрации
-			adminStore.enterAdminMode({ email });
-			
-			closeModal();
+			// Если авторизация успешна, входим в режим администратора
+			if (loginResponse.token) {
+				adminStore.enterAdminMode({
+					email,
+					role: 'admin',
+					loginTime: new Date().toISOString(),
+					token: loginResponse.token
+				});
+				closeModal();
+			} else {
+				error = 'Неверные учетные данные';
+			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Ошибка входа';
+			console.error('Login error:', err);
+			error = err instanceof Error ? err.message : 'Ошибка входа. Проверьте логин и пароль.';
 		} finally {
 			loading = false;
 		}
@@ -58,7 +64,7 @@
 	<div class="modal-overlay" on:click={closeModal}>
 		<div class="modal-content" on:click|stopPropagation>
 			<div class="modal-header">
-				<h2 class="modal-title">Вход для администратора</h2>
+				<h2 class="modal-title">Вход в режим администратора</h2>
 				<button class="close-button" on:click={closeModal}>✕</button>
 			</div>
 
@@ -69,7 +75,7 @@
 						id="email"
 						type="email"
 						bind:value={email}
-						placeholder="admin@school.com"
+						placeholder="Введите email школы"
 						required
 						disabled={loading}
 						class="form-input"

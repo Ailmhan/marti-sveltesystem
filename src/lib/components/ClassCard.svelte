@@ -3,11 +3,17 @@
 
 	export let classItem: Class;
 	export let onDelete: (() => void) | null = null;
+	export let language: 'ru' | 'kz' = 'ru';
 	
 	$: className = `${classItem.grade}${classItem.letter}`;
 	$: teacherName = classItem.Teacher ? 
-		(classItem.Teacher.nameRu || classItem.Teacher.nameKz) : 
-		'Не назначен';
+		(language === 'ru' ? classItem.Teacher.nameRu : classItem.Teacher.nameKz) || 
+		classItem.Teacher.nameRu || classItem.Teacher.nameKz : 
+		language === 'ru' ? 'Не назначен' : 'Тағайындалмаған';
+	$: teacherSubject = classItem.Teacher ? 
+		(language === 'ru' ? classItem.Teacher.subjectRu : classItem.Teacher.subjectKz) || 
+		classItem.Teacher.subjectRu || classItem.Teacher.subjectKz : 
+		'';
 </script>
 
 <div class="class-card card">
@@ -17,11 +23,11 @@
 		</div>
 		<div class="class-info">
 			<p class="class-teacher">
-				<strong>Классный руководитель:</strong> {teacherName}
+				<strong>{language === 'ru' ? 'Классный руководитель:' : 'Сынып жетекшісі:'}</strong> {teacherName}
 			</p>
-			{#if classItem.Teacher?.subjectRu}
+			{#if teacherSubject}
 				<p class="class-subject">
-					<strong>Предмет:</strong> {classItem.Teacher.subjectRu}
+					<strong>{language === 'ru' ? 'Предмет:' : 'Пән:'}</strong> {teacherSubject}
 				</p>
 			{/if}
 		</div>
@@ -29,14 +35,14 @@
 
 	<div class="class-details">
 		<div class="detail-item">
-			<strong>Класс:</strong> {classItem.grade} класс
+			<strong>{language === 'ru' ? 'Класс:' : 'Сынып:'}</strong> {classItem.grade} {language === 'ru' ? 'класс' : 'сынып'}
 		</div>
 		<div class="detail-item">
-			<strong>Буква:</strong> {classItem.letter}
+			<strong>{language === 'ru' ? 'Буква:' : 'Әріп:'}</strong> {classItem.letter}
 		</div>
 		{#if classItem.Schedule && classItem.Schedule.length > 0}
 			<div class="detail-item">
-				<strong>Занятий в расписании:</strong> {classItem.Schedule.length}
+				<strong>{language === 'ru' ? 'Занятий в расписании:' : 'Кестедегі сабақтар:'}</strong> {classItem.Schedule.length}
 			</div>
 		{/if}
 	</div>
@@ -45,7 +51,7 @@
 		<div class="class-actions">
 			<button class="btn btn-danger" on:click={onDelete}>
 				<span class="btn-icon">🗑️</span>
-				Удалить
+				{language === 'ru' ? 'Удалить' : 'Жою'}
 			</button>
 		</div>
 	{/if}
@@ -53,16 +59,21 @@
 
 <style>
 	.class-card {
-		background: #ffffff;
+		background: hsl(var(--background));
 		border-radius: 1rem;
 		overflow: hidden;
 		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-		border: 1px solid #f3f4f6;
+		border: 1px solid hsl(var(--border));
 		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
 		padding: 1.5rem;
+	}
+
+	/* Dark theme support */
+	:global(.dark) .class-card {
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 	}
 
 	.class-card:hover {
@@ -84,13 +95,13 @@
 	.class-teacher {
 		margin: 0 0 0.25rem 0;
 		font-size: 0.875rem;
-		color: #6b7280;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.class-subject {
 		margin: 0;
 		font-size: 0.875rem;
-		color: #6b7280;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.class-details {
@@ -101,18 +112,18 @@
 	.detail-item {
 		margin-bottom: 0.5rem;
 		font-size: 0.875rem;
-		color: #6b7280;
+		color: hsl(var(--muted-foreground));
 	}
 
 	.detail-item strong {
-		color: #374151;
+		color: hsl(var(--foreground));
 	}
 
 	.class-actions {
 		display: flex;
 		gap: 0.5rem;
 		padding-top: 1rem;
-		border-top: 1px solid #e5e7eb;
+		border-top: 1px solid hsl(var(--border));
 	}
 
 	.btn {

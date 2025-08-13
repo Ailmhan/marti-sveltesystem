@@ -6,6 +6,7 @@
 	export let showNavigation = true;
 	export let showToday = true;
 	export let selectedDate = new Date();
+	export let language: 'ru' | 'kz' = 'ru';
 
 	const dispatch = createEventDispatcher<{
 		dateSelect: Date;
@@ -74,20 +75,6 @@
 			const timeDiff = Math.abs(itemTime.getTime() - slotTime.getTime());
 			const matchesTime = timeDiff <= 45 * 60 * 1000; // В пределах 45 минут
 			
-			// Отладочная информация
-			if (import.meta.env.DEV && schedule.length > 0) {
-				console.log('Schedule filtering:', {
-					itemDate: itemDate.toDateString(),
-					targetDate: date.toDateString(),
-					itemTime: item.startTime,
-					targetTime: timeSlot,
-					timeDiff: timeDiff / (60 * 1000), // в минутах
-					matchesDate,
-					matchesTime,
-					item: item
-				});
-			}
-			
 			return matchesDate && matchesTime;
 		});
 		
@@ -136,17 +123,6 @@
 </script>
 
 <div class="schedule-container">
-	<!-- Отладочная информация -->
-	{#if import.meta.env.DEV}
-		<div class="debug-info" style="background: #e0f0ff; padding: 0.5rem; margin: 0.5rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.7rem; border: 1px solid #ccc;">
-			<strong>Schedule Component Debug:</strong><br>
-			Schedule length: {schedule.length}<br>
-			Current view: {currentView}<br>
-			Week dates: {weekDates.map(d => d.toDateString()).join(', ')}<br>
-			First item: {schedule[0] ? JSON.stringify(schedule[0], null, 2) : 'No items'}
-		</div>
-	{/if}
-
 	{#if showNavigation}
 		<div class="schedule-header">
 			<div class="schedule-controls">
@@ -201,37 +177,6 @@
 	{/if}
 
 	<div class="schedule-body">
-		<!-- Отладочная таблица - показываем все элементы -->
-		{#if import.meta.env.DEV && schedule.length > 0}
-			<div class="debug-table" style="background: #fff3cd; padding: 1rem; margin: 1rem; border-radius: 0.5rem; border: 1px solid #ffeaa7;">
-				<h4>DEBUG: Все элементы расписания ({schedule.length})</h4>
-				<table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
-					<thead>
-						<tr style="background: #ffeaa7;">
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">ID</th>
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">Дата</th>
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">Время</th>
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">Предмет</th>
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">Учитель</th>
-							<th style="border: 1px solid #ddd; padding: 0.5rem;">Кабинет</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each schedule as item}
-							<tr>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.id}</td>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.date}</td>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.startTime} - {item.endTime}</td>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.subjectRu || item.subjectKz}</td>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.Teacher?.nameRu || item.Teacher?.nameKz || 'Нет'}</td>
-								<td style="border: 1px solid #ddd; padding: 0.5rem;">{item.roomRu || item.roomKz}</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
-		{/if}
-
 		{#if currentView === 'week'}
 			<div class="schedule-table">
 				<!-- Заголовок с днями недели -->
@@ -275,23 +220,23 @@
 			
 			<!-- Альтернативное отображение - простой список всех элементов -->
 			{#if schedule.length > 0}
-				<div class="schedule-fallback" style="text-align: center; padding: 2rem; color: hsl(var(--muted-foreground));">
+				<div class="schedule-fallback">
 					<h3>Расписание на текущую неделю</h3>
 					<p>Все занятия на ближайшие дни</p>
-					<div class="schedule-list" style="margin-top: 1rem;">
+					<div class="schedule-list">
 						{#each schedule
 							.filter(item => {
 								const itemDate = new Date(item.date);
 								return weekDates.some(weekDate => itemDate.toDateString() === weekDate.toDateString());
 							})
 							.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) as item}
-							<div class="schedule-list-item" style="background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.5rem; text-align: left;">
-								<div style="font-weight: 600; color: hsl(var(--foreground));">{item.subjectRu || item.subjectKz}</div>
-								<div style="font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem;">
-									📅 {new Date(item.date).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })} | 
-									🕐 {formatTime(item.startTime)} - {formatTime(item.endTime)} | 
-									👤 {item.Teacher?.nameRu || item.Teacher?.nameKz || 'Учитель не указан'} | 
-									🚪 {item.roomRu || item.roomKz || 'Кабинет не указан'}
+							<div class="schedule-list-item" on:click={() => handleItemClick(item)}>
+								<div class="item-subject">{item.subjectRu || item.subjectKz}</div>
+								<div class="item-details">
+									<span class="item-date">📅 {new Date(item.date).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+									<span class="item-time">🕐 {formatTime(item.startTime)} - {formatTime(item.endTime)}</span>
+									<span class="item-teacher">👤 {item.Teacher?.nameRu || item.Teacher?.nameKz || 'Учитель не указан'}</span>
+									<span class="item-room">🚪 {item.roomRu || item.roomKz || 'Кабинет не указан'}</span>
 								</div>
 							</div>
 						{/each}

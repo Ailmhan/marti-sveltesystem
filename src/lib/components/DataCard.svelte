@@ -49,9 +49,10 @@
 			icon: '🏆',
 			imageHeight: 200,
 			objectPosition: 'center',
-			titleField: 'nameRu',
+			titleField: 'studentName',
 			contentField: 'descriptionRu',
-			showDate: false
+			showDate: false,
+			additionalFields: []
 		},
 		section: {
 			icon: '🎯',
@@ -67,7 +68,7 @@
 			imageHeight: 160,
 			objectPosition: 'center',
 			titleField: 'date',
-			contentField: 'dishesRu',
+			contentField: 'dishes',
 			showDate: true,
 			dateField: 'date',
 			isSpecialContent: true
@@ -120,33 +121,49 @@
 
 	// Вспомогательные функции
 	function getFieldValue(data: CardData, field: string, language: 'ru' | 'kz'): string {
-		if (field === 'dishesRu' && 'dishesRu' in data) {
-			const dishes = data.dishesRu as any;
+		// Специальная обработка для меню столовой
+		if (field === 'dishes' && ('dishesRu' in data || 'dishesKz' in data)) {
+			const dishes = language === 'ru' ? data.dishesRu : data.dishesKz;
 			return `Завтрак: ${dishes?.breakfast || 'Не указано'}\nОбед: ${dishes?.lunch || 'Не указано'}\nУжин: ${dishes?.dinner || 'Не указано'}`;
 		}
 		
+		// Специальная обработка для даты
 		if (field === 'date' && 'date' in data) {
 			return formatDate(data.date as string);
 		}
 
-		const value = (data as any)[field];
-		if (typeof value === 'string') return value;
-		
-		// Пробуем получить значение на нужном языке
+		// Поля без языковых вариантов (возвращаем как есть)
+		const nonLocalizedFields = ['studentName', 'teacher', 'teacherId', 'grade', 'letter', 'phone', 'email', 'birthday'];
+		if (nonLocalizedFields.includes(field)) {
+			return (data as any)[field] || '';
+		}
+
+		// Поля с языковыми вариантами (автоматическое переключение)
+		if (field.endsWith('Ru') || field.endsWith('Kz')) {
+			const baseField = field.replace(/Ru$|Kz$/, '');
+			const langField = language === 'ru' ? `${baseField}Ru` : `${baseField}Kz`;
+			return (data as any)[langField] || (data as any)[field] || '';
+		}
+
+		// Для остальных полей пробуем получить значение на нужном языке
 		const langField = field.replace('Ru', language === 'ru' ? 'Ru' : 'Kz');
-		return (data as any)[langField] || value || '';
+		return (data as any)[langField] || (data as any)[field] || '';
 	}
 
 	function getAdditionalInfo(data: CardData, fields: string[]): Array<{ label: string; value: string }> {
 		const labels: Record<string, string> = {
 			email: 'Email',
 			phone: 'Телефон',
-			teacher: 'Руководитель'
+			teacher: 'Руководитель',
+			studentName: 'Имя ученика',
+			descriptionKz: 'Описание (КЗ)',
+			descriptionRu: 'Описание (РУ)'
 		};
 
 		return fields
 			.map(field => {
-				const value = (data as any)[field];
+				// Используем ту же логику перевода, что и в getFieldValue
+				const value = getFieldValue(data, field, language);
 				return value ? { label: labels[field] || field, value } : null;
 			})
 			.filter(Boolean) as Array<{ label: string; value: string }>;
@@ -192,7 +209,7 @@
 <div class={cardClasses} data-type={type} on:click={handleClick}>
 	{#if showImage}
 		<div class="card-image" style="height: {config.imageHeight}px">
-			{#if imageUrl}
+		{#if imageUrl}
 				<img 
 					src={imageUrl} 
 					alt={title} 
@@ -200,12 +217,12 @@
 					style="object-position: {config.objectPosition}"
 					on:error={() => data.imageUrl = ''}
 				/>
-			{:else}
-				<div class="image-placeholder">
+		{:else}
+			<div class="image-placeholder">
 					<span class="placeholder-icon">{config.icon}</span>
-				</div>
-			{/if}
-		</div>
+			</div>
+		{/if}
+	</div>
 	{/if}
 
 	<div class="card-content">
@@ -550,6 +567,12 @@
 	:global(.dark) .card {
 		background: hsl(var(--card));
 		border-color: hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .card:hover {
+		border-color: hsl(var(--ring));
+		box-shadow: 0 10px 25px -5px hsl(var(--foreground) / 0.1), 0 10px 10px -5px hsl(var(--foreground) / 0.04);
 	}
 
 	:global(.dark) .card-title {
@@ -560,21 +583,26 @@
 		color: hsl(var(--muted-foreground));
 	}
 
-	:global(.dark) .detail-item strong {
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .detail-item {
+	:global(.dark) .card-meta {
 		color: hsl(var(--muted-foreground));
 	}
 
-	:global(.dark) .card-date {
-		color: hsl(var(--muted-foreground));
+	:global(.dark) .btn-edit {
+		background: hsl(var(--secondary));
+		color: hsl(var(--secondary-foreground));
 	}
 
-	:global(.dark) .card-actions {
-		background: hsl(var(--muted) / 0.2);
-		border-color: hsl(var(--border));
+	:global(.dark) .btn-edit:hover {
+		background: hsl(var(--secondary) / 0.9);
+	}
+
+	:global(.dark) .btn-danger {
+		background: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+	}
+
+	:global(.dark) .btn-danger:hover {
+		background: hsl(var(--destructive) / 0.9);
 	}
 
 	/* Адаптивные размеры для разных типов контента */

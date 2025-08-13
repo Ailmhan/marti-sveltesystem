@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { languageStore } from '$lib/stores/language';
 	import type { Class, Teacher } from '$lib/types/api';
 	import ClassCard from '$lib/components/ClassCard.svelte';
 	import DataModal from '$lib/components/DataModal.svelte';
@@ -16,6 +17,7 @@
 	let addLoading = false;
 	let addError = '';
 	let modalError = ''; // Добавляем для DataModal
+	let language = $languageStore; // Добавляем для языков
 
 	let newClass = {
 		grade: 1,
@@ -162,6 +164,7 @@
 			{#each classes as classItem}
 				<ClassCard 
 					{classItem} 
+					language={$languageStore}
 					onDelete={() => deleteClass(classItem.id)}
 				/>
 			{/each}
@@ -180,7 +183,7 @@
 <!-- Модальное окно добавления класса -->
 <DataModal 
 	bind:open={showAddModal} 
-	title="Добавить класс" 
+	title={language === 'ru' ? 'Добавить класс' : 'Сынып қосу'} 
 	loading={addLoading}
 	on:close={closeAddModal}
 	on:submit={addClass}
@@ -188,20 +191,20 @@
 	{#if modalError}
 		<div class="alert alert-error">{modalError}</div>
 	{/if}
-	<div class="form-group">
-		<label for="grade">Класс *</label>
-		<select id="grade" bind:value={newClass.grade} required class="form-select">
-			<option value="">Выберите класс</option>
-			{#each Array.from({length: 11}, (_, i) => i + 1) as grade}
-				<option value={grade}>{grade}</option>
-			{/each}
-		</select>
-	</div>
+			<div class="form-group">
+			<label for="grade">{language === 'ru' ? 'Класс *' : 'Сынып *'}</label>
+			<select id="grade" bind:value={newClass.grade} required class="form-select">
+				<option value="">{language === 'ru' ? 'Выберите класс' : 'Сыныпты таңдаңыз'}</option>
+				{#each Array.from({length: 11}, (_, i) => i + 1) as grade}
+					<option value={grade}>{grade}</option>
+				{/each}
+			</select>
+		</div>
 
 	<div class="form-group">
-		<label for="letter">Буква *</label>
+		<label for="letter">{language === 'ru' ? 'Буква *' : 'Әріп *'}</label>
 		<select id="letter" bind:value={newClass.letter} required class="form-select">
-			<option value="">Выберите букву</option>
+			<option value="">{language === 'ru' ? 'Выберите букву' : 'Әріпті таңдаңыз'}</option>
 			<option value="А">А</option>
 			<option value="Б">Б</option>
 			<option value="В">В</option>
@@ -235,11 +238,11 @@
 	</div>
 
 	<div class="form-group">
-		<label for="teacherId">Классный руководитель</label>
+		<label for="teacherId">{language === 'ru' ? 'Классный руководитель' : 'Сынып жетекшісі'}</label>
 		<select id="teacherId" bind:value={newClass.teacherId} class="form-select">
-			<option value={0}>Не назначен</option>
+			<option value={0}>{language === 'ru' ? 'Не назначен' : 'Тағайындалмаған'}</option>
 			{#each teachers as teacher}
-				<option value={teacher.id}>{teacher.nameRu}</option>
+				<option value={teacher.id}>{language === 'ru' ? teacher.nameRu : teacher.nameKz}</option>
 			{/each}
 		</select>
 	</div>

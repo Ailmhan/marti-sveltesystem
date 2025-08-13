@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { languageStore } from '$lib/stores/language';
 	import type { Schedule as ScheduleType, Teacher, Class } from '$lib/types/api';
 	import { format } from 'date-fns';
 	import { ru } from 'date-fns/locale';
@@ -172,6 +173,7 @@
 	{:else if schedule.length > 0}
 		<Schedule 
 			{schedule}
+			language={$languageStore}
 			on:itemClick={(event: CustomEvent<ScheduleType>) => {
 				console.log('Schedule item clicked:', event.detail);
 				// Здесь можно добавить логику для редактирования

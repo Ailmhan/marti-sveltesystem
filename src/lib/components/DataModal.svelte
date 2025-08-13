@@ -6,6 +6,7 @@
 	export let loading = false;
 	export let submitText = 'Сохранить';
 	export let cancelText = 'Отмена';
+	export let disableSubmit = false; // Новый пропс для блокировки кнопки
 
 	const dispatch = createEventDispatcher();
 
@@ -79,7 +80,7 @@
 				<button 
 					type="button"
 					on:click={handleSubmit}
-					disabled={loading}
+					disabled={loading || disableSubmit}
 					class="btn btn-submit"
 				>
 					{#if loading}
@@ -96,24 +97,23 @@
 	.modal-overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 50;
+		background: hsl(var(--background) / 0.8);
+		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--background) / 0.8);
-		backdrop-filter: blur(8px);
-		padding: 1rem;
+		z-index: 50;
 	}
 
 	.modal-content {
-		position: relative;
-		width: 100%;
-		max-width: 32rem;
-		background: hsl(var(--card));
-		border-radius: var(--radius);
-		box-shadow: var(--shadow-xl);
+		background: hsl(var(--background));
 		border: 1px solid hsl(var(--border));
-		overflow: hidden;
+		border-radius: var(--radius);
+		box-shadow: 0 20px 25px -5px hsl(var(--foreground) / 0.1), 0 10px 10px -5px hsl(var(--foreground) / 0.04);
+		width: 90%;
+		max-width: 600px;
+		max-height: 90vh;
+		overflow-y: auto;
 	}
 
 	.modal-header {
@@ -171,44 +171,49 @@
 		background: hsl(var(--muted) / 0.3);
 	}
 
+	/* Стили для кнопок */
 	.btn {
-		padding: 0.5rem 1rem;
-		border-radius: calc(var(--radius) - 0.25rem);
-		border: none;
-		cursor: pointer;
-		font-weight: 500;
-		transition: all 0.2s ease;
-		display: flex;
+		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.5rem;
-		font-size: 0.875rem;
-		min-width: 5rem;
+		padding: 0.5rem 1rem;
+		border-radius: var(--radius);
+		font-weight: 500;
+		transition: all 0.2s ease;
+		border: none;
+		cursor: pointer;
+	}
+
+	.btn-primary {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.btn-primary:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.9);
+	}
+
+	.btn-secondary {
+		background: hsl(var(--secondary));
+		color: hsl(var(--secondary-foreground));
+	}
+
+	.btn-secondary:hover:not(:disabled) {
+		background: hsl(var(--secondary) / 0.9);
 	}
 
 	.btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+		background: hsl(var(--muted));
+		color: hsl(var(--muted-foreground));
 	}
 
-	.btn-cancel {
-		background: hsl(var(--secondary));
-		color: hsl(var(--secondary-foreground));
-		border: 1px solid hsl(var(--border));
-	}
-
-	.btn-cancel:hover:not(:disabled) {
-		background: hsl(var(--secondary) / 0.8);
-	}
-
-	.btn-submit {
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-	}
-
-	.btn-submit:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.9);
-		transform: translateY(-1px);
+	.btn:disabled:hover {
+		background: hsl(var(--muted));
+		color: hsl(var(--muted-foreground));
+		transform: none;
 	}
 
 	.loading-spinner {
@@ -220,54 +225,61 @@
 		to { transform: rotate(360deg); }
 	}
 
-	/* Темная тема */
-	:global(.dark) .modal-overlay {
-		background: hsl(var(--background) / 0.9);
+	/* Улучшенные стили для темной темы */
+	:global(.dark) .modal-body input,
+	:global(.dark) .modal-body textarea,
+	:global(.dark) .modal-body select {
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+		border-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-body input::placeholder,
+	:global(.dark) .modal-body textarea::placeholder {
+		color: hsl(var(--muted-foreground));
+	}
+
+	/* Стили для полей ввода в модальных окнах */
+	:global(.modal-body input),
+	:global(.modal-body textarea),
+	:global(.modal-body select) {
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+		transition: all 0.2s ease;
+	}
+
+	:global(.modal-body input:focus),
+	:global(.modal-body textarea:focus),
+	:global(.modal-body select:focus) {
+		border-color: hsl(var(--ring));
+		box-shadow: 0 0 0 3px hsl(var(--ring) / 0.1);
+		outline: none;
+	}
+
+	:global(.modal-body label) {
+		color: hsl(var(--foreground));
+		font-weight: 500;
+		margin-bottom: 0.5rem;
+		display: block;
+	}
+
+	/* Стили для заголовка и футера модального окна */
+	:global(.dark) .modal-header {
+		background: hsl(var(--card));
+		border-bottom-color: hsl(var(--border));
+	}
+
+	:global(.dark) .modal-footer {
+		background: hsl(var(--muted) / 0.2);
+		border-top-color: hsl(var(--border));
 	}
 
 	:global(.dark) .modal-content {
 		background: hsl(var(--card));
 		border-color: hsl(var(--border));
-	}
-
-	:global(.dark) .modal-header {
-		background: hsl(var(--card));
-		border-color: hsl(var(--border));
-	}
-
-	:global(.dark) .modal-title {
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .close-button {
-		color: hsl(var(--muted-foreground));
-	}
-
-	:global(.dark) .close-button:hover:not(:disabled) {
-		background: hsl(var(--muted));
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .modal-footer {
-		background: hsl(var(--muted) / 0.2);
-		border-color: hsl(var(--border));
-	}
-
-	@media (max-width: 640px) {
-		.modal-overlay {
-			padding: 0.5rem;
-		}
-
-		.modal-content {
-			max-width: 100%;
-		}
-
-		.modal-footer {
-			flex-direction: column;
-		}
-
-		.btn {
-			width: 100%;
-		}
 	}
 </style> 

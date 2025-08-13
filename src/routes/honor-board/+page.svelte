@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
 	import type { HonorBoard } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
@@ -23,6 +25,19 @@
 		imageUrl: undefined as string | undefined
 	};
 
+	// Состояние для редактирования
+	let showEditModal = false;
+	let editingHonorBoard: HonorBoard | null = null;
+	let editForm = {
+		studentName: '',
+		descriptionRu: '',
+		descriptionKz: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	// Состояние для загрузки изображений
+	let imageUploading = false;
+
 	onMount(() => {
 		loadHonorBoard();
 	});
@@ -36,7 +51,6 @@
 			const honorBoardData = await apiClient.getHonorBoard($authStore.schoolId);
 			honorBoard = honorBoardData;
 		} catch (err) {
-			console.error('Error loading honor board:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки доски почета';
 		} finally {
 			loading = false;
@@ -79,7 +93,6 @@
 			// Перезагружаем данные
 			await loadHonorBoard();
 		} catch (err) {
-			console.error('Error creating honor board entry:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка создания записи';
 			modalLoading = false;
 		}
@@ -106,8 +119,11 @@
 		// ImageUpload уже обрабатывает загрузку, просто получаем URL
 		const url = event.detail.value;
 		if (url) {
-			newHonorBoard.imageUrl = url;
-			console.log('Image URL set:', url);
+			if (showEditModal && editingHonorBoard) {
+				editForm.imageUrl = url;
+			} else {
+				newHonorBoard.imageUrl = url;
+			}
 		}
 	}
 
@@ -116,8 +132,58 @@
 			await apiClient.deleteHonorBoard(id);
 			await loadHonorBoard();
 		} catch (err) {
-			console.error('Error deleting honor board entry:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления записи';
+		}
+	}
+
+	function editHonorBoard(honorBoard: HonorBoard) {
+		editingHonorBoard = honorBoard;
+		editForm = {
+			studentName: honorBoard.studentName || '',
+			descriptionRu: honorBoard.descriptionRu || '',
+			descriptionKz: honorBoard.descriptionKz || '',
+			imageUrl: honorBoard.imageUrl || undefined
+		};
+		showEditModal = true;
+		modalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editingHonorBoard = null;
+		modalError = '';
+	}
+
+	async function updateHonorBoard() {
+		if (!$authStore.schoolId || !editingHonorBoard) {
+			modalError = 'ID школы или записи не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editForm.studentName.trim() || !editForm.descriptionRu.trim() || !editForm.descriptionKz.trim()) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			modalError = '';
+			modalLoading = true;
+			
+			await apiClient.updateHonorBoard(editingHonorBoard.id, {
+				...editForm,
+				schoolId: $authStore.schoolId
+			});
+			
+			// Закрываем модальное окно после успешного обновления
+			closeEditModal();
+			modalLoading = false;
+			
+			// Перезагружаем данные
+			await loadHonorBoard();
+		} catch (err) {
+			modalError = err instanceof Error ? err.message : 'Ошибка обновления записи';
+			modalLoading = false;
 		}
 	}
 </script>
@@ -129,12 +195,14 @@
 <div class="honor-board-page">
 	<div class="page-header">
 		<h1>Доска почета школы</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить ученика
-			</button>
-		</div>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить ученика
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -157,13 +225,21 @@
 			onAction={openModal}
 		/>
 	{:else}
+		{#if !$adminStore.isAdminMode}
+			<div class="admin-info-compact">
+				<span class="admin-info-icon">🔐</span>
+				<span class="admin-info-text">Войдите в режим администратора для управления данными</span>
+			</div>
+		{/if}
+		
 		<div class="grid-container grid-3">
 			{#each honorBoard as item}
 				<DataCard
 					data={item}
 					type="honor-board"
-					showActions={true}
-					onEdit={() => console.log('Edit honor board:', item.id)}
+					language={$languageStore}
+					showActions={$adminStore.isAdminMode}
+					onEdit={() => editHonorBoard(item)}
 					onDelete={() => deleteHonorBoard(item.id)}
 				/>
 			{/each}
@@ -176,6 +252,7 @@
 	bind:open={showAddModal}
 	title="Добавить ученика на доску почета"
 	loading={modalLoading}
+	disableSubmit={imageUploading}
 	on:close={closeModal}
 	on:submit={addHonorBoard}
 >
@@ -234,6 +311,79 @@
 			</label>
 			<ImageUpload
 				bind:value={newHonorBoard.imageUrl}
+				bind:uploading={imageUploading}
+				folder="honor-board"
+				on:change={handleImageChange}
+			/>
+		</div>
+	</div>
+</DataModal>
+
+<!-- Модальное окно редактирования записи -->
+<DataModal
+	bind:open={showEditModal}
+	title="Редактировать ученика на доску почета"
+	loading={modalLoading}
+	disableSubmit={imageUploading}
+	on:close={closeEditModal}
+	on:submit={updateHonorBoard}
+>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="editStudentName" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя ученика *
+			</label>
+			<input
+				id="editStudentName"
+				type="text"
+				bind:value={editForm.studentName}
+				required
+				placeholder="Введите имя ученика"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="editDescriptionRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание достижения (Русский) *
+			</label>
+			<textarea
+				id="editDescriptionRu"
+				bind:value={editForm.descriptionRu}
+				required
+				rows={3}
+				placeholder="Опишите достижение ученика на русском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
+
+		<div>
+			<label for="editDescriptionKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Описание достижения (Казахский) *
+			</label>
+			<textarea
+				id="editDescriptionKz"
+				bind:value={editForm.descriptionKz}
+				required
+				rows={3}
+				placeholder="Опишите достижение ученика на казахском языке"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			></textarea>
+		</div>
+
+		<div>
+			<label class="block text-sm font-medium mb-2 text-gray-700">
+				Фото ученика
+			</label>
+			<ImageUpload
+				bind:value={editForm.imageUrl}
+				bind:uploading={imageUploading}
 				folder="honor-board"
 				on:change={handleImageChange}
 			/>
@@ -394,6 +544,30 @@
     }
 
     /* form controls themed inside DataModal component */
+
+	/* Compact admin info styles */
+	.admin-info-compact {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem 1.5rem;
+		background: hsl(var(--muted) / 0.1);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		margin-bottom: 1.5rem;
+		font-size: 0.9rem;
+	}
+
+	.admin-info-icon {
+		font-size: 1.25rem;
+		opacity: 0.8;
+		color: hsl(var(--primary));
+	}
+
+	.admin-info-text {
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+	}
 
 	@media (max-width: 768px) {
 		.page-header {

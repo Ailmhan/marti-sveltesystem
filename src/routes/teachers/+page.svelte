@@ -2,30 +2,48 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
 	import type { Teacher } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
-	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
 	let error = '';
+	// Состояние для модальных окон
 	let showAddModal = false;
-	let modalError = '';
+	let showEditModal = false;
 	let modalLoading = false;
-
+	let modalError = '';
 	let newTeacher = {
 		nameRu: '',
 		nameKz: '',
 		subjectRu: '',
 		subjectKz: '',
+		birthday: '',
 		email: '',
 		phone: '',
-		birthday: '',
-		imageUrl: undefined as string | undefined
+		imageUrl: ''
 	};
+
+	// Состояние для редактирования
+	let editingTeacher: Teacher | null = null;
+	let editForm = {
+		nameRu: '',
+		nameKz: '',
+		subjectRu: '',
+		subjectKz: '',
+		birthday: '',
+		email: '',
+		phone: '',
+		imageUrl: '' as string | undefined
+	};
+
+	let imageUploading = false;
 
 	onMount(() => {
 		loadTeachers();
@@ -40,7 +58,6 @@
 			const teachersData = await apiClient.getTeachers($authStore.schoolId);
 			teachers = teachersData;
 		} catch (err) {
-			console.error('Error loading teachers:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки учителей';
 		} finally {
 			loading = false;
@@ -48,49 +65,49 @@
 	}
 
 	async function addTeacher() {
-		if (!$authStore.schoolId) {
-			modalError = 'ID школы не найден';
+		if (!newTeacher.nameRu || !newTeacher.subjectRu) {
+			modalError = 'Пожалуйста, заполните обязательные поля';
 			return;
 		}
 
-		// Валидация
-		if (!newTeacher.nameRu.trim() || !newTeacher.nameKz.trim() || 
-			!newTeacher.subjectRu.trim() || !newTeacher.subjectKz.trim() ||
-			!newTeacher.email.trim() || !newTeacher.phone.trim() || !newTeacher.birthday) {
-			modalError = 'Все поля должны быть заполнены';
-			return;
-		}
+		modalLoading = true;
+		modalError = '';
 
 		try {
-			modalError = '';
-			modalLoading = true;
-			
 			await apiClient.createTeacher({
 				...newTeacher,
-				schoolId: $authStore.schoolId
+				schoolId: 10
 			});
 			
-			// Сбрасываем форму
-			newTeacher = {
-				nameRu: '',
-				nameKz: '',
-				subjectRu: '',
-				subjectKz: '',
-				email: '',
-				phone: '',
-				birthday: '',
-				imageUrl: undefined
-			};
-			
-			// Закрываем модальное окно после успешного сохранения
-			showAddModal = false;
-			modalLoading = false;
-			
-			// Перезагружаем учителей
 			await loadTeachers();
+			closeAddModal();
 		} catch (err) {
-			console.error('Error creating teacher:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка создания учителя';
+		} finally {
+			modalLoading = false;
+		}
+	}
+
+	async function updateTeacher() {
+		if (!editingTeacher || !editForm.nameRu || !editForm.subjectRu) {
+			modalError = 'Пожалуйста, заполните обязательные поля';
+			return;
+		}
+
+		modalLoading = true;
+		modalError = '';
+
+		try {
+			await apiClient.updateTeacher(editingTeacher.id, {
+				...editForm,
+				schoolId: 10
+			});
+			
+			await loadTeachers();
+			closeEditModal();
+		} catch (err) {
+			modalError = err instanceof Error ? err.message : 'Ошибка обновления учителя';
+		} finally {
 			modalLoading = false;
 		}
 	}
@@ -98,22 +115,43 @@
 	function openAddModal() {
 		showAddModal = true;
 		modalError = '';
-	}
-
-	function closeAddModal() {
-		showAddModal = false;
-		modalError = '';
-		modalLoading = false;
 		newTeacher = {
 			nameRu: '',
 			nameKz: '',
 			subjectRu: '',
 			subjectKz: '',
+			birthday: '',
 			email: '',
 			phone: '',
-			birthday: '',
-			imageUrl: undefined
+			imageUrl: ''
 		};
+	}
+
+	function closeAddModal() {
+		showAddModal = false;
+		modalError = '';
+	}
+
+	function editTeacher(teacher: Teacher) {
+		editingTeacher = teacher;
+		editForm = {
+			nameRu: teacher.nameRu || '',
+			nameKz: teacher.nameKz || '',
+			subjectRu: teacher.subjectRu || '',
+			subjectKz: teacher.subjectKz || '',
+			birthday: teacher.birthday ? new Date(teacher.birthday).toISOString().split('T')[0] : '',
+			email: teacher.email || '',
+			phone: teacher.phone || '',
+			imageUrl: teacher.imageUrl || undefined
+		};
+		showEditModal = true;
+		modalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editingTeacher = null;
+		modalError = '';
 	}
 
 	async function deleteTeacher(id: number) {
@@ -121,7 +159,6 @@
 			await apiClient.deleteTeacher(id);
 			await loadTeachers();
 		} catch (err) {
-			console.error('Error deleting teacher:', err);
 			error = err instanceof Error ? err.message : 'Ошибка удаления учителя';
 		}
 	}
@@ -131,7 +168,6 @@
 		const url = event.detail.value;
 		if (url) {
 			newTeacher.imageUrl = url;
-			console.log('Image URL set:', url);
 		}
 	}
 </script>
@@ -143,12 +179,14 @@
 <div class="teachers-page">
 	<div class="page-header">
 		<h1>Учителя школы</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openAddModal}>
-				<span class="btn-icon">➕</span>
-				Добавить учителя
-			</button>
-		</div>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openAddModal}>
+					<span class="btn-icon">➕</span>
+					Добавить учителя
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -165,15 +203,14 @@
 	{:else if teachers.length > 0}
 		<div class="grid-container grid-4">
 			{#each teachers as teacher}
-                <a href={`/teachers/${teacher.id}`} style="text-decoration:none;">
-                    <DataCard
-                        data={teacher}
-                        type="teacher"
-                        showActions={true}
-                        onEdit={() => console.log('Edit teacher:', teacher.id)}
-                        onDelete={() => deleteTeacher(teacher.id)}
-                    />
-                </a>
+                <DataCard
+                    data={teacher}
+                    type="teacher"
+                    language={$languageStore}
+                    showActions={$adminStore.isAdminMode}
+                    onEdit={() => editTeacher(teacher)}
+                    onDelete={() => deleteTeacher(teacher.id)}
+                />
 			{/each}
 		</div>
 	{:else}
@@ -185,6 +222,12 @@
 			onAction={openAddModal}
 		/>
 	{/if}
+	{#if !$adminStore.isAdminMode}
+		<div class="admin-info-compact">
+			<span class="admin-info-icon">🔐</span>
+			<span class="admin-info-text">Войдите в режим администратора для управления данными</span>
+		</div>
+	{/if}
 </div>
 
 <!-- Модальное окно добавления учителя -->
@@ -192,6 +235,7 @@
 	bind:open={showAddModal}
 	title="Добавить учителя"
 	loading={modalLoading}
+	disableSubmit={imageUploading}
 	on:close={closeAddModal}
 	on:submit={addTeacher}
 >
@@ -298,20 +342,134 @@
 		</div>
 
 		<div>
-			<label for="teacher-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
-				Изображение
+			<label for="imageUrl" class="block text-sm font-medium mb-2 text-gray-700">
+				Фото
 			</label>
-			<ImageUpload
-				id="teacher-image-upload"
-				bind:value={newTeacher.imageUrl}
-				folder="teachers"
-				on:change={handleImageChange}
-				on:error={(event) => {
-					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
-				}}
+			<ImageUpload 
+				bind:value={newTeacher.imageUrl} 
+				bind:uploading={imageUploading}
+				folder="teachers" 
+				on:change={(event) => newTeacher.imageUrl = event.detail.value} 
+			/>
+		</div>
+	</div>
+</DataModal>
+
+<!-- Модальное окно редактирования учителя -->
+<DataModal
+	bind:open={showEditModal}
+	title="Редактировать учителя"
+	loading={modalLoading}
+	disableSubmit={imageUploading}
+	on:close={closeEditModal}
+	on:submit={updateTeacher}
+>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">{modalError}</div>
+		{/if}
+
+		<div>
+			<label for="edit-nameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя (русский) *
+			</label>
+			<input 
+				type="text" 
+				id="edit-nameRu" 
+				bind:value={editForm.nameRu} 
+				required 
+				placeholder="Введите имя на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-nameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Имя (казахский)
+			</label>
+			<input 
+				type="text" 
+				id="edit-nameKz" 
+				bind:value={editForm.nameKz} 
+				placeholder="Введите имя на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-subjectRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Предмет (русский) *
+			</label>
+			<input 
+				type="text" 
+				id="edit-subjectRu" 
+				bind:value={editForm.subjectRu} 
+				required 
+				placeholder="Введите предмет на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-subjectKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Предмет (казахский)
+			</label>
+			<input 
+				type="text" 
+				id="edit-subjectKz" 
+				bind:value={editForm.subjectKz} 
+				placeholder="Введите предмет на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-birthday" class="block text-sm font-medium mb-2 text-gray-700">
+				День рождения
+			</label>
+			<input 
+				type="date" 
+				id="edit-birthday" 
+				bind:value={editForm.birthday} 
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-email" class="block text-sm font-medium mb-2 text-gray-700">
+				Email
+			</label>
+			<input 
+				type="email" 
+				id="edit-email" 
+				bind:value={editForm.email} 
+				placeholder="Введите email"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-phone" class="block text-sm font-medium mb-2 text-gray-700">
+				Телефон
+			</label>
+			<input 
+				type="tel" 
+				id="edit-phone" 
+				bind:value={editForm.phone} 
+				placeholder="Введите телефон"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-imageUrl" class="block text-sm font-medium mb-2 text-gray-700">
+				Фото
+			</label>
+			<ImageUpload 
+				bind:value={editForm.imageUrl} 
+				bind:uploading={imageUploading}
+				folder="teachers" 
+				on:change={(event) => editForm.imageUrl = event.detail.value} 
 			/>
 		</div>
 	</div>
@@ -468,6 +626,41 @@
 
  /* form controls themed inside DataModal component */
 
+	/* Admin info styles */
+	.admin-info {
+		margin: 2rem 0;
+		padding: 2rem;
+		background: hsl(var(--muted) / 0.1);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		text-align: center;
+	}
+
+	.admin-info-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.admin-info-icon {
+		font-size: 3rem;
+		opacity: 0.7;
+	}
+
+	.admin-info-text h3 {
+		margin: 0 0 0.5rem 0;
+		color: hsl(var(--foreground));
+		font-size: 1.25rem;
+		font-weight: 600;
+	}
+
+	.admin-info-text p {
+		margin: 0 0 1rem 0;
+		color: hsl(var(--muted-foreground));
+		max-width: 500px;
+	}
+
 @media (max-width: 768px) {
 	.page-header {
 		flex-direction: column;
@@ -479,4 +672,39 @@
 		justify-content: space-between;
 	}
 }
+
+	/* Темная тема */
+	:global(.dark) .teachers-page {
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .page-header h1 {
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .add-btn {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	:global(.dark) .add-btn:hover {
+		background: hsl(var(--primary) / 0.9);
+	}
+
+	:global(.dark) .grid-container {
+		background: hsl(var(--background));
+	}
+
+	:global(.dark) .empty-state {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .error-message {
+		background: hsl(var(--destructive) / 0.1);
+		border-color: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+	}
 </style>

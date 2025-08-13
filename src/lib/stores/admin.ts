@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 interface AdminState {
 	isAdminMode: boolean;
@@ -16,11 +16,20 @@ function createAdminStore() {
 		
 		// Войти в админ-режим
 		enterAdminMode: (adminData?: any) => {
-			update(state => ({
-				...state,
-				isAdminMode: true,
-				adminData: adminData || null
-			}));
+			console.log('=== adminStore.enterAdminMode() called ===');
+			console.log('adminData:', adminData);
+			console.log('Current state before enter:', get({ subscribe }));
+			
+			update(state => {
+				console.log('Updating state in enterAdminMode');
+				return {
+					...state,
+					isAdminMode: true,
+					adminData: adminData || null
+				};
+			});
+			
+			console.log('State updated, new state:', get({ subscribe }));
 			
 			// Сохраняем в localStorage
 			if (typeof window !== 'undefined') {
@@ -28,22 +37,36 @@ function createAdminStore() {
 				if (adminData) {
 					localStorage.setItem('adminData', JSON.stringify(adminData));
 				}
+				console.log('localStorage updated');
 			}
+			
+			console.log('=== adminStore.enterAdminMode() completed ===');
 		},
 
 		// Выйти из админ-режима
 		exitAdminMode: () => {
-			update(state => ({
-				...state,
-				isAdminMode: false,
-				adminData: null
-			}));
+			console.log('=== adminStore.exitAdminMode() called ===');
+			console.log('Current state before exit:', get({ subscribe }));
+			
+			update(state => {
+				console.log('Updating state in exitAdminMode');
+				return {
+					...state,
+					isAdminMode: false,
+					adminData: null
+				};
+			});
+			
+			console.log('State updated, new state:', get({ subscribe }));
 			
 			// Удаляем из localStorage
 			if (typeof window !== 'undefined') {
 				localStorage.removeItem('adminMode');
 				localStorage.removeItem('adminData');
+				console.log('localStorage cleared');
 			}
+			
+			console.log('=== adminStore.exitAdminMode() completed ===');
 		},
 
 		// Обновить данные администратора

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
+	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import type { News } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
@@ -8,7 +10,6 @@
 	import DataCard from '$lib/components/DataCard.svelte';
 	import DataPage from '$lib/components/DataPage.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
-	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
 	import { 
 		searchItems, 
@@ -27,12 +28,26 @@
 	let currentView: 'grid' | 'list' | 'calendar' = 'grid';
 	let sortBy = '';
 
+	// Состояние для редактирования
+	let showEditModal = false;
+	let editingNews: News | null = null;
+	let editForm = {
+		titleRu: '',
+		titleKz: '',
+		contentRu: '',
+		contentKz: '',
+		imageUrl: '' as string | undefined
+	};
+
+	// Состояние для загрузки изображений
+	let imageUploading = false;
+
 	let newNews = {
 		titleRu: '',
 		titleKz: '',
 		contentRu: '',
 		contentKz: '',
-		imageUrl: undefined as string | undefined
+		imageUrl: '' as string | undefined
 	};
 
 	onMount(() => {
@@ -65,7 +80,6 @@
 			const newsData = await apiClient.getNews($authStore.schoolId);
 			news = newsData;
 		} catch (err) {
-			console.error('Error loading news:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки новостей';
 		} finally {
 			loading = false;
@@ -73,44 +87,49 @@
 	}
 
 	async function addNews() {
-		// Валидация
-		if (!newNews.titleRu.trim() || !newNews.titleKz.trim() || !newNews.contentRu.trim() || !newNews.contentKz.trim()) {
-			modalError = 'Все поля должны быть заполнены';
+		if (!newNews.titleRu || !newNews.contentRu) {
+			modalError = 'Пожалуйста, заполните обязательные поля';
 			return;
 		}
 
-		if (!$authStore.schoolId) {
-			modalError = 'ID школы не найден';
-			return;
-		}
+		modalLoading = true;
+		modalError = '';
 
 		try {
-			modalError = '';
-			modalLoading = true;
-			
 			await apiClient.createNews({
 				...newNews,
-				schoolId: $authStore.schoolId
+				schoolId: 10
 			});
 			
-			// Сбрасываем форму
-			newNews = {
-				titleRu: '',
-				titleKz: '',
-				contentRu: '',
-				contentKz: '',
-				imageUrl: undefined
-			};
-			
-			// Закрываем модальное окно после успешного сохранения
-			showAddModal = false;
-			modalLoading = false;
-			
-			// Перезагружаем новости
 			await loadNews();
+			closeModal();
 		} catch (err) {
-			console.error('Error creating news:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка создания новости';
+		} finally {
+			modalLoading = false;
+		}
+	}
+
+	async function updateNews() {
+		if (!editingNews || !editForm.titleRu || !editForm.contentRu) {
+			modalError = 'Пожалуйста, заполните обязательные поля';
+			return;
+		}
+
+		modalLoading = true;
+		modalError = '';
+
+		try {
+			await apiClient.updateNews(editingNews.id, {
+				...editForm,
+				schoolId: 10
+			});
+			
+			await loadNews();
+			closeEditModal();
+		} catch (err) {
+			modalError = err instanceof Error ? err.message : 'Ошибка обновления новости';
+		} finally {
 			modalLoading = false;
 		}
 	}
@@ -133,12 +152,29 @@
 		};
 	}
 
+	function editNews(news: News) {
+		editingNews = news;
+		editForm = {
+			titleRu: news.titleRu || '',
+			titleKz: news.titleKz || '',
+			contentRu: news.contentRu || '',
+			contentKz: news.contentKz || '',
+			imageUrl: news.imageUrl || ''
+		};
+		showEditModal = true;
+		modalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editingNews = null;
+		modalError = '';
+	}
+
 	function handleImageChange(event: CustomEvent) {
-		// ImageUpload уже обрабатывает загрузку, просто получаем URL
 		const url = event.detail.value;
 		if (url) {
 			newNews.imageUrl = url;
-			console.log('Image URL set:', url);
 		}
 	}
 
@@ -167,57 +203,64 @@
 	<title>Новости - Школьная система</title>
 </svelte:head>
 
-		<DataPage
-			title="Новости школы"
-			{loading}
-			{error}
-			showSearch={false}
-			showFilters={false}
-			showViewToggle={true}
-			showSort={true}
-			filters={[]}
-			sortOptions={getNewsSortOptions()}
-			on:sort={(event) => sortBy = event.detail}
-			on:viewChange={(event) => currentView = event.detail}
-			on:retry={loadNews}
-			let:pageState
-		>
+<DataPage
+	title="Новости школы"
+	{loading}
+	{error}
+	showSearch={false}
+	showFilters={false}
+	showViewToggle={true}
+	showSort={true}
+	filters={[]}
+	sortOptions={getNewsSortOptions()}
+	on:sort={(event) => sortBy = event.detail}
+	on:viewChange={(event) => currentView = event.detail}
+	on:retry={loadNews}
+	let:pageState
+>
 	<svelte:fragment slot="actions">
-		<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
-			<span class="btn-icon">➕</span>
-			Добавить новость
-		</button>
+		{#if $adminStore.isAdminMode}
+			<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
+				<span class="btn-icon">➕</span>
+				Добавить новость
+			</button>
+		{/if}
 	</svelte:fragment>
 
 	<svelte:fragment slot="default">
+		{#if !$adminStore.isAdminMode}
+			<div class="admin-info-compact">
+				<span class="admin-info-icon">🔐</span>
+				<span class="admin-info-text">Войдите в режим администратора для управления данными</span>
+			</div>
+		{/if}
+		
 		{#if filteredNews.length > 0}
 			{#if currentView === 'grid'}
                 <div class="grid-container grid-3">
                     {#each filteredNews as item}
-                        <a href={`/news/${item.id}`} style="text-decoration:none;">
-                            <DataCard
-                                data={item}
-                                type="news"
-                                showActions={true}
-                                onEdit={() => console.log('Edit news:', item.id)}
-                                onDelete={() => deleteNews(item.id)}
-                            />
-                        </a>
+                        <DataCard
+                            data={item}
+                            type="news"
+                            language={$languageStore}
+                            showActions={$adminStore.isAdminMode}
+                            onEdit={() => editNews(item)}
+                            onDelete={() => deleteNews(item.id)}
+                        />
                     {/each}
                 </div>
 			{:else if currentView === 'list'}
                 <div class="list-container">
                     {#each filteredNews as item}
                         <div class="list-item">
-                            <a href={`/news/${item.id}`} style="text-decoration:none; display:block;">
-                                <DataCard
-                                    data={item}
-                                    type="news"
-                                    showActions={true}
-                                    onEdit={() => console.log('Edit news:', item.id)}
-                                    onDelete={() => deleteNews(item.id)}
-                                />
-                            </a>
+                            <DataCard
+                                data={item}
+                                type="news"
+                                language={$languageStore}
+                                showActions={$adminStore.isAdminMode}
+                                onEdit={() => editNews(item)}
+                                onDelete={() => deleteNews(item.id)}
+                            />
                         </div>
                     {/each}
                 </div>
@@ -262,6 +305,7 @@
 	bind:open={showAddModal}
 	title="Добавить новость"
 	loading={modalLoading}
+	disableSubmit={imageUploading}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -329,20 +373,98 @@
 		</div>
 
 		<div>
-			<label for="image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+			<label for="imageUrl" class="block text-sm font-medium mb-2 text-gray-700">
 				Изображение
 			</label>
-			<ImageUpload
-				id="image-upload"
-				bind:value={newNews.imageUrl}
-				folder="news"
-				on:change={handleImageChange}
-				on:error={(event) => {
-					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
-				}}
+			<ImageUpload 
+				bind:value={newNews.imageUrl} 
+				bind:uploading={imageUploading}
+				folder="news" 
+				on:change={(event) => newNews.imageUrl = event.detail.value} 
+			/>
+		</div>
+	</div>
+</DataModal>
+
+<!-- Модальное окно редактирования новости -->
+<DataModal
+	bind:open={showEditModal}
+	title="Редактировать новость"
+	loading={modalLoading}
+	disableSubmit={imageUploading}
+	on:close={closeEditModal}
+	on:submit={updateNews}
+>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="edit-titleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (русский) *
+			</label>
+			<input 
+				type="text" 
+				id="edit-titleRu" 
+				bind:value={editForm.titleRu} 
+				required 
+				placeholder="Введите заголовок на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-titleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Заголовок (казахский)
+			</label>
+			<input 
+				type="text" 
+				id="edit-titleKz" 
+				bind:value={editForm.titleKz} 
+				placeholder="Введите заголовок на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-contentRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (русский) *
+			</label>
+			<textarea 
+				id="edit-contentRu" 
+				bind:value={editForm.contentRu} 
+				required 
+				rows="4"
+				placeholder="Введите содержание на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+			></textarea>
+		</div>
+
+		<div>
+			<label for="edit-contentKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Содержание (казахский)
+			</label>
+			<textarea 
+				id="edit-contentKz" 
+				bind:value={editForm.contentKz} 
+				rows="4"
+				placeholder="Введите содержание на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+			></textarea>
+		</div>
+
+		<div>
+			<label for="edit-imageUrl" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload 
+				bind:value={editForm.imageUrl} 
+				bind:uploading={imageUploading}
+				folder="news" 
+				on:change={(event) => editForm.imageUrl = event.detail.value} 
 			/>
 		</div>
 	</div>
@@ -555,6 +677,29 @@
 	border: 1px solid #ef4444;
 }
 
+.admin-info-compact {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.5rem;
+	background: hsl(var(--muted) / 0.1);
+	border: 1px solid hsl(var(--border));
+	border-radius: var(--radius);
+	margin-bottom: 1.5rem;
+	font-size: 0.9rem;
+}
+
+.admin-info-icon {
+	font-size: 1.25rem;
+	opacity: 0.8;
+	color: hsl(var(--primary));
+}
+
+.admin-info-text {
+	color: hsl(var(--muted-foreground));
+	margin: 0;
+}
+
 @media (max-width: 768px) {
 	.page-header {
 		flex-direction: column;
@@ -566,4 +711,39 @@
 		justify-content: space-between;
 	}
 }
+
+	/* Темная тема */
+	:global(.dark) .news-page {
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .page-header h1 {
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .add-btn {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	:global(.dark) .add-btn:hover {
+		background: hsl(var(--primary) / 0.9);
+	}
+
+	:global(.dark) .grid-container {
+		background: hsl(var(--background));
+	}
+
+	:global(.dark) .empty-state {
+		background: hsl(var(--card));
+		border-color: hsl(var(--border));
+		color: hsl(var(--foreground));
+	}
+
+	:global(.dark) .error-message {
+		background: hsl(var(--destructive) / 0.1);
+		border-color: hsl(var(--destructive));
+		color: hsl(var(--destructive-foreground));
+	}
 </style>

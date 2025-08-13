@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
+	import { languageStore } from '$lib/stores/language';
 	import type { Section } from '$lib/types/api';
 	import DataModal from '$lib/components/DataModal.svelte';
 	import DataCard from '$lib/components/DataCard.svelte';
@@ -25,6 +27,21 @@
 		imageUrl: undefined as string | undefined
 	};
 
+	// Состояние для редактирования
+	let showEditModal = false;
+	let editingSection: Section | null = null;
+	let editForm = {
+		nameRu: '',
+		nameKz: '',
+		scheduleRu: '',
+		scheduleKz: '',
+		teacher: '',
+		imageUrl: undefined as string | undefined
+	};
+
+	// Состояние для загрузки изображений
+	let imageUploading = false;
+
 	onMount(() => {
 		loadSections();
 	});
@@ -38,7 +55,6 @@
 			const sectionsData = await apiClient.getSections($authStore.schoolId);
 			sections = sectionsData;
 		} catch (err) {
-			console.error('Error loading sections:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки секций';
 		} finally {
 			loading = false;
@@ -85,7 +101,6 @@
 			// Перезагружаем секции
 			await loadSections();
 		} catch (err) {
-			console.error('Error creating section:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка создания секции';
 			modalLoading = false;
 		}
@@ -111,11 +126,13 @@
 	}
 
 	function handleImageChange(event: CustomEvent) {
-		// ImageUpload уже обрабатывает загрузку, просто получаем URL
 		const url = event.detail.value;
 		if (url) {
-			newSection.imageUrl = url;
-			console.log('Image URL set:', url);
+			if (showEditModal && editingSection) {
+				editForm.imageUrl = url;
+			} else {
+				newSection.imageUrl = url;
+			}
 		}
 	}
 
@@ -128,6 +145,61 @@
 			error = err instanceof Error ? err.message : 'Ошибка удаления секции';
 		}
 	}
+
+	function editSection(section: Section) {
+		editingSection = section;
+		editForm = {
+			nameRu: section.nameRu || '',
+			nameKz: section.nameKz || '',
+			scheduleRu: section.scheduleRu || '',
+			scheduleKz: section.scheduleKz || '',
+			teacher: section.teacher || '',
+			imageUrl: section.imageUrl || undefined
+		};
+		showEditModal = true;
+		modalError = '';
+	}
+
+	function closeEditModal() {
+		showEditModal = false;
+		editingSection = null;
+		modalError = '';
+	}
+
+	async function updateSection() {
+		if (!$authStore.schoolId || !editingSection) {
+			modalError = 'ID школы или секции не найден';
+			return;
+		}
+
+		// Валидация
+		if (!editForm.nameRu.trim() || !editForm.nameKz.trim() || 
+			!editForm.scheduleRu.trim() || !editForm.scheduleKz.trim() ||
+			!editForm.teacher.trim()) {
+			modalError = 'Все поля должны быть заполнены';
+			return;
+		}
+
+		try {
+			modalError = '';
+			modalLoading = true;
+			
+			await apiClient.updateSection(editingSection.id, {
+				...editForm,
+				schoolId: $authStore.schoolId
+			});
+			
+			// Закрываем модальное окно после успешного обновления
+			closeEditModal();
+			modalLoading = false;
+			
+			// Перезагружаем секции
+			await loadSections();
+		} catch (err) {
+			modalError = err instanceof Error ? err.message : 'Ошибка обновления секции';
+			modalLoading = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -136,13 +208,15 @@
 
 <div class="sections-page">
 	<div class="page-header">
-		<h1>Секции школы</h1>
-		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить секцию
-			</button>
-		</div>
+		<h1>Кружки и секции</h1>
+		{#if $adminStore.isAdminMode}
+			<div class="page-actions">
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить секцию
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if loading}
@@ -157,13 +231,21 @@
 			<button class="btn btn-primary" on:click={loadSections}>Попробовать снова</button>
 		</div>
 	{:else if sections.length > 0}
+		{#if !$adminStore.isAdminMode}
+			<div class="admin-info-compact">
+				<span class="admin-info-icon">🔐</span>
+				<span class="admin-info-text">Войдите в режим администратора для управления данными</span>
+			</div>
+		{/if}
+		
 		<div class="grid-container grid-3">
 			{#each sections as section}
 				<DataCard
 					data={section}
 					type="section"
-					showActions={true}
-					onEdit={() => console.log('Edit section:', section.id)}
+					language={$languageStore}
+					showActions={$adminStore.isAdminMode}
+					onEdit={() => editSection(section)}
 					onDelete={() => deleteSection(section.id)}
 				/>
 			{/each}
@@ -184,6 +266,7 @@
 	bind:open={showAddModal}
 	title="Добавить секцию"
 	loading={modalLoading}
+	disableSubmit={imageUploading}
 	on:close={closeModal}
 	on:submit={addSection}
 >
@@ -271,6 +354,114 @@
 			<ImageUpload
 				id="section-image-upload"
 				bind:value={newSection.imageUrl}
+				bind:uploading={imageUploading}
+				folder="sections"
+				on:change={handleImageChange}
+				on:error={(event) => {
+					modalError = event.detail.message;
+				}}
+				on:success={(event) => {
+					modalError = '';
+				}}
+			/>
+		</div>
+	</div>
+</DataModal>
+
+<!-- Модальное окно редактирования секции -->
+<DataModal
+	bind:open={showEditModal}
+	title="Редактировать секцию"
+	loading={modalLoading}
+	disableSubmit={imageUploading}
+	on:close={closeEditModal}
+	on:submit={updateSection}
+>
+	<div class="space-y-4">
+		{#if modalError}
+			<div class="alert alert-error">
+				{modalError}
+			</div>
+		{/if}
+
+		<div>
+			<label for="edit-nameRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (русский) *
+			</label>
+			<input
+				id="edit-nameRu"
+				type="text"
+				bind:value={editForm.nameRu}
+				required
+				placeholder="Введите название секции на русском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-nameKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Название (казахский) *
+			</label>
+			<input
+				id="edit-nameKz"
+				type="text"
+				bind:value={editForm.nameKz}
+				required
+				placeholder="Введите название секции на казахском"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-scheduleRu" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (русский) *
+			</label>
+			<input
+				id="edit-scheduleRu"
+				type="text"
+				bind:value={editForm.scheduleRu}
+				required
+				placeholder="Например: Понедельник, Среда 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-scheduleKz" class="block text-sm font-medium mb-2 text-gray-700">
+				Расписание (казахский) *
+			</label>
+			<input
+				id="edit-scheduleKz"
+				type="text"
+				bind:value={editForm.scheduleKz}
+				required
+				placeholder="Например: Дүйсенбі, Сәрсенбі 15:00-16:30"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-teacher" class="block text-sm font-medium mb-2 text-gray-700">
+				Руководитель *
+			</label>
+			<input
+				id="edit-teacher"
+				type="text"
+				bind:value={editForm.teacher}
+				required
+				placeholder="ФИО руководителя секции"
+				class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+			/>
+		</div>
+
+		<div>
+			<label for="edit-section-image-upload" class="block text-sm font-medium mb-2 text-gray-700">
+				Изображение
+			</label>
+			<ImageUpload
+				id="edit-section-image-upload"
+				bind:value={editForm.imageUrl}
+				bind:uploading={imageUploading}
 				folder="sections"
 				on:change={handleImageChange}
 				on:error={(event) => {
@@ -437,6 +628,30 @@
     }
 
     /* form controls themed inside DataModal component */
+
+	/* Compact admin info styles */
+	.admin-info-compact {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 1rem 1.5rem;
+		background: hsl(var(--muted) / 0.1);
+		border: 1px solid hsl(var(--border));
+		border-radius: var(--radius);
+		margin-bottom: 1.5rem;
+		font-size: 0.9rem;
+	}
+
+	.admin-info-icon {
+		font-size: 1.25rem;
+		opacity: 0.8;
+		color: hsl(var(--primary));
+	}
+
+	.admin-info-text {
+		color: hsl(var(--muted-foreground));
+		margin: 0;
+	}
 
 	@media (max-width: 768px) {
 		.page-header {
