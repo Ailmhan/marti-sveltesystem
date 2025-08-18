@@ -11,6 +11,7 @@
 	import DataPage from '$lib/components/DataPage.svelte';
 	import Schedule from '$lib/components/Schedule.svelte';
 	import { languageStore } from '$lib/stores/language';
+	import { useImageValidation } from '$lib/hooks/useImageValidation';
 	import { 
 		searchItems, 
 		sortItems, 
@@ -39,6 +40,9 @@
 		imageUrl: '' as string | undefined
 	};
 
+	// Валидация изображения для редактирования
+	let editImageValidation: ReturnType<typeof useImageValidation> | null = null;
+
 	// Состояние для загрузки изображений
 	let imageUploading = false;
 
@@ -49,6 +53,9 @@
 		contentKz: '',
 		imageUrl: '' as string | undefined
 	};
+
+	// Валидация изображения для добавления
+	const addImageValidation = useImageValidation('', newNews.imageUrl || '');
 
 	onMount(() => {
 		loadNews();
@@ -150,6 +157,9 @@
 			contentKz: '',
 			imageUrl: undefined
 		};
+		
+		// Сбрасываем валидацию
+		addImageValidation.resetValidation();
 	}
 
 	function editNews(news: News) {
@@ -161,6 +171,10 @@
 			contentKz: news.contentKz || '',
 			imageUrl: news.imageUrl || ''
 		};
+		
+		// Инициализируем валидацию для редактирования
+		editImageValidation = useImageValidation(news.imageUrl || '', editForm.imageUrl || '');
+		
 		showEditModal = true;
 		modalError = '';
 	}
@@ -169,12 +183,29 @@
 		showEditModal = false;
 		editingNews = null;
 		modalError = '';
+		
+		// Сбрасываем валидацию
+		if (editImageValidation) {
+			editImageValidation.resetValidation();
+			editImageValidation = null;
+		}
 	}
 
-	function handleImageChange(event: CustomEvent) {
+	async function handleImageChange(event: CustomEvent) {
 		const url = event.detail.value;
 		if (url) {
 			newNews.imageUrl = url;
+			// Валидируем новое изображение
+			await addImageValidation.validateCurrentImage();
+		}
+	}
+
+	async function handleEditImageChange(event: CustomEvent) {
+		const url = event.detail.value;
+		if (url && editImageValidation) {
+			editForm.imageUrl = url;
+			// Валидируем новое изображение
+			await editImageValidation.validateCurrentImage();
 		}
 	}
 
@@ -200,30 +231,30 @@
 </script>
 
 <svelte:head>
-	<title>Новости - Школьная система</title>
+	<title>{$languageStore === 'kz' ? 'Жаңалықтар - Мектеп жүйесі' : 'Новости - Школьная система'}</title>
 </svelte:head>
 
-<DataPage
-	title="Новости школы"
-	{loading}
-	{error}
-	showSearch={false}
-	showFilters={false}
-	showViewToggle={true}
-	showSort={true}
-	filters={[]}
-	sortOptions={getNewsSortOptions()}
-	on:sort={(event) => sortBy = event.detail}
-	on:viewChange={(event) => currentView = event.detail}
-	on:retry={loadNews}
-	let:pageState
->
+		<DataPage
+	title={$languageStore === 'kz' ? 'Мектеп жаңалықтары' : 'Новости школы'}
+			{loading}
+			{error}
+			showSearch={false}
+			showFilters={false}
+			showViewToggle={true}
+			showSort={true}
+			filters={[]}
+			sortOptions={getNewsSortOptions()}
+			on:sort={(event) => sortBy = event.detail}
+			on:viewChange={(event) => currentView = event.detail}
+			on:retry={loadNews}
+			let:pageState
+		>
 	<svelte:fragment slot="actions">
 		{#if $adminStore.isAdminMode}
-			<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить новость
-			</button>
+		<button class="btn btn-primary add-btn btn-modern" on:click={openModal}>
+			<span class="btn-icon">➕</span>
+			Добавить новость
+		</button>
 		{/if}
 	</svelte:fragment>
 
@@ -239,9 +270,9 @@
 			{#if currentView === 'grid'}
                 <div class="grid-container grid-3">
                     {#each filteredNews as item}
-                        <DataCard
-                            data={item}
-                            type="news"
+                            <DataCard
+                                data={item}
+                                type="news"
                             language={$languageStore}
                             showActions={$adminStore.isAdminMode}
                             onEdit={() => editNews(item)}
@@ -253,9 +284,9 @@
                 <div class="list-container">
                     {#each filteredNews as item}
                         <div class="list-item">
-                            <DataCard
-                                data={item}
-                                type="news"
+                                <DataCard
+                                    data={item}
+                                    type="news"
                                 language={$languageStore}
                                 showActions={$adminStore.isAdminMode}
                                 onEdit={() => editNews(item)}
@@ -305,7 +336,7 @@
 	bind:open={showAddModal}
 	title="Добавить новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={imageUploading || ($addImageValidation?.shouldDisableSubmit || false)}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -376,12 +407,17 @@
 			<label for="imageUrl" class="block text-sm font-medium mb-2 text-gray-700">
 				Изображение
 			</label>
-			<ImageUpload 
-				bind:value={newNews.imageUrl} 
+			<ImageUpload
+				bind:value={newNews.imageUrl}
 				bind:uploading={imageUploading}
-				folder="news" 
-				on:change={(event) => newNews.imageUrl = event.detail.value} 
+				folder="news"
+				on:change={handleImageChange}
 			/>
+			{#if $addImageValidation.validationError}
+				<div class="text-red-500 text-sm mt-1">
+					{$addImageValidation.validationError}
+				</div>
+			{/if}
 		</div>
 	</div>
 </DataModal>
@@ -391,7 +427,7 @@
 	bind:open={showEditModal}
 	title="Редактировать новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={imageUploading || (editImageValidation ? $editImageValidation.shouldDisableSubmit : false)}
 	on:close={closeEditModal}
 	on:submit={updateNews}
 >
@@ -464,44 +500,18 @@
 				bind:value={editForm.imageUrl} 
 				bind:uploading={imageUploading}
 				folder="news" 
-				on:change={(event) => editForm.imageUrl = event.detail.value} 
+				on:change={handleEditImageChange} 
 			/>
+			{#if editImageValidation && $editImageValidation.validationError}
+				<div class="text-red-500 text-sm mt-1">
+					{$editImageValidation.validationError}
+				</div>
+			{/if}
 		</div>
 	</div>
 </DataModal>
 
 <style>
-.news-page {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 2rem;
-	padding-top: calc(70px + 2rem);
-}
-
-.page-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-wrap: wrap;
-	row-gap: 1rem;
-	margin-bottom: 2.5rem;
-	border-bottom: 1px solid #e5e7eb;
-	padding-bottom: 1.25rem;
-}
-
-.page-header h1 {
-	margin: 0;
-	font-size: 2rem;
-	font-weight: 700;
-	color: #1f2937;
-}
-
-.page-actions {
-	display: flex;
-	gap: 0.75rem;
-	flex-wrap: wrap;
-}
-
 .btn {
 	border: none;
 	border-radius: 0.6rem;
@@ -567,53 +577,6 @@
 .btn-icon {
 	font-size: 1.2rem;
 	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-.loading-container {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	min-height: 40vh;
-	gap: 1rem;
-	color: #6b7280;
-	text-align: center;
-}
-
-.spinner {
-	border: 4px solid #e5e7eb;
-	border-top: 4px solid #6366f1;
-	border-radius: 50%;
-	width: 2.5rem;
-	height: 2.5rem;
-	animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-	0% {
-		transform: rotate(0deg);
-	}
-	100% {
-		transform: rotate(360deg);
-	}
-}
-
-.error-container {
-	text-align: center;
-	padding: 2rem;
-	color: #b91c1c;
-	background: #fef2f2;
-	border: 1px solid #fecaca;
-	border-radius: 0.75rem;
-}
-
-.error-container h2 {
-	margin: 0 0 1rem 0;
-	color: #b91c1c;
-}
-
-.error-container p {
-	margin: 0 0 1.5rem 0;
 }
 
 .grid-container {
@@ -715,28 +678,7 @@
 	margin: 0;
 }
 
-@media (max-width: 768px) {
-	.page-header {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	.page-actions {
-		width: 100%;
-		justify-content: space-between;
-	}
-}
-
 	/* Темная тема */
-	:global(.dark) .news-page {
-		background: hsl(var(--background));
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .page-header h1 {
-		color: hsl(var(--foreground));
-	}
-
 	:global(.dark) .add-btn {
 		background: hsl(var(--primary));
 		color: hsl(var(--primary-foreground));
@@ -748,17 +690,5 @@
 
 	:global(.dark) .grid-container {
 		background: hsl(var(--background));
-	}
-
-	:global(.dark) .empty-state {
-		background: hsl(var(--card));
-		border-color: hsl(var(--border));
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .error-message {
-		background: hsl(var(--destructive) / 0.1);
-		border-color: hsl(var(--destructive));
-		color: hsl(var(--destructive-foreground));
-	}
+}
 </style>

@@ -159,7 +159,7 @@
 
 <div class="min-h-screen transition-colors duration-300">
 	<!-- Navigation -->
-	<nav class="fixed top-0 left-0 right-0 z-50 bg-white/20 backdrop-blur-md border-b border-white/20 shadow-sm">
+	<nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/30 shadow-sm">
 		<div class="container mx-auto px-4">
 			<div class="flex items-center justify-between h-16">
 				<!-- Logo -->
@@ -173,7 +173,7 @@
 							<span class="text-white font-bold text-lg">🎓</span>
 						{/if}
 					</div>
-					<span class="text-xl font-bold text-white">
+					<span class="text-xl font-bold text-slate-800">
 						{schoolData ? (currentLanguage === 'kz' ? schoolData.nameKz : schoolData.nameRu) : 'Школа'}
 					</span>
 				</div>
@@ -182,20 +182,20 @@
 
 				<!-- Desktop Menu -->
 				<div class="hidden md:flex items-center gap-8">
-					<button onclick={() => scrollToSection('news')} class="text-white hover:text-blue-200 transition-colors font-medium">
-						Новости
+					<button onclick={() => scrollToSection('news')} class="text-slate-700 hover:text-primary transition-colors font-medium">
+						{currentLanguage === 'kz' ? 'Жаңалықтар' : 'Новости'}
 					</button>
-					<button onclick={() => scrollToSection('teachers')} class="text-white hover:text-blue-200 transition-colors font-medium">
-						Учителя
+					<button onclick={() => scrollToSection('teachers')} class="text-slate-700 hover:text-primary transition-colors font-medium">
+						{currentLanguage === 'kz' ? 'Мұғалімдер' : 'Учителя'}
 					</button>
-					<button onclick={() => scrollToSection('achievements')} class="text-white hover:text-blue-200 transition-colors font-medium">
-						Достижения
+					<button onclick={() => scrollToSection('achievements')} class="text-slate-700 hover:text-primary transition-colors font-medium">
+						{currentLanguage === 'kz' ? 'Жетістіктер' : 'Достижения'}
 					</button>
-					<button onclick={() => scrollToSection('schedule')} class="text-white hover:text-blue-200 transition-colors font-medium">
-						Расписание
+					<button onclick={() => scrollToSection('schedule')} class="text-slate-700 hover:text-primary transition-colors font-medium">
+						{currentLanguage === 'kz' ? 'Кесте' : 'Расписание'}
 					</button>
-					<button onclick={() => scrollToSection('contact')} class="text-white hover:text-blue-200 transition-colors font-medium">
-						Контакты
+					<button onclick={() => scrollToSection('contact')} class="text-slate-700 hover:text-primary transition-colors font-medium">
+						{currentLanguage === 'kz' ? 'Байланыс' : 'Контакты'}
 					</button>
 				</div>
 
@@ -208,12 +208,12 @@
 
 					<button 
 						onclick={() => isMobileMenuOpen = !isMobileMenuOpen}
-						class="md:hidden w-9 h-9 rounded-md border border-border bg-card hover:bg-accent transition-colors flex items-center justify-center"
+						class="md:hidden w-9 h-9 rounded-md border border-slate-300 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center"
 					>
 						{#if isMobileMenuOpen}
-							<span class="text-lg">✕</span>
+							<span class="text-lg text-slate-700">✕</span>
 						{:else}
-							<span class="text-lg">☰</span>
+							<span class="text-lg text-slate-700">☰</span>
 						{/if}
 					</button>
 				</div>
@@ -221,22 +221,22 @@
 
 			<!-- Mobile Menu -->
 			{#if isMobileMenuOpen}
-				<div class="md:hidden py-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
+				<div class="md:hidden py-4 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
 					<div class="flex flex-col gap-4">
-						<button onclick={() => scrollToSection('news')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
-							Новости
+						<button onclick={() => scrollToSection('news')} class="text-left text-slate-700 hover:text-primary transition-colors font-medium">
+							{currentLanguage === 'kz' ? 'Жаңалықтар' : 'Новости'}
 						</button>
-						<button onclick={() => scrollToSection('teachers')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
-							Учителя
+						<button onclick={() => scrollToSection('teachers')} class="text-left text-slate-700 hover:text-primary transition-colors font-medium">
+							{currentLanguage === 'kz' ? 'Мұғалімдер' : 'Учителя'}
 						</button>
-						<button onclick={() => scrollToSection('achievements')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
-							Достижения
+						<button onclick={() => scrollToSection('achievements')} class="text-left text-slate-700 hover:text-primary transition-colors font-medium">
+							{currentLanguage === 'kz' ? 'Жетістіктер' : 'Достижения'}
 						</button>
-						<button onclick={() => scrollToSection('schedule')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
-							Расписание
+						<button onclick={() => scrollToSection('schedule')} class="text-left text-slate-700 hover:text-primary transition-colors font-medium">
+							{currentLanguage === 'kz' ? 'Кесте' : 'Расписание'}
 						</button>
-						<button onclick={() => scrollToSection('contact')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
-							Контакты
+						<button onclick={() => scrollToSection('contact')} class="text-left text-slate-700 hover:text-primary transition-colors font-medium">
+							{currentLanguage === 'kz' ? 'Байланыс' : 'Контакты'}
 						</button>
 					</div>
 				</div>
@@ -264,12 +264,29 @@
 			<div class="mx-auto max-w-4xl">
 				<!-- Loading state -->
 				{#if loading}
-					<div class="mb-8 inline-flex items-center justify-center w-24 h-24 bg-white/10 rounded-full backdrop-blur-sm animate-pulse">
-						<span class="text-4xl">⏳</span>
+					<!-- Hero Skeleton -->
+					<div class="mb-8 inline-flex items-center justify-center w-24 h-24 bg-white/20 rounded-full backdrop-blur-sm animate-pulse">
+						<div class="w-16 h-16 bg-white/30 rounded-full"></div>
 					</div>
-					<h1 class="mb-6 text-5xl md:text-7xl font-bold tracking-tight animate-pulse">
-						Загрузка...
-					</h1>
+					
+					<!-- Title Skeleton -->
+					<div class="mb-6">
+						<div class="h-16 md:h-20 bg-white/20 rounded-lg animate-pulse mb-4"></div>
+						<div class="h-12 md:h-16 bg-white/20 rounded-lg animate-pulse w-3/4 mx-auto"></div>
+					</div>
+					
+					<!-- Description Skeleton -->
+					<div class="mb-8 space-y-3">
+						<div class="h-6 bg-white/20 rounded animate-pulse w-full max-w-2xl mx-auto"></div>
+						<div class="h-6 bg-white/20 rounded animate-pulse w-4/5 max-w-2xl mx-auto"></div>
+						<div class="h-6 bg-white/20 rounded animate-pulse w-3/5 max-w-2xl mx-auto"></div>
+					</div>
+					
+					<!-- Button Skeleton -->
+					<div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+						<div class="h-12 w-48 bg-white/20 rounded-lg animate-pulse"></div>
+						<div class="h-12 w-48 bg-white/20 rounded-lg animate-pulse"></div>
+					</div>
 				{:else}
 					<!-- School Icon -->
 					<div class="mb-8 inline-flex items-center justify-center w-24 h-24 bg-white/10 rounded-full backdrop-blur-sm animate-bounce overflow-hidden">
@@ -283,10 +300,10 @@
 					</div>
 
 					<h1 class="mb-6 text-5xl md:text-7xl font-bold tracking-tight">
-						{schoolData ? (currentLanguage === 'kz' ? schoolData.nameKz : schoolData.nameRu) : 'Школа'}
+						{schoolData ? (currentLanguage === 'kz' ? schoolData.nameKz : schoolData.nameRu) : (currentLanguage === 'kz' ? 'Мектеп' : 'Школа')}
 					</h1>
 					<p class="mb-8 text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
-						{schoolData?.descriptionRu || 'Современное образование для будущих лидеров. Развиваем таланты, воспитываем характер, строим будущее вместе.'}
+						{schoolData?.descriptionRu || (currentLanguage === 'kz' ? 'Болашақ көшбасшыларға арналған заманауи білім беру. Дарынды дамытамыз, сипатты тәрбиелейміз, бірге болашақты құрамыз.' : 'Современное образование для будущих лидеров. Развиваем таланты, воспитываем характер, строим будущее вместе.')}
 					</p>
 
 					<div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
@@ -297,8 +314,8 @@
 							</div>
 						{/if}
 
-						<a href="/login" class="bg-white text-primary hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
-							Войти в систему
+						<a href="/" class="bg-white text-black hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+							{currentLanguage === 'kz' ? 'Жүйеге кіру' : 'Войти в систему'}
 							<span class="text-lg">→</span>
 						</a>
 					</div>
@@ -313,21 +330,33 @@
 	<section id="news" class="py-20 bg-muted/30">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Последние новости</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Соңғы жаңалықтар' : 'Последние новости'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Следите за важными событиями и достижениями нашей школы
+					{currentLanguage === 'kz' ? 'Біздің мектептің маңызды оқиғалары мен жетістіктерін қадағалаңыз' : 'Следите за важными событиями и достижениями нашей школы'}
 				</p>
 			</div>
 
 			{#if loading}
 				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 					{#each Array(6) as _, i}
-						<div class="animate-pulse">
-							<div class="bg-muted h-48 rounded-t-lg"></div>
+						<div class="animate-pulse group">
+							<!-- Image Skeleton -->
+							<div class="bg-gradient-to-br from-gray-200 to-gray-300 h-48 rounded-t-lg relative overflow-hidden">
+								<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+							</div>
+							
+							<!-- Content Skeleton -->
 							<div class="bg-card p-6 rounded-b-lg border border-border">
-								<div class="h-4 bg-muted rounded mb-2"></div>
-								<div class="h-4 bg-muted rounded mb-4"></div>
-								<div class="h-3 bg-muted rounded"></div>
+								<!-- Title -->
+								<div class="h-5 bg-gradient-to-r from-gray-200 to-gray-300 rounded mb-3"></div>
+								<!-- Description -->
+								<div class="space-y-2 mb-4">
+									<div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-full"></div>
+									<div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-4/5"></div>
+									<div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-3/5"></div>
+								</div>
+								<!-- Date -->
+								<div class="h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/3"></div>
 							</div>
 						</div>
 					{/each}
@@ -345,7 +374,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Новости пока не добавлены</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Жаңалықтар әзірше қосылмаған' : 'Новости пока не добавлены'}</p>
 				</div>
 			{/if}
 		</div>
@@ -355,21 +384,29 @@
 	<section id="teachers" class="py-20 bg-background">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Наши учителя</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Біздің мұғалімдеріміз' : 'Наши учителя'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Опытные педагоги, которые вдохновляют и направляют наших учеников к успеху
+					{currentLanguage === 'kz' ? 'Біздің оқушыларды табысқа жетелейтін, шабыттандыратын тәжірибелі педагогтар' : 'Опытные педагоги, которые вдохновляют и направляют наших учеников к успеху'}
 				</p>
 			</div>
 
 			{#if loading}
 				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
 					{#each Array(8) as _, i}
-						<div class="animate-pulse">
-							<div class="bg-muted h-48 rounded-t-lg"></div>
-							<div class="bg-card p-6 rounded-b-lg border border-border">
-								<div class="h-4 bg-muted rounded mb-2"></div>
-								<div class="h-4 bg-muted rounded mb-4"></div>
-								<div class="h-3 bg-muted rounded"></div>
+						<div class="animate-pulse text-center">
+							<!-- Avatar Skeleton -->
+							<div class="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full mx-auto mb-4 relative overflow-hidden">
+								<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+							</div>
+							
+							<!-- Content Skeleton -->
+							<div class="bg-card p-4 rounded-lg border border-border">
+								<!-- Name -->
+								<div class="h-5 bg-gradient-to-r from-gray-200 to-gray-300 rounded mb-3"></div>
+								<!-- Subject -->
+								<div class="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded mb-2 w-3/4 mx-auto"></div>
+								<!-- Experience -->
+								<div class="h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded w-1/2 mx-auto"></div>
 							</div>
 						</div>
 					{/each}
@@ -387,19 +424,19 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Информация об учителях пока не добавлена</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Мұғалімдер туралы ақпарат әзірше қосылмаған' : 'Информация об учителях пока не добавлена'}</p>
 				</div>
 			{/if}
 		</div>
 	</section>
 
 	<!-- Achievements Section -->
-	<section id="achievements" class="py-20 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-slate-900 dark:to-slate-800">
+	<section id="achievements" class="py-20 bg-gradient-to-br from-yellow-50 to-orange-50">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Достижения учеников</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Оқушылардың жетістіктері' : 'Достижения учеников'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Гордимся успехами наших талантливых учеников и их выдающимися результатами
+					{currentLanguage === 'kz' ? 'Біздің дарынды оқушыларымыздың табыстары мен олардың керемет нәтижелерімен мақтанамыз' : 'Гордимся успехами наших талантливых учеников и их выдающимися результатами'}
 				</p>
 			</div>
 
@@ -429,7 +466,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Информация о достижениях пока не добавлена</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Жетістіктер туралы ақпарат әзірше қосылмаған' : 'Информация о достижениях пока не добавлена'}</p>
 				</div>
 			{/if}
 		</div>
@@ -439,9 +476,9 @@
 	<section id="schedule" class="py-20 bg-background">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Расписание на сегодня</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Бүгінгі кесте' : 'Расписание на сегодня'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Актуальное расписание занятий на сегодняшний день
+					{currentLanguage === 'kz' ? 'Бүгінгі күндің өзекті сабақ кестесі' : 'Актуальное расписание занятий на сегодняшний день'}
 				</p>
 			</div>
 
@@ -499,13 +536,13 @@
 													{currentLanguage === 'kz' ? item.subjectKz : item.subjectRu}
 												</h4>
 												<p class="text-muted-foreground">
-													{item.Teacher ? (currentLanguage === 'kz' ? item.Teacher.nameKz : item.Teacher.nameRu) : 'Учитель не указан'}
+													{item.Teacher ? (currentLanguage === 'kz' ? item.Teacher.nameKz : item.Teacher.nameRu) : (currentLanguage === 'kz' ? 'Мұғалім көрсетілмеген' : 'Учитель не указан')}
 												</p>
 											</div>
 										</div>
 										<div class="text-right">
 											<span class="bg-secondary/20 text-secondary px-3 py-1 rounded-full text-sm font-medium">
-												{item.Class ? `Класс ${item.Class.grade}${item.Class.letter}` : 'Класс не указан'}
+												{item.Class ? (currentLanguage === 'kz' ? `Сынып ${item.Class.grade}${item.Class.letter}` : `Класс ${item.Class.grade}${item.Class.letter}`) : (currentLanguage === 'kz' ? 'Сынып көрсетілмеген' : 'Класс не указан')}
 											</span>
 										</div>
 									</div>
@@ -516,7 +553,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Расписание пока не добавлено</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Кесте әзірше қосылмаған' : 'Расписание пока не добавлено'}</p>
 				</div>
 			{/if}
 		</div>
@@ -526,9 +563,9 @@
 	<section class="py-20 bg-muted/30">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Меню столовой</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Асхана менюсі' : 'Меню столовой'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Вкусное и полезное питание для наших учеников
+					{currentLanguage === 'kz' ? 'Біздің оқушыларға арналған дәмді және пайдалы тамақтану' : 'Вкусное и полезное питание для наших учеников'}
 				</p>
 			</div>
 
@@ -558,7 +595,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Меню столовой пока не добавлено</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Асхана менюсі әзірше қосылмаған' : 'Меню столовой пока не добавлено'}</p>
 				</div>
 			{/if}
 		</div>
@@ -568,9 +605,9 @@
 	<section class="py-20 bg-background">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold text-foreground mb-4">Наши классы</h2>
+				<h2 class="text-4xl font-bold text-foreground mb-4">{currentLanguage === 'kz' ? 'Біздің сыныптарымыз' : 'Наши классы'}</h2>
 				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
-					Информация о классах и классных руководителях
+					{currentLanguage === 'kz' ? 'Сыныптар және сынып жетекшілері туралы ақпарат' : 'Информация о классах и классных руководителях'}
 				</p>
 			</div>
 
@@ -589,27 +626,27 @@
 				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each classes as classItem}
 						<div class="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card border border-border rounded-lg p-6">
-							<div class="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-								<span class="text-2xl font-bold text-green-600 dark:text-green-400">
+							<div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+								<span class="text-2xl font-bold text-green-600">
 									{classItem.grade}{classItem.letter}
 								</span>
 							</div>
 							
 							<h3 class="text-xl font-semibold text-card-foreground group-hover:text-green-600 transition-colors mb-2">
-								{classItem.grade} класс "{classItem.letter}"
+								{classItem.grade} {currentLanguage === 'kz' ? 'сынып' : 'класс'} "{classItem.letter}"
 							</h3>
 							
 							<div class="space-y-2 mb-4">
-								<div class="flex items-center justify-center gap-2 text-muted-foreground">
+																<div class="flex items-center justify-center gap-2 text-muted-foreground">
 									<span>👥</span>
-									<span>25 учеников</span>
-	</div>
+									<span>{currentLanguage === 'kz' ? '25 оқушы' : '25 учеников'}</span>
+								</div>
 							</div>
 							
 							{#if classItem.Teacher}
 								<p class="text-sm text-muted-foreground">
-									Классный руководитель: <br>
-									<span class="font-medium">{classItem.Teacher.nameRu}</span>
+									{currentLanguage === 'kz' ? 'Сынып жетекшісі:' : 'Классный руководитель:'} <br>
+									<span class="font-medium">{currentLanguage === 'kz' ? classItem.Teacher.nameKz : classItem.Teacher.nameRu}</span>
 								</p>
 							{/if}
 						</div>
@@ -617,19 +654,19 @@
 				</div>
 			{:else}
 				<div class="text-center py-12">
-					<p class="text-muted-foreground text-lg">Информация о классах пока не добавлена</p>
+					<p class="text-muted-foreground text-lg">{currentLanguage === 'kz' ? 'Сыныптар туралы ақпарат әзірше қосылмаған' : 'Информация о классах пока не добавлена'}</p>
 				</div>
 			{/if}
 		</div>
 	</section>
 
 	<!-- Contact Section -->
-	<section id="contact" class="py-20 bg-gradient-to-br from-slate-900 to-primary text-white">
+	<section id="contact" class="py-20 bg-gradient-to-br from-slate-700 to-primary text-black">
 		<div class="container mx-auto px-4">
 			<div class="text-center mb-16">
-				<h2 class="text-4xl font-bold mb-4">Свяжитесь с нами</h2>
-				<p class="text-white/90 max-w-2xl mx-auto text-lg">
-					Мы всегда готовы ответить на ваши вопросы и предоставить необходимую информацию
+				<h2 class="text-4xl font-bold mb-4">{currentLanguage === 'kz' ? 'Бізбен байланысыңыз' : 'Свяжитесь с нами'}</h2>
+				<p class="text-black/90 max-w-2xl mx-auto text-lg">
+					{currentLanguage === 'kz' ? 'Біз әрқашан сұрақтарыңызға жауап беруге және қажетті ақпаратты ұсынуға дайынбыз' : 'Мы всегда готовы ответить на ваши вопросы и предоставить необходимую информацию'}
 				</p>
 			</div>
 
@@ -639,8 +676,8 @@
 						<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow">
 							<span class="text-2xl">📍</span>
 						</div>
-						<h3 class="text-xl font-semibold mb-2">Адрес</h3>
-						<p class="text-white/90">{currentLanguage === 'kz' ? schoolData.addressKz : schoolData.addressRu}</p>
+						<h3 class="text-xl font-semibold mb-2">{currentLanguage === 'kz' ? 'Мекенжай' : 'Адрес'}</h3>
+						<p class="text-black/90">{currentLanguage === 'kz' ? schoolData.addressKz : schoolData.addressRu}</p>
 					</div>
 				{/if}
 
@@ -648,8 +685,8 @@
 					<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 0.5s;">
 						<span class="text-2xl">📞</span>
 					</div>
-					<h3 class="text-xl font-semibold mb-2">Телефон</h3>
-											<p class="text-white/90">+7 (727) 123-45-67</p>
+											<h3 class="text-xl font-semibold mb-2">{currentLanguage === 'kz' ? 'Телефон' : 'Телефон'}</h3>
+											<p class="text-black/90">+7 (727) 123-45-67</p>
 				</div>
 
 				{#if schoolData?.email}
@@ -657,8 +694,8 @@
 						<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 1s;">
 							<span class="text-2xl">📧</span>
 						</div>
-						<h3 class="text-xl font-semibold mb-2">Email</h3>
-						<p class="text-white/90">{schoolData.email}</p>
+						<h3 class="text-xl font-semibold mb-2">{currentLanguage === 'kz' ? 'Электрондық пошта' : 'Email'}</h3>
+						<p class="text-black/90">{schoolData.email}</p>
 					</div>
 				{/if}
 
@@ -666,15 +703,15 @@
 					<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 1.5s;">
 						<span class="text-2xl">🕒</span>
 					</div>
-					<h3 class="text-xl font-semibold mb-2">Режим работы</h3>
-											<p class="text-white/90">Пн-Пт: 8:00 - 18:00</p>
+											<h3 class="text-xl font-semibold mb-2">{currentLanguage === 'kz' ? 'Жұмыс режимі' : 'Режим работы'}</h3>
+											<p class="text-black/90">Пн-Пт: 8:00 - 18:00</p>
 				</div>
 			</div>
 
 			<div class="text-center">
-				<a href="/" class="inline-block bg-white text-primary hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-8 py-4 rounded-lg font-semibold text-lg flex items-center gap-3 mx-auto">
+				<a href="/" class="inline-block bg-white text-black hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-8 py-4 rounded-lg font-semibold text-lg flex items-center gap-3 mx-auto">
 					<span class="text-2xl">🏆</span>
-					Войти в систему
+					{currentLanguage === 'kz' ? 'Жүйеге кіру' : 'Войти в систему'}
 				</a>
 			</div>
 		</div>

@@ -12,6 +12,7 @@
     import { adminStore } from '$lib/stores/admin';
     import { cn } from '$lib/utils/cn';
     import { t } from '$lib/i18n/translations';
+    import IdleRedirect from '$lib/components/IdleRedirect.svelte';
     import '../app.css';
 
     let sidebarOpen = false;
@@ -124,7 +125,7 @@
 </script>
 
 <svelte:head>
-	<title>Школьная система</title>
+	<title>{$languageStore === 'kz' ? 'Мектеп жүйесі' : 'Школьная система'}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-background">
@@ -141,8 +142,8 @@
 							<div class="brand-logo ph">🏫</div>
 						{/if}
 						<div class="brand-text">
-							<div class="brand-title">Школьная система</div>
-							<div class="brand-sub">{$authStore.schoolData?.nameRu || 'Добро пожаловать'}</div>
+							<div class="brand-title">{$languageStore === 'kz' ? 'Мектеп жүйесі' : 'Школьная система'}</div>
+							<div class="brand-sub">{$authStore.schoolData?.nameRu || ($languageStore === 'kz' ? 'Қош келдіңіз' : 'Добро пожаловать')}</div>
 						</div>
 					</div>
 				</div>
@@ -177,7 +178,7 @@
 							<a href="/school" class="sidebar-school-link">
 								<Button variant="outline" class="w-full justify-start">
 									<span class="mr-2">🌐</span>
-									Сайт школы
+									{$languageStore === 'kz' ? 'Мектеп сайты' : 'Сайт школы'}
 								</Button>
 							</a>
 						</li>
@@ -185,7 +186,7 @@
 						<li>
 							<Button variant="outline" class="w-full justify-start" on:click={logout}>
 								<span class="mr-2">🚪</span>
-								Выйти
+								{$languageStore === 'kz' ? 'Шығу' : 'Выйти'}
 							</Button>
 						</li>
 					</ul>
@@ -208,7 +209,7 @@
                 ></div>
 				<div class="mobile-sidebar">
 					<div class="mobile-sidebar-header">
-						<h1 class="mobile-sidebar-title">Школьная система</h1>
+						<h1 class="mobile-sidebar-title">{$languageStore === 'kz' ? 'Мектеп жүйесі' : 'Школьная система'}</h1>
 						<button class="mobile-sidebar-close" on:click={toggleSidebar}>
 							<span>✕</span>
 						</button>
@@ -293,9 +294,9 @@
                         
                         <Button class="btn-modern" on:click={openSchoolPage}>
                             <span class="btn-icon">🏫</span>
-                            О школе
+                            {$languageStore === 'kz' ? 'Мектеп туралы' : 'О школе'}
                         </Button>
-                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
                             {#if isDark}
                                 <span class="theme-icon">🌞</span>
                             {:else}
@@ -314,12 +315,12 @@
 			<!-- Mobile header -->
 			<div class="mobile-header">
                 <div class="mobile-header-content">
-                    <button type="button" class="menu-btn" aria-label="Меню" on:click={toggleSidebar}>
+                    <button type="button" class="menu-btn" aria-label={$languageStore === 'kz' ? 'Мәзір' : 'Меню'} on:click={toggleSidebar}>
                         <span>☰</span>
                     </button>
                     <div class="mobile-search">
                         <HeaderSearch
-                            placeholder="Поиск..."
+                            placeholder={$languageStore === 'kz' ? 'Іздеу...' : 'Поиск...'}
                             compact={true}
                             on:search={handleSearch}
                             on:clear={handleSearchClear}
@@ -347,7 +348,7 @@
                     <Button variant="outline" on:click={openSchoolPage}>
                         🏫
                     </Button>
-                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? 'Светлая тема' : 'Тёмная тема'}>
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
                         {#if isDark}
                             <span class="theme-icon">🌞</span>
                         {:else}
@@ -384,6 +385,11 @@
 
 <!-- Admin login modal -->
 <AdminLoginModal bind:open={showAdminModal} on:close={closeAdminModal} />
+
+<!-- Автоматическое перенаправление при бездействии (только для страниц системы) -->
+{#if $page.url.pathname !== '/school'}
+	<IdleRedirect timeout={30000} redirectTo="/school" />
+{/if}
 
 <style>
 	/* Desktop Header Styles */

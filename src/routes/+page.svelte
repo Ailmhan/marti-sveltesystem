@@ -26,43 +26,45 @@
 	let schoolSettingsError = '';
 	let schoolSettingsSuccess = '';
 	// Настройки Hero overlay
-	let previewOverlayEnabled = localStorage.getItem('heroOverlayEnabled') !== 'false';
-	let previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
+	let previewOverlayEnabled = true;
+	let previewOverlayIntensity = 0.7;
 	
 	// Настройки изображений карточек
 	let cardImageSettings = {
 		news: {
-			height: parseInt(localStorage.getItem('cardImageHeight_news') || '280'),
-			width: parseInt(localStorage.getItem('cardImageWidth_news') || '100')
+			height: 280,
+			width: 100
 		},
 		teacher: {
-			height: parseInt(localStorage.getItem('cardImageHeight_teacher') || '240'),
-			width: parseInt(localStorage.getItem('cardImageWidth_teacher') || '100')
+			height: 240,
+			width: 100
 		},
 		'honor-board': {
-			height: parseInt(localStorage.getItem('cardImageHeight_honor-board') || '280'),
-			width: parseInt(localStorage.getItem('cardImageWidth_honor-board') || '100')
+			height: 280,
+			width: 100
 		},
 		section: {
-			height: parseInt(localStorage.getItem('cardImageHeight_section') || '280'),
-			width: parseInt(localStorage.getItem('cardImageWidth_section') || '100')
+			height: 280,
+			width: 100
 		},
 		canteen: {
-			height: parseInt(localStorage.getItem('cardImageHeight_canteen') || '240'),
-			width: parseInt(localStorage.getItem('cardImageWidth_canteen') || '100')
+			height: 240,
+			width: 100
 		}
 	};
 	
 	// Функция для обновления localStorage
 	function updateLocalStorage() {
-		localStorage.setItem('heroOverlayEnabled', previewOverlayEnabled.toString());
-		localStorage.setItem('heroOverlayIntensity', previewOverlayIntensity.toString());
-		
-		// Сохраняем настройки изображений карточек
-		Object.entries(cardImageSettings).forEach(([type, settings]) => {
-			localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
-			localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
-		});
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('heroOverlayEnabled', previewOverlayEnabled.toString());
+			localStorage.setItem('heroOverlayIntensity', previewOverlayIntensity.toString());
+			
+			// Сохраняем настройки изображений карточек
+			Object.entries(cardImageSettings).forEach(([type, settings]) => {
+				localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
+				localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
+			});
+		}
 	}
 
 	// Функция для сброса настроек изображений по умолчанию
@@ -79,30 +81,36 @@
 			// Сброс всех настроек
 			Object.entries(defaultSettings).forEach(([type, settings]) => {
 				cardImageSettings[type as keyof typeof cardImageSettings] = { ...settings };
-				localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
-				localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
+				if (typeof window !== 'undefined') {
+					localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
+					localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
+				}
 			});
 		} else {
 			// Сброс конкретного типа
 			const settings = defaultSettings[cardType as keyof typeof defaultSettings];
 			if (settings) {
 				cardImageSettings[cardType as keyof typeof cardImageSettings] = { ...settings };
-				localStorage.setItem(`cardImageHeight_${cardType}`, settings.height.toString());
-				localStorage.setItem(`cardImageWidth_${cardType}`, settings.width.toString());
+				if (typeof window !== 'undefined') {
+					localStorage.setItem(`cardImageHeight_${cardType}`, settings.height.toString());
+					localStorage.setItem(`cardImageWidth_${cardType}`, settings.width.toString());
+				}
 			}
 		}
 	}
 	
 	// Инициализация из localStorage при загрузке
 	onMount(() => {
-		previewOverlayEnabled = localStorage.getItem('heroOverlayEnabled') !== 'false';
-		previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
-		
-		// Загружаем настройки изображений карточек
-		Object.entries(cardImageSettings).forEach(([type, settings]) => {
-			settings.height = parseInt(localStorage.getItem(`cardImageHeight_${type}`) || settings.height.toString());
-			settings.width = parseInt(localStorage.getItem(`cardImageWidth_${type}`) || settings.width.toString());
-		});
+		if (typeof window !== 'undefined') {
+			previewOverlayEnabled = localStorage.getItem('heroOverlayEnabled') !== 'false';
+			previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
+			
+			// Загружаем настройки изображений карточек
+			Object.entries(cardImageSettings).forEach(([type, settings]) => {
+				settings.height = parseInt(localStorage.getItem(`cardImageHeight_${type}`) || settings.height.toString());
+				settings.width = parseInt(localStorage.getItem(`cardImageWidth_${type}`) || settings.width.toString());
+			});
+		}
 	});
 
     async function loadLatest() {
@@ -349,14 +357,14 @@
 					<div class="info-item">
 						<div class="info-icon">📧</div>
 						<div class="info-content">
-							<label>Email</label>
+							<strong>Email</strong>
 							<span>{$authStore.schoolData.email}</span>
 						</div>
 					</div>
 					<div class="info-item">
 						<div class="info-icon">🏫</div>
 						<div class="info-content">
-							<label>Название</label>
+							<strong>Название</strong>
 							<span>{$languageStore === 'ru' ? $authStore.schoolData.nameRu : $authStore.schoolData.nameKz}</span>
 						</div>
 					</div>
@@ -364,7 +372,7 @@
 						<div class="info-item">
 							<div class="info-icon">📍</div>
 							<div class="info-content">
-								<label>Адрес</label>
+								<strong>Адрес</strong>
 								<span>{$languageStore === 'ru' ? $authStore.schoolData.addressRu : $authStore.schoolData.addressKz}</span>
 							</div>
 						</div>
@@ -373,7 +381,7 @@
 						<div class="info-item description-item">
 							<div class="info-icon">📝</div>
 							<div class="info-content">
-								<label>Описание</label>
+								<strong>Описание</strong>
 								<span>{$languageStore === 'ru' ? $authStore.schoolData.descriptionRu : $authStore.schoolData.descriptionKz}</span>
 							</div>
 						</div>
@@ -385,10 +393,18 @@
 
 	<!-- Модальное окно настроек школы -->
 	{#if showSchoolSettings}
-		<div class="modal-overlay" on:click={() => showSchoolSettings = false}>
-			<div class="modal-content" on:click|stopPropagation>
+		<div 
+			class="modal-overlay" 
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="modal-title"
+			on:click={() => showSchoolSettings = false}
+			on:keydown={(e) => e.key === 'Escape' && (showSchoolSettings = false)}
+			tabindex="-1"
+		>
+			<div class="modal-content" role="document">
 				<div class="modal-header">
-					<h3>Настройки школы</h3>
+					<h3 id="modal-title">Настройки школы</h3>
 					<button class="modal-close" on:click={() => showSchoolSettings = false}>×</button>
 				</div>
 				
@@ -562,10 +578,18 @@
 
 	<!-- Модальное окно настроек изображений карточек -->
 	{#if showCardImageSettings}
-		<div class="modal-overlay" on:click={() => showCardImageSettings = false}>
-			<div class="modal-content" on:click|stopPropagation>
+		<div 
+			class="modal-overlay" 
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="card-settings-title"
+			on:click={() => showCardImageSettings = false}
+			on:keydown={(e) => e.key === 'Escape' && (showCardImageSettings = false)}
+			tabindex="-1"
+		>
+			<div class="modal-content" role="document">
 				<div class="modal-header">
-					<h3>Настройки изображений карточек</h3>
+					<h3 id="card-settings-title">Настройки изображений карточек</h3>
 					<button class="modal-close" on:click={() => showCardImageSettings = false}>×</button>
 				</div>
 				
@@ -574,8 +598,9 @@
 						<h4>Новости</h4>
 						<div class="size-controls">
 							<div class="size-control">
-								<label>Высота (px):</label>
+								<label for="news-height">Высота (px):</label>
 								<input 
+									id="news-height"
 									type="number" 
 									min="100" 
 									max="500" 
@@ -584,8 +609,9 @@
 								/>
 							</div>
 							<div class="size-control">
-								<label>Ширина (%):</label>
+								<label for="news-width">Ширина (%):</label>
 								<input 
+									id="news-width"
 									type="number" 
 									min="50" 
 									max="100" 
@@ -607,8 +633,9 @@
 						<h4>Учителя</h4>
 						<div class="size-controls">
 							<div class="size-control">
-								<label>Высота (px):</label>
+								<label for="teacher-height">Высота (px):</label>
 								<input 
+									id="teacher-height"
 									type="number" 
 									min="100" 
 									max="500" 
@@ -617,8 +644,9 @@
 								/>
 							</div>
 							<div class="size-control">
-								<label>Ширина (%):</label>
+								<label for="teacher-width">Ширина (%):</label>
 								<input 
+									id="teacher-width"
 									type="number" 
 									min="50" 
 									max="100" 
@@ -640,8 +668,9 @@
 						<h4>Доска почета</h4>
 						<div class="size-controls">
 							<div class="size-control">
-								<label>Высота (px):</label>
+								<label for="honor-board-height">Высота (px):</label>
 								<input 
+									id="honor-board-height"
 									type="number" 
 									min="100" 
 									max="500" 
@@ -650,8 +679,9 @@
 								/>
 							</div>
 							<div class="size-control">
-								<label>Ширина (%):</label>
+								<label for="honor-board-width">Ширина (%):</label>
 								<input 
+									id="honor-board-width"
 									type="number" 
 									min="50" 
 									max="100" 
@@ -673,8 +703,9 @@
 						<h4>Секции</h4>
 						<div class="size-controls">
 							<div class="size-control">
-								<label>Высота (px):</label>
+								<label for="section-height">Высота (px):</label>
 								<input 
+									id="section-height"
 									type="number" 
 									min="100" 
 									max="500" 
@@ -683,8 +714,9 @@
 								/>
 							</div>
 							<div class="size-control">
-								<label>Ширина (%):</label>
+								<label for="section-width">Ширина (%):</label>
 								<input 
+									id="section-width"
 									type="number" 
 									min="50" 
 									max="100" 
@@ -706,8 +738,9 @@
 						<h4>Столовая</h4>
 						<div class="size-controls">
 							<div class="size-control">
-								<label>Высота (px):</label>
+								<label for="canteen-height">Высота (px):</label>
 								<input 
+									id="canteen-height"
 									type="number" 
 									min="100" 
 									max="500" 
@@ -716,8 +749,9 @@
 								/>
 							</div>
 							<div class="size-control">
-								<label>Ширина (%):</label>
+								<label for="canteen-width">Ширина (%):</label>
 								<input 
+									id="canteen-width"
 									type="number" 
 									min="50" 
 									max="100" 
