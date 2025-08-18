@@ -25,11 +25,13 @@
 		isSpecialContent?: boolean;
 	};
 
+
+
 	// Конфигурация для разных типов карточек
 	const CARD_CONFIG: Record<CardType, CardConfig> = {
 		news: {
 			icon: '📰',
-			imageHeight: 180,
+			imageHeight: 280,
 			objectPosition: 'center',
 			titleField: 'titleRu',
 			contentField: 'contentRu',
@@ -38,7 +40,7 @@
 		},
 		teacher: {
 			icon: '👨‍🏫',
-			imageHeight: 220,
+			imageHeight: 240,
 			objectPosition: 'top center',
 			titleField: 'nameRu',
 			contentField: 'subjectRu',
@@ -47,7 +49,7 @@
 		},
 		'honor-board': {
 			icon: '🏆',
-			imageHeight: 200,
+			imageHeight: 280,
 			objectPosition: 'center',
 			titleField: 'studentName',
 			contentField: 'descriptionRu',
@@ -56,7 +58,7 @@
 		},
 		section: {
 			icon: '🎯',
-			imageHeight: 180,
+			imageHeight: 280,
 			objectPosition: 'center',
 			titleField: 'nameRu',
 			contentField: 'scheduleRu',
@@ -65,7 +67,7 @@
 		},
 		canteen: {
 			icon: '🍽️',
-			imageHeight: 160,
+			imageHeight: 240,
 			objectPosition: 'center',
 			titleField: 'date',
 			contentField: 'dishes',
@@ -103,6 +105,16 @@
 		class: className = ''
 	}: Props = $props();
 
+	// Функция для получения настроек изображений из localStorage
+	function getImageSettings(cardType: CardType) {
+		if (typeof window === 'undefined') return { height: 280, width: 100 };
+		
+		const height = parseInt(localStorage.getItem(`cardImageHeight_${cardType}`) || '280');
+		const width = parseInt(localStorage.getItem(`cardImageWidth_${cardType}`) || '100');
+		
+		return { height, width };
+	}
+
 	const dispatch = createEventDispatcher<{
 		edit: void;
 		delete: void;
@@ -118,14 +130,16 @@
 	const imageUrl = $derived(data.imageUrl || '');
 	const date = $derived(config.showDate && config.dateField ? getFieldValue(data, config.dateField, language) : '');
 	const additionalInfo = $derived(config.additionalFields ? getAdditionalInfo(data, config.additionalFields) : []);
+	
+	// Простая логика - никаких сложных состояний
 
 	// Вспомогательные функции
 	function getFieldValue(data: CardData, field: string, language: 'ru' | 'kz'): string {
-		// Специальная обработка для меню столовой
-		if (field === 'dishes' && ('dishesRu' in data || 'dishesKz' in data)) {
-			const dishes = language === 'ru' ? data.dishesRu : data.dishesKz;
-			return `Завтрак: ${dishes?.breakfast || 'Не указано'}\nОбед: ${dishes?.lunch || 'Не указано'}\nУжин: ${dishes?.dinner || 'Не указано'}`;
-		}
+			// Специальная обработка для меню столовой
+	if (field === 'dishes' && 'dishesRu' in data) {
+		const dishes = language === 'ru' ? (data as any).dishesRu : (data as any).dishesKz;
+		return `Завтрак: ${dishes?.breakfast || 'Не указано'}\nОбед: ${dishes?.lunch || 'Не указано'}\nУжин: ${dishes?.dinner || 'Не указано'}`;
+	}
 		
 		// Специальная обработка для даты
 		if (field === 'date' && 'date' in data) {
@@ -208,18 +222,17 @@
 
 <div class={cardClasses} data-type={type} on:click={handleClick}>
 	{#if showImage}
-		<div class="card-image" style="height: {config.imageHeight}px">
+		<div class="card-image" style="height: {getImageSettings(type).height}px; width: {getImageSettings(type).width}%;">
 		{#if imageUrl}
-				<img 
-					src={imageUrl} 
-					alt={title} 
-					loading="lazy"
-					style="object-position: {config.objectPosition}"
-					on:error={() => data.imageUrl = ''}
-				/>
+			<img 
+				src={imageUrl} 
+				alt={title} 
+				loading="lazy"
+				style="object-position: {config.objectPosition}; object-fit: fill; width: 100%; height: 100%;"
+			/>
 		{:else}
 			<div class="image-placeholder">
-					<span class="placeholder-icon">{config.icon}</span>
+				<span class="placeholder-icon">{config.icon}</span>
 			</div>
 		{/if}
 	</div>
@@ -274,6 +287,13 @@
 </div>
 
 <style>
+	@layer critical {
+		.card-image img {
+			object-fit: fill !important;
+			object-position: center !important;
+		}
+	}
+	
 	/* CSS переменные для настройки */
 	:root {
 		--card-padding: 1.5rem;
@@ -282,9 +302,9 @@
 		--card-shadow: var(--shadow-md);
 		--card-shadow-hover: var(--shadow-xl);
 		--card-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-		--card-image-height: 200px;
 		--card-min-height: 400px;
 		--card-compact-height: 320px;
+
 	}
 
 	/* Базовые стили карточки */
@@ -344,45 +364,69 @@
 	}
 
 	.card-image {
-		height: var(--card-image-height); /* Фиксированная высота для всех изображений */
-		background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--accent)) 100%);
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		position: relative;
 		overflow: hidden;
-		flex-shrink: 0; /* Предотвращаем сжатие */
+		flex-shrink: 0;
+		background: hsl(var(--muted) / 0.05);
+		margin: 0 auto;
 	}
 
 	.card-image img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover; /* Сохраняем пропорции */
-		object-position: center; /* Центрируем изображение */
-		transition: transform 0.3s ease, opacity 0.3s ease;
-		will-change: transform; /* Оптимизация производительности */
-		opacity: 1;
+		width: 100% !important;
+		height: 100% !important;
+		object-fit: fill !important;
+		object-position: center !important;
+		transition: transform 0.3s ease, filter 0.3s ease;
+		background: hsl(var(--muted) / 0.1);
 	}
 
-	.card-image img[src=""] {
-		opacity: 0;
+	/* Принудительно применяем object-fit: fill для всех типов карточек */
+	.card--news .card-image img,
+	.card--teacher .card-image img,
+	.card--honor-board .card-image img,
+	.card--canteen .card-image img,
+	.card--section .card-image img {
+		object-fit: fill !important;
+		object-position: center !important;
+	}
+	
+	/* Специальное позиционирование для учителей */
+	.card--teacher .card-image img {
+		object-position: top center !important;
+	}
+	
+	/* Принудительно переопределяем любые другие стили */
+	.card-image img[style*="object-fit"] {
+		object-fit: contain !important;
+	}
+	
+	/* Убираем любые ограничения по высоте */
+	.card-image img {
+		max-height: none !important;
+		min-height: none !important;
+	}
+	
+	/* Принудительно применяем object-fit: fill через селектор по атрибуту */
+	img[src] {
+		object-fit: fill !important;
+	}
+	
+	/* Максимальная специфичность для object-fit */
+	:where(.card-image img) {
+		object-fit: fill !important;
+	}
+	
+	/* Еще более специфичный селектор */
+	.card-image:has(img) img {
+		object-fit: fill !important;
 	}
 
 	.card:hover .card-image img {
 		transform: scale(1.05);
+		filter: brightness(1.1) contrast(1.05);
 	}
 
-	/* Плавное появление изображений */
-	.card-image img {
-		animation: fadeIn 0.3s ease-in-out;
-	}
-
-	@keyframes fadeIn {
-		from { opacity: 0; }
-		to { opacity: 1; }
-	}
-
-	/* Улучшенный placeholder для разных типов контента */
+	/* Простой placeholder */
 	.image-placeholder {
 		width: 100%;
 		height: 100%;
@@ -390,42 +434,13 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		position: relative;
-		overflow: hidden;
 	}
 
-	.image-placeholder::before {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-		opacity: 0.3;
-	}
-
-	.image-placeholder::after {
-		content: '';
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 80px;
-		height: 80px;
-		background: rgba(255, 255, 255, 0.1);
-		border-radius: 50%;
-		transform: translate(-50%, -50%);
-		backdrop-filter: blur(10px);
-	}
+	/* Простой placeholder без сложных эффектов */
 
 	.placeholder-icon {
 		font-size: 2.5rem;
 		color: white;
-		opacity: 0.9;
-		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-		z-index: 2;
-		position: relative;
-		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 	}
 
 	.card-content {
@@ -605,90 +620,7 @@
 		background: hsl(var(--destructive) / 0.9);
 	}
 
-	/* Адаптивные размеры для разных типов контента */
-	.card[data-type="news"] .card-image {
-		height: 180px;
-	}
+	/* Убираем дублирующиеся правила для разных типов */
 
-	.card[data-type="teacher"] .card-image {
-		height: 220px;
-	}
-
-	.card[data-type="honor-board"] .card-image {
-		height: 200px;
-	}
-
-	.card[data-type="canteen"] .card-image {
-		height: 160px;
-	}
-
-	.card[data-type="section"] .card-image {
-		height: 180px;
-	}
-
-	/* Улучшенное отображение изображений для портретных фото */
-	.card[data-type="teacher"] .card-image img {
-		object-position: top center;
-	}
-
-	/* Улучшенное отображение для новостей и достижений */
-	.card[data-type="news"] .card-image img,
-	.card[data-type="honor-board"] .card-image img {
-		object-position: center;
-	}
-
-	/* Специальная обработка для меню столовой */
-	.card[data-type="canteen"] .card-image img {
-		object-position: center;
-	}
-
-	/* Адаптивность для мобильных устройств */
-	@media (max-width: 768px) {
-		.card {
-			min-height: 350px;
-		}
-
-		.card-image {
-			height: 160px !important; /* Единая высота на мобильных */
-		}
-
-		.placeholder-icon {
-			font-size: 2rem;
-		}
-
-		.image-placeholder::after {
-			width: 60px;
-			height: 60px;
-		}
-
-		.card-actions {
-			flex-direction: column;
-		}
-
-		.card-description {
-			-webkit-line-clamp: 4;
-		}
-	}
-
-	@media (max-width: 480px) {
-		.card-image {
-			height: 140px !important;
-		}
-
-		.placeholder-icon {
-			font-size: 1.8rem;
-		}
-
-		.card-content {
-			padding: 1rem;
-		}
-
-		.card-title {
-			font-size: 1.1rem;
-		}
-
-		.card-description {
-			font-size: 0.8rem;
-		}
-	}
+	/* Убираем дублирующиеся правила для мобильных */
 </style>

@@ -19,6 +19,92 @@
     let latestError = '';
     let lastLoadedSchoolId: number | null = null;
 
+    // Переменные для настроек школы
+    let showSchoolSettings = false;
+    let showCardImageSettings = false;
+    	let schoolSettingsLoading = false;
+	let schoolSettingsError = '';
+	let schoolSettingsSuccess = '';
+	// Настройки Hero overlay
+	let previewOverlayEnabled = localStorage.getItem('heroOverlayEnabled') !== 'false';
+	let previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
+	
+	// Настройки изображений карточек
+	let cardImageSettings = {
+		news: {
+			height: parseInt(localStorage.getItem('cardImageHeight_news') || '280'),
+			width: parseInt(localStorage.getItem('cardImageWidth_news') || '100')
+		},
+		teacher: {
+			height: parseInt(localStorage.getItem('cardImageHeight_teacher') || '240'),
+			width: parseInt(localStorage.getItem('cardImageWidth_teacher') || '100')
+		},
+		'honor-board': {
+			height: parseInt(localStorage.getItem('cardImageHeight_honor-board') || '280'),
+			width: parseInt(localStorage.getItem('cardImageWidth_honor-board') || '100')
+		},
+		section: {
+			height: parseInt(localStorage.getItem('cardImageHeight_section') || '280'),
+			width: parseInt(localStorage.getItem('cardImageWidth_section') || '100')
+		},
+		canteen: {
+			height: parseInt(localStorage.getItem('cardImageHeight_canteen') || '240'),
+			width: parseInt(localStorage.getItem('cardImageWidth_canteen') || '100')
+		}
+	};
+	
+	// Функция для обновления localStorage
+	function updateLocalStorage() {
+		localStorage.setItem('heroOverlayEnabled', previewOverlayEnabled.toString());
+		localStorage.setItem('heroOverlayIntensity', previewOverlayIntensity.toString());
+		
+		// Сохраняем настройки изображений карточек
+		Object.entries(cardImageSettings).forEach(([type, settings]) => {
+			localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
+			localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
+		});
+	}
+
+	// Функция для сброса настроек изображений по умолчанию
+	function resetCardImageSettings(cardType: string) {
+		const defaultSettings = {
+			news: { height: 280, width: 100 },
+			teacher: { height: 240, width: 100 },
+			'honor-board': { height: 280, width: 100 },
+			section: { height: 280, width: 100 },
+			canteen: { height: 240, width: 100 }
+		};
+
+		if (cardType === 'all') {
+			// Сброс всех настроек
+			Object.entries(defaultSettings).forEach(([type, settings]) => {
+				cardImageSettings[type as keyof typeof cardImageSettings] = { ...settings };
+				localStorage.setItem(`cardImageHeight_${type}`, settings.height.toString());
+				localStorage.setItem(`cardImageWidth_${type}`, settings.width.toString());
+			});
+		} else {
+			// Сброс конкретного типа
+			const settings = defaultSettings[cardType as keyof typeof defaultSettings];
+			if (settings) {
+				cardImageSettings[cardType as keyof typeof cardImageSettings] = { ...settings };
+				localStorage.setItem(`cardImageHeight_${cardType}`, settings.height.toString());
+				localStorage.setItem(`cardImageWidth_${cardType}`, settings.width.toString());
+			}
+		}
+	}
+	
+	// Инициализация из localStorage при загрузке
+	onMount(() => {
+		previewOverlayEnabled = localStorage.getItem('heroOverlayEnabled') !== 'false';
+		previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
+		
+		// Загружаем настройки изображений карточек
+		Object.entries(cardImageSettings).forEach(([type, settings]) => {
+			settings.height = parseInt(localStorage.getItem(`cardImageHeight_${type}`) || settings.height.toString());
+			settings.width = parseInt(localStorage.getItem(`cardImageWidth_${type}`) || settings.width.toString());
+		});
+	});
+
     async function loadLatest() {
         if (!$authStore.schoolId) return;
         latestLoading = true;
@@ -43,6 +129,43 @@
 
     $: if ($authStore.schoolId && $authStore.schoolId !== lastLoadedSchoolId && !latestLoading) {
         loadLatest();
+    }
+
+    // Функция для обновления данных школы
+    async function updateSchoolData(formData: FormData) {
+        if (!$authStore.schoolId) return;
+        
+        schoolSettingsLoading = true;
+        schoolSettingsError = '';
+        schoolSettingsSuccess = '';
+        
+        try {
+            const updateData = {
+                nameRu: formData.get('nameRu') as string,
+                nameKz: formData.get('nameKz') as string,
+                email: formData.get('email') as string,
+                addressRu: formData.get('addressRu') as string,
+                addressKz: formData.get('addressKz') as string,
+                logoUrl: (formData.get('logoUrl') as string) || undefined,
+                schoolEmblem: (formData.get('schoolEmblem') as string) || undefined
+            };
+
+            await apiClient.updateSchool($authStore.schoolId, updateData);
+            
+            // Обновляем данные в authStore
+            await authStore.loadSchoolData();
+            
+            schoolSettingsSuccess = 'Данные школы успешно обновлены!';
+            setTimeout(() => {
+                showSchoolSettings = false;
+                schoolSettingsSuccess = '';
+            }, 2000);
+            
+        } catch (error) {
+            schoolSettingsError = error instanceof Error ? error.message : 'Ошибка обновления данных школы';
+        } finally {
+            schoolSettingsLoading = false;
+        }
     }
 </script>
 
@@ -162,6 +285,28 @@
 					<a href="/classes" class="module-link">Перейти к классам</a>
 				</div>
 			</div>
+
+			<div class="module-card">
+				<div class="module-icon">⚙️</div>
+				<div class="module-content">
+					<h3 class="module-title">Настройки школы</h3>
+					<p class="module-description">Обновить информацию о школе</p>
+					<button class="module-link" on:click={() => showSchoolSettings = true}>
+						Открыть настройки
+					</button>
+				</div>
+			</div>
+
+			<div class="module-card">
+				<div class="module-icon">🖼️</div>
+				<div class="module-content">
+					<h3 class="module-title">Настройки изображений</h3>
+					<p class="module-description">Настроить размеры изображений в карточках</p>
+					<button class="module-link" on:click={() => showCardImageSettings = true}>
+						Настроить изображения
+					</button>
+				</div>
+			</div>
 		</div>
 	</div>
 
@@ -233,6 +378,399 @@
 							</div>
 						</div>
 					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Модальное окно настроек школы -->
+	{#if showSchoolSettings}
+		<div class="modal-overlay" on:click={() => showSchoolSettings = false}>
+			<div class="modal-content" on:click|stopPropagation>
+				<div class="modal-header">
+					<h3>Настройки школы</h3>
+					<button class="modal-close" on:click={() => showSchoolSettings = false}>×</button>
+				</div>
+				
+				<form on:submit|preventDefault={(e) => updateSchoolData(new FormData(e.currentTarget))}>
+					<div class="form-grid">
+						<div class="form-group">
+							<label for="nameRu">Название школы (Русский)</label>
+							<input 
+								type="text" 
+								id="nameRu" 
+								name="nameRu" 
+								value={$authStore.schoolData?.nameRu || ''} 
+								required
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="nameKz">Название школы (Казахский)</label>
+							<input 
+								type="text" 
+								id="nameKz" 
+								name="nameKz" 
+								value={$authStore.schoolData?.nameKz || ''} 
+								required
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="email">Email школы</label>
+							<input 
+								type="email" 
+								id="email" 
+								name="email" 
+								value={$authStore.schoolData?.email || ''} 
+								required
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="addressRu">Адрес (Русский)</label>
+							<input 
+								type="text" 
+								id="addressRu" 
+								name="addressRu" 
+								value={$authStore.schoolData?.addressRu || ''} 
+								required
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="addressKz">Адрес (Казахский)</label>
+							<input 
+								type="text" 
+								id="addressKz" 
+								name="addressKz" 
+								value={$authStore.schoolData?.addressKz || ''} 
+								required
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="logoUrl">URL логотипа</label>
+							<input 
+								type="url" 
+								id="logoUrl" 
+								name="logoUrl" 
+								value={$authStore.schoolData?.logoUrl || ''} 
+								placeholder="https://example.com/logo.png"
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="schoolEmblem">URL эмблемы школы</label>
+							<input 
+								type="url" 
+								id="schoolEmblem" 
+								name="schoolEmblem" 
+								value={$authStore.schoolData?.schoolEmblem || ''} 
+								placeholder="https://example.com/emblem.png"
+							/>
+						</div>
+						
+						<div class="form-group">
+							<label for="heroOverlayEnabled">Затемнение фонового фото</label>
+							<select 
+								id="heroOverlayEnabled" 
+								name="heroOverlayEnabled"
+								bind:value={previewOverlayEnabled}
+								on:change={(e) => {
+									if (e.currentTarget.value === 'false') {
+										previewOverlayIntensity = 0;
+									} else {
+										previewOverlayIntensity = parseFloat(localStorage.getItem('heroOverlayIntensity') || '0.7');
+									}
+									updateLocalStorage();
+								}}
+							>
+								<option value="true">Включено</option>
+								<option value="false">Выключено</option>
+							</select>
+							<small class="form-help">Настройки затемнения сохраняются локально в браузере</small>
+						</div>
+						
+						<div class="form-group">
+							<label for="heroOverlayIntensity">Интенсивность затемнения</label>
+							<input 
+								type="range" 
+								id="heroOverlayIntensity" 
+								name="heroOverlayIntensity" 
+								min="0.1" 
+								max="0.9" 
+								step="0.1"
+								bind:value={previewOverlayIntensity}
+								on:input={(e) => {
+									previewOverlayIntensity = parseFloat(e.currentTarget.value);
+									updateLocalStorage();
+								}}
+							/>
+							<div class="range-value">
+								<span>Слабое</span>
+								<span>Сильное</span>
+							</div>
+							<div class="overlay-preview">
+								<div class="preview-label">Предварительный просмотр:</div>
+								<div class="preview-box">
+									{#if previewOverlayEnabled}
+										<div 
+											class="preview-overlay" 
+											style="opacity: {previewOverlayIntensity};"
+										></div>
+									{/if}
+									<div class="preview-text">Текст</div>
+								</div>
+								<div class="preview-actions">
+									<button 
+										type="button" 
+										class="btn-secondary btn-sm" 
+										on:click={() => {
+											updateLocalStorage();
+											// Перезагружаем страницу для применения настроек
+											window.location.reload();
+										}}
+									>
+										Применить настройки
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					{#if schoolSettingsError}
+						<div class="error-message">{schoolSettingsError}</div>
+					{/if}
+					
+					{#if schoolSettingsSuccess}
+						<div class="success-message">{schoolSettingsSuccess}</div>
+					{/if}
+					
+					<div class="form-actions">
+						<button type="button" class="btn-secondary" on:click={() => showSchoolSettings = false}>
+							Отмена
+						</button>
+						<button type="submit" class="btn-primary" disabled={schoolSettingsLoading}>
+							{schoolSettingsLoading ? 'Сохранение...' : 'Сохранить'}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Модальное окно настроек изображений карточек -->
+	{#if showCardImageSettings}
+		<div class="modal-overlay" on:click={() => showCardImageSettings = false}>
+			<div class="modal-content" on:click|stopPropagation>
+				<div class="modal-header">
+					<h3>Настройки изображений карточек</h3>
+					<button class="modal-close" on:click={() => showCardImageSettings = false}>×</button>
+				</div>
+				
+				<div class="card-image-settings">
+					<div class="settings-section">
+						<h4>Новости</h4>
+						<div class="size-controls">
+							<div class="size-control">
+								<label>Высота (px):</label>
+								<input 
+									type="number" 
+									min="100" 
+									max="500" 
+									bind:value={cardImageSettings.news.height}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+							<div class="size-control">
+								<label>Ширина (%):</label>
+								<input 
+									type="number" 
+									min="50" 
+									max="100" 
+									bind:value={cardImageSettings.news.width}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+						</div>
+						<button 
+							type="button" 
+							class="btn-reset" 
+							on:click={() => resetCardImageSettings('news')}
+						>
+							🔄 Сбросить по умолчанию
+						</button>
+					</div>
+
+					<div class="settings-section">
+						<h4>Учителя</h4>
+						<div class="size-controls">
+							<div class="size-control">
+								<label>Высота (px):</label>
+								<input 
+									type="number" 
+									min="100" 
+									max="500" 
+									bind:value={cardImageSettings.teacher.height}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+							<div class="size-control">
+								<label>Ширина (%):</label>
+								<input 
+									type="number" 
+									min="50" 
+									max="100" 
+									bind:value={cardImageSettings.teacher.width}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+						</div>
+						<button 
+							type="button" 
+							class="btn-reset" 
+							on:click={() => resetCardImageSettings('teacher')}
+						>
+							🔄 Сбросить по умолчанию
+						</button>
+					</div>
+
+					<div class="settings-section">
+						<h4>Доска почета</h4>
+						<div class="size-controls">
+							<div class="size-control">
+								<label>Высота (px):</label>
+								<input 
+									type="number" 
+									min="100" 
+									max="500" 
+									bind:value={cardImageSettings['honor-board'].height}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+							<div class="size-control">
+								<label>Ширина (%):</label>
+								<input 
+									type="number" 
+									min="50" 
+									max="100" 
+									bind:value={cardImageSettings['honor-board'].width}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+						</div>
+						<button 
+							type="button" 
+							class="btn-reset" 
+							on:click={() => resetCardImageSettings('honor-board')}
+						>
+							🔄 Сбросить по умолчанию
+						</button>
+					</div>
+
+					<div class="settings-section">
+						<h4>Секции</h4>
+						<div class="size-controls">
+							<div class="size-control">
+								<label>Высота (px):</label>
+								<input 
+									type="number" 
+									min="100" 
+									max="500" 
+									bind:value={cardImageSettings.section.height}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+							<div class="size-control">
+								<label>Ширина (%):</label>
+								<input 
+									type="number" 
+									min="50" 
+									max="100" 
+									bind:value={cardImageSettings.section.width}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+						</div>
+						<button 
+							type="button" 
+							class="btn-reset" 
+							on:click={() => resetCardImageSettings('section')}
+						>
+							🔄 Сбросить по умолчанию
+						</button>
+					</div>
+
+					<div class="settings-section">
+						<h4>Столовая</h4>
+						<div class="size-controls">
+							<div class="size-control">
+								<label>Высота (px):</label>
+								<input 
+									type="number" 
+									min="100" 
+									max="500" 
+									bind:value={cardImageSettings.canteen.height}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+							<div class="size-control">
+								<label>Ширина (%):</label>
+								<input 
+									type="number" 
+									min="50" 
+									max="100" 
+									bind:value={cardImageSettings.canteen.width}
+									on:change={updateLocalStorage}
+								/>
+							</div>
+						</div>
+						<button 
+							type="button" 
+							class="btn-reset" 
+							on:click={() => resetCardImageSettings('canteen')}
+						>
+							🔄 Сбросить по умолчанию
+						</button>
+					</div>
+
+					<div class="preview-section">
+						<h4>Предварительный просмотр</h4>
+						<div class="preview-cards">
+							<div class="preview-card">
+								<div class="preview-image" style="height: {cardImageSettings.news.height}px; width: {cardImageSettings.news.width}%;">
+									<div class="preview-placeholder">📰</div>
+								</div>
+								<div class="preview-content">
+									<div class="preview-title">Новость</div>
+									<div class="preview-text">Пример карточки</div>
+								</div>
+							</div>
+							<div class="preview-card">
+								<div class="preview-image" style="height: {cardImageSettings.teacher.height}px; width: {cardImageSettings.teacher.width}%;">
+									<div class="preview-placeholder">👨‍🏫</div>
+								</div>
+								<div class="preview-content">
+									<div class="preview-title">Учитель</div>
+									<div class="preview-text">Пример карточки</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="form-actions">
+					<button 
+						type="button" 
+						class="btn-reset-all" 
+						on:click={() => resetCardImageSettings('all')}
+					>
+						🔄 Сбросить все настройки
+					</button>
+					<button type="button" class="btn-secondary" on:click={() => showCardImageSettings = false}>
+						Закрыть
+					</button>
 				</div>
 			</div>
 		</div>
@@ -630,7 +1168,8 @@
     /* News skeleton */
     .news-skeleton {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        		grid-template-columns: repeat(3, 320px);
+		justify-content: start;
         gap: 1rem;
     }
     .skeleton-card {
@@ -776,5 +1315,441 @@
         .modules-grid { grid-template-columns: 1fr; }
 
         .module-card { padding: 1.25rem; }
+	}
+
+	/* Модальное окно настроек школы */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		padding: 1rem;
+	}
+
+	.modal-content {
+		background: hsl(var(--background));
+		border-radius: 12px;
+		padding: 1.5rem;
+		max-width: 600px;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+		border: 1px solid hsl(var(--border));
+		box-shadow: var(--shadow-xl);
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1.5rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid hsl(var(--border));
+	}
+
+	.modal-header h3 {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.modal-close {
+		background: none;
+		border: none;
+		font-size: 1.5rem;
+		cursor: pointer;
+		color: hsl(var(--muted-foreground));
+		padding: 0.25rem;
+		border-radius: 4px;
+		transition: all 0.2s ease;
+	}
+
+	.modal-close:hover {
+		background: hsl(var(--muted) / 0.1);
+		color: hsl(var(--foreground));
+	}
+
+	.form-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.form-group {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.form-group label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		margin-bottom: 0.5rem;
+	}
+
+	.form-group input {
+		padding: 0.5rem;
+		border: 1px solid hsl(var(--border));
+		border-radius: 6px;
+		font-size: 0.875rem;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+		transition: border-color 0.2s ease;
+	}
+
+	.form-group input:focus,
+	.form-group select:focus {
+		outline: none;
+		border-color: hsl(var(--primary));
+	}
+	
+	.form-help {
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		margin-top: 0.25rem;
+		display: block;
+	}
+	
+	.form-group select {
+		padding: 0.5rem;
+		border: 1px solid hsl(var(--border));
+		border-radius: 6px;
+		font-size: 0.875rem;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+		transition: border-color 0.2s ease;
+		cursor: pointer;
+	}
+	
+	.range-value {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.75rem;
+		color: hsl(var(--muted-foreground));
+		margin-top: 0.25rem;
+	}
+	
+	.form-group input[type="range"] {
+		width: 100%;
+		height: 6px;
+		border-radius: 3px;
+		background: hsl(var(--muted));
+		outline: none;
+		cursor: pointer;
+		-webkit-appearance: none;
+	}
+	
+	.form-group input[type="range"]::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+		cursor: pointer;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+	
+	.form-group input[type="range"]::-moz-range-thumb {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: hsl(var(--primary));
+		cursor: pointer;
+		border: none;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+	
+	.overlay-preview {
+		margin-top: 1rem;
+		padding: 1rem;
+		background: hsl(var(--muted) / 0.1);
+		border-radius: 8px;
+		border: 1px solid hsl(var(--border));
+	}
+	
+	.preview-label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: hsl(var(--foreground));
+		margin-bottom: 0.75rem;
+	}
+	
+	.preview-box {
+		position: relative;
+		height: 60px;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border-radius: 8px;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.preview-overlay {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to bottom, 
+			rgba(15, 23, 42, 1) 0%, 
+			rgba(15, 23, 42, 0.8) 50%,
+			rgba(2, 6, 23, 1) 100%);
+		pointer-events: none;
+	}
+	
+	.preview-text {
+		position: relative;
+		z-index: 2;
+		color: white;
+		font-weight: 600;
+		font-size: 0.875rem;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+	}
+	
+	.preview-actions {
+		margin-top: 1rem;
+		text-align: center;
+	}
+	
+	.btn-sm {
+		padding: 0.375rem 0.75rem;
+		font-size: 0.8rem;
+	}
+
+	.form-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: flex-end;
+		padding-top: 1rem;
+		border-top: 1px solid hsl(var(--border));
+	}
+
+	.btn-primary, .btn-secondary {
+		padding: 0.5rem 1rem;
+		border-radius: 6px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border: none;
+	}
+
+	.btn-primary {
+		background: hsl(var(--primary));
+		color: hsl(var(--primary-foreground));
+	}
+
+	.btn-primary:hover:not(:disabled) {
+		background: hsl(var(--primary) / 0.9);
+	}
+
+	.btn-primary:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.btn-secondary {
+		background: hsl(var(--muted));
+		color: hsl(var(--muted-foreground));
+	}
+
+	.btn-secondary:hover {
+		background: hsl(var(--muted) / 0.8);
+	}
+
+	.error-message {
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+		padding: 0.75rem;
+		border-radius: 6px;
+		margin-bottom: 1rem;
+		border: 1px solid hsl(var(--destructive) / 0.2);
+	}
+
+	.success-message {
+		background: hsl(var(--success) / 0.1);
+		color: hsl(var(--success));
+		padding: 0.75rem;
+		border-radius: 6px;
+		margin-bottom: 1rem;
+		border: 1px solid hsl(var(--success) / 0.2);
+	}
+
+	/* Стили для настроек изображений карточек */
+	.card-image-settings {
+		max-height: 70vh;
+		overflow-y: auto;
+		padding-right: 0.5rem;
+	}
+
+	.settings-section {
+		margin-bottom: 2rem;
+		padding: 1.5rem;
+		background: hsl(var(--muted) / 0.05);
+		border-radius: 8px;
+		border: 1px solid hsl(var(--border));
+	}
+
+	.settings-section h4 {
+		margin: 0 0 1rem 0;
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.size-controls {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.size-control {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.size-control label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: hsl(var(--muted-foreground));
+	}
+
+	.size-control input {
+		padding: 0.5rem;
+		border: 1px solid hsl(var(--border));
+		border-radius: 6px;
+		font-size: 0.875rem;
+		background: hsl(var(--background));
+		color: hsl(var(--foreground));
+	}
+
+	.size-control input:focus {
+		outline: none;
+		border-color: hsl(var(--ring));
+		box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+	}
+
+	.preview-section {
+		margin-top: 2rem;
+		padding: 1.5rem;
+		background: hsl(var(--muted) / 0.05);
+		border-radius: 8px;
+		border: 1px solid hsl(var(--border));
+	}
+
+	.preview-section h4 {
+		margin: 0 0 1rem 0;
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: hsl(var(--foreground));
+	}
+
+	.preview-cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 1rem;
+	}
+
+	.preview-card {
+		background: hsl(var(--card));
+		border: 1px solid hsl(var(--border));
+		border-radius: 8px;
+		overflow: hidden;
+		box-shadow: var(--shadow-sm);
+	}
+
+	.preview-image {
+		background: hsl(var(--muted) / 0.1);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-bottom: 1px solid hsl(var(--border));
+	}
+
+	.preview-placeholder {
+		font-size: 2rem;
+		opacity: 0.6;
+	}
+
+	.preview-content {
+		padding: 1rem;
+	}
+
+	.preview-title {
+		font-weight: 600;
+		color: hsl(var(--foreground));
+		margin-bottom: 0.5rem;
+	}
+
+	.preview-text {
+		font-size: 0.875rem;
+		color: hsl(var(--muted-foreground));
+	}
+
+	/* Стили для кнопок сброса */
+	.btn-reset {
+		margin-top: 1rem;
+		padding: 0.5rem 1rem;
+		background: hsl(var(--muted));
+		color: hsl(var(--muted-foreground));
+		border: 1px solid hsl(var(--border));
+		border-radius: 6px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		width: 100%;
+	}
+
+	.btn-reset:hover {
+		background: hsl(var(--muted) / 0.8);
+		border-color: hsl(var(--ring));
+	}
+
+	.btn-reset-all {
+		padding: 0.75rem 1.5rem;
+		background: hsl(var(--destructive) / 0.1);
+		color: hsl(var(--destructive));
+		border: 1px solid hsl(var(--destructive) / 0.2);
+		border-radius: 6px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.btn-reset-all:hover {
+		background: hsl(var(--destructive) / 0.2);
+		border-color: hsl(var(--destructive) / 0.4);
+	}
+
+	@media (max-width: 1200px) {
+		.news-skeleton {
+			grid-template-columns: repeat(2, 320px);
+		}
+	}
+	
+	@media (max-width: 768px) {
+		.form-grid {
+			grid-template-columns: 1fr;
+		}
+		
+		.modal-content {
+			padding: 1rem;
+		}
+		
+		.news-skeleton {
+			grid-template-columns: 1fr;
+			max-width: 400px;
+			margin: 0 auto;
+		}
 	}
 </style>

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import { languageStore } from '$lib/stores/language';
 	import type { Class, Teacher } from '$lib/types/api';
 	import ClassCard from '$lib/components/ClassCard.svelte';
@@ -141,10 +142,12 @@
 	<div class="page-header">
 		<h1>Классы школы</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openAddModal}>
-				<span class="btn-icon">➕</span>
-				Добавить класс
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openAddModal}>
+					<span class="btn-icon">➕</span>
+					Добавить класс
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -165,7 +168,7 @@
 				<ClassCard 
 					{classItem} 
 					language={$languageStore}
-					onDelete={() => deleteClass(classItem.id)}
+					onDelete={$adminStore.isAdminMode ? () => deleteClass(classItem.id) : undefined}
 				/>
 			{/each}
 		</div>
@@ -176,6 +179,7 @@
 			icon="🏫"
 			buttonText="Добавить класс"
 			onAction={openAddModal}
+			showButton={$adminStore.isAdminMode}
 		/>
 	{/if}
 </div>
@@ -380,8 +384,23 @@
 
 	.classes-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(3, 340px);
+		justify-content: start;
 		gap: 1.5rem;
+	}
+	
+	@media (max-width: 1200px) {
+		.classes-grid {
+			grid-template-columns: repeat(2, 340px);
+		}
+	}
+	
+	@media (max-width: 768px) {
+		.classes-grid {
+			grid-template-columns: 1fr;
+			max-width: 400px;
+			margin: 0 auto;
+		}
 	}
 
 	@media (max-width: 768px) {

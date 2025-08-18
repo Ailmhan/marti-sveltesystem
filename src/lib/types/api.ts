@@ -9,6 +9,7 @@ export interface School {
 	descriptionRu?: string;
 	descriptionKz?: string;
 	logoUrl?: string;
+	schoolEmblem?: string;
 }
 
 // Типы запросов из OpenAPI схемы
@@ -22,6 +23,7 @@ export interface CreateSchoolRequest {
 	descriptionRu?: string;
 	descriptionKz?: string;
 	logoUrl?: string;
+	schoolEmblem?: string;
 }
 
 export interface UpdateSchoolRequest {
@@ -33,6 +35,7 @@ export interface UpdateSchoolRequest {
 	descriptionRu?: string;
 	descriptionKz?: string;
 	logoUrl?: string;
+	schoolEmblem?: string;
 }
 
 export interface LoginRequest {

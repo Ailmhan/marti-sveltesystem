@@ -4,19 +4,22 @@
 	export let icon: string;
 	export let buttonText: string;
 	export let onAction: () => void;
+	export let showButton: boolean = true;
 </script>
 
-<div class="empty-state">
-	<div class="empty-icon">
-		{icon}
+	<div class="empty-state">
+		<div class="empty-icon">
+			{icon}
+		</div>
+		<h2 class="empty-title">{title}</h2>
+		<p class="empty-description">{description}</p>
+		{#if showButton}
+			<button class="btn btn-primary add-btn" on:click={onAction}>
+				<span class="btn-icon">➕</span>
+				{buttonText}
+			</button>
+		{/if}
 	</div>
-	<h2 class="empty-title">{title}</h2>
-	<p class="empty-description">{description}</p>
-	<button class="btn btn-primary add-btn" on:click={onAction}>
-		<span class="btn-icon">➕</span>
-		{buttonText}
-	</button>
-</div>
 
 <style>
 	.empty-state {

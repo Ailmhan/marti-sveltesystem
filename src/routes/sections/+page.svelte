@@ -246,7 +246,7 @@
 					language={$languageStore}
 					showActions={$adminStore.isAdminMode}
 					onEdit={() => editSection(section)}
-					onDelete={() => deleteSection(section.id)}
+					onDelete={$adminStore.isAdminMode ? () => deleteSection(section.id) : undefined}
 				/>
 			{/each}
 		</div>
@@ -611,7 +611,22 @@
 	}
 
 	.grid-3 {
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		grid-template-columns: repeat(3, 340px);
+		justify-content: start;
+	}
+	
+	@media (max-width: 1200px) {
+		.grid-3 {
+			grid-template-columns: repeat(2, 340px);
+		}
+	}
+	
+	@media (max-width: 768px) {
+		.grid-3 {
+			grid-template-columns: 1fr;
+			max-width: 400px;
+			margin: 0 auto;
+		}
 	}
 
 	.alert {

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import { languageStore } from '$lib/stores/language';
 	import type { Schedule as ScheduleType, Teacher, Class } from '$lib/types/api';
 	import { format } from 'date-fns';
@@ -152,10 +153,12 @@
 	<div class="page-header">
 		<h1>Расписание занятий</h1>
 		<div class="page-actions">
-			<button class="btn btn-primary add-btn" on:click={openModal}>
-				<span class="btn-icon">➕</span>
-				Добавить занятие
-			</button>
+			{#if $adminStore.isAdminMode}
+				<button class="btn btn-primary add-btn" on:click={openModal}>
+					<span class="btn-icon">➕</span>
+					Добавить занятие
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -192,6 +195,7 @@
 			icon="📅"
 			buttonText="Добавить занятие"
 			onAction={openModal}
+			showButton={$adminStore.isAdminMode}
 		/>
 	{/if}
 </div>

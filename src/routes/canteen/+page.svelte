@@ -373,7 +373,7 @@
 					language={$languageStore}
 					showActions={$adminStore.isAdminMode}
 					onEdit={() => editMenu(menu)}
-					onDelete={() => deleteMenu(menu.id)}
+					onDelete={$adminStore.isAdminMode ? () => deleteMenu(menu.id) : undefined}
 				/>
 			{/each}
 		</div>
@@ -732,8 +732,23 @@
 
 	.grid-container {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+		grid-template-columns: repeat(3, 400px);
+		justify-content: start;
 		gap: 1.5rem;
+	}
+	
+	@media (max-width: 1400px) {
+		.grid-container {
+			grid-template-columns: repeat(2, 400px);
+		}
+	}
+	
+	@media (max-width: 900px) {
+		.grid-container {
+			grid-template-columns: 1fr;
+			max-width: 500px;
+			margin: 0 auto;
+		}
 	}
 
 	.alert {

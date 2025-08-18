@@ -1,862 +1,784 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { languageStore } from '$lib/stores/language';
-	import { apiClient } from '$lib/api/client';
-
-	// Твой UI
-	import DataCard from '$lib/components/DataCard.svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
-	import Schedule from '$lib/components/Schedule.svelte';
-
-	import type {
-		News,
-		Teacher,
-		HonorBoard,
-		CanteenMenu,
-		Schedule as ScheduleType,
-		Class
+	import type { 
+		News, 
+		Teacher, 
+		HonorBoard, 
+		Section, 
+		CanteenMenu, 
+		Schedule, 
+		Class,
+		School 
 	} from '$lib/types/api';
+	import DataCard from '$lib/components/DataCard.svelte';
+	import LanguageSwitch from '$lib/components/LanguageSwitch.svelte';
 
-	// Состояния
-	let news: News[] = [];
-	let teachers: Teacher[] = [];
-	let honorBoard: HonorBoard[] = [];
-	let canteenMenu: CanteenMenu[] = [];
-	let schedule: ScheduleType[] = [];
-	let classes: Class[] = [];
-	let loading = true;
-	let error = '';
+	// Состояние компонента
+	let mounted = false;
 
-	// Для плавного появления
-	let hydrated = false;
+	let isMobileMenuOpen = $state(false);
+	let loading = $state(true);
+	let currentNewsIndex = 0;
 
-	onMount(async () => {
-		hydrated = true;
+	// Данные из API
+	let schoolData = $state<School | null>(null);
+	let news = $state<News[]>([]);
+	let teachers = $state<Teacher[]>([]);
+	let honorBoard = $state<HonorBoard[]>([]);
+	let sections = $state<Section[]>([]);
+	let canteenMenu = $state<CanteenMenu[]>([]);
+	let schedule = $state<Schedule[]>([]);
+	let classes = $state<Class[]>([]);
 
-		// Лог только в dev
-		if (import.meta.env.DEV) {
-			console.log('🏫 School Landing Page onMount:', {
-				hasToken: !!$authStore.token,
-				hasSchoolData: !!$authStore.schoolData,
-				logoUrl: $authStore.schoolData?.logoUrl,
-				schoolId: $authStore.schoolId
-			});
-		}
+	// Статистика школы
+	let schoolStats = $state([
+		{ label: "Учеников", value: "0+", icon: "👥" },
+		{ label: "Учителей", value: "0+", icon: "👨‍🏫" },
+		{ label: "Лет опыта", value: "0+", icon: "📚" },
+		{ label: "Наград", value: "0+", icon: "🏆" }
+	]);
 
-		await loadPreviewData();
+	onMount(() => {
+		mounted = true;
+		
+		// Загружаем данные школы и все необходимые данные
+		loadAllData();
+		
+		// Симуляция загрузки для плавности
+		const timer = setTimeout(() => loading = false, 1000);
+		
+		// Авто-ротация новостей
+		const newsTimer = setInterval(() => {
+			if (news.length > 0) {
+				currentNewsIndex = (currentNewsIndex + 1) % news.length;
+			}
+		}, 5000);
+		
+		// Очистка таймеров
+		return () => {
+			clearTimeout(timer);
+			clearInterval(newsTimer);
+		};
 	});
 
-	async function loadPreviewData() {
-		if (!$authStore.schoolId) {
-			loading = false;
-			return;
-		}
-
+	// Загружаем все данные
+	async function loadAllData() {
 		try {
-			loading = true;
-			error = '';
+			// Загружаем данные школы через authStore
+			if (!$authStore.schoolId) {
+				await authStore.loadSchoolData();
+			}
 
-			const [
-				newsData,
-				teachersData,
-				honorBoardData,
-				canteenData,
-				scheduleData,
-				classesData
-			] = await Promise.all([
-				apiClient
-					.getNews($authStore.schoolId)
-					.then((data) => data.slice(0, 3))
-					.catch(() => []),
-				apiClient
-					.getTeachers($authStore.schoolId)
-					.then((data) => data.slice(0, 4))
-					.catch(() => []),
-				apiClient
-					.getHonorBoard($authStore.schoolId)
-					.then((data) => data.slice(0, 3))
-					.catch(() => []),
-				apiClient
-					.getCanteenMenu($authStore.schoolId)
-					.then((data) => data.slice(0, 2))
-					.catch(() => []),
-				apiClient
-					.getSchedule($authStore.schoolId)
-					.then((data) => {
-						console.log('Raw schedule data:', data);
-						
-						// Фильтруем по сегодняшнему и завтрашнему дню
-						const today = new Date();
-						const tomorrow = new Date(today);
-						tomorrow.setDate(today.getDate() + 1);
-						
-						const filteredData = data
-							.filter((item) => {
-								const itemDate = new Date(item.date);
-								return (
-									itemDate.toDateString() === today.toDateString() ||
-									itemDate.toDateString() === tomorrow.toDateString()
-								);
-							})
-							.slice(0, 10);
-						
-						console.log('Filtered schedule data:', filteredData);
-						return filteredData;
-					})
-					.catch((error) => {
-						console.error('Schedule API error:', error);
-						return [];
-					}),
-				apiClient
-					.getClasses($authStore.schoolId)
-					.then((data) => data.slice(0, 6))
-					.catch(() => [])
-			]);
+			if ($authStore.schoolId) {
+				// Загружаем все данные параллельно
+				const [
+					schoolDataResult,
+					newsData,
+					teachersData,
+					honorBoardData,
+					sectionsData,
+					canteenMenuData,
+					scheduleData,
+					classesData
+				] = await Promise.all([
+					apiClient.getSchool($authStore.schoolId),
+					apiClient.getNews($authStore.schoolId),
+					apiClient.getTeachers($authStore.schoolId),
+					apiClient.getHonorBoard($authStore.schoolId),
+					apiClient.getSections($authStore.schoolId),
+					apiClient.getCanteenMenu($authStore.schoolId),
+					apiClient.getSchedule($authStore.schoolId),
+					apiClient.getClasses($authStore.schoolId)
+				]);
 
-			news = newsData;
-			teachers = teachersData;
-			honorBoard = honorBoardData;
-			canteenMenu = canteenData;
-			schedule = scheduleData;
-			classes = classesData;
-		} catch (e) {
-			error = 'Ошибка загрузки данных';
-			console.error('Landing load error', e);
-		} finally {
-			loading = false;
+				// Обновляем состояние
+				schoolData = schoolDataResult;
+				news = newsData;
+				teachers = teachersData;
+				honorBoard = honorBoardData;
+				sections = sectionsData;
+				canteenMenu = canteenMenuData;
+				schedule = scheduleData;
+				classes = classesData;
+
+				// Обновляем статистику на основе реальных данных
+				updateSchoolStats();
+			}
+		} catch (error) {
+			console.error('Error loading data:', error);
 		}
 	}
 
-	// Вспомогательные геттеры
-	$: schoolName =
-		$authStore.schoolData &&
-		(($languageStore === 'ru'
-			? $authStore.schoolData.nameRu
-			: $authStore.schoolData.nameKz) ||
-			'Школьная система');
+	// Обновляем статистику школы на основе реальных данных
+	function updateSchoolStats() {
+		schoolStats = [
+			{ 
+				label: "Учеников", 
+				value: `${classes.length * 25}+`, 
+				icon: "👥" 
+			},
+			{ 
+				label: "Учителей", 
+				value: `${teachers.length}+`, 
+				icon: "👨‍🏫" 
+			},
+			{ 
+				label: "Лет опыта", 
+				value: "25+", 
+				icon: "📚" 
+			},
+			{ 
+				label: "Наград", 
+				value: `${honorBoard.length}+`, 
+				icon: "🏆" 
+			}
+		];
+	}
 
-	$: schoolLead =
-		$authStore.schoolData &&
-		(($languageStore === 'ru'
-			? $authStore.schoolData.descriptionRu
-			: $authStore.schoolData.descriptionKz) ||
-			($languageStore === 'ru'
-				? $authStore.schoolData.addressRu
-				: $authStore.schoolData.addressKz) ||
-			'Добро пожаловать в нашу школу');
 
-	$: schoolAddress =
-		$languageStore === 'ru' ? $authStore.schoolData?.addressRu : $authStore.schoolData?.addressKz;
 
-	// Архитектурная мелочь: формируем src для hero фоновой картинки
-	$: heroBg = $authStore.schoolData?.logoUrl || '';
+	function scrollToSection(sectionId: string) {
+		document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+		isMobileMenuOpen = false;
+	}
 
-	// Статистика для отображения
-	$: stats = {
-		teachers: teachers.length,
-		news: news.length,
-		achievements: honorBoard.length,
-		classes: classes.length
-	};
+	// Получаем текущую дату
+	let currentDate = new Date().toLocaleDateString("ru-RU", {
+		weekday: "long",
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	});
+
+	// Получаем язык из store
+	let currentLanguage = $derived($languageStore);
 </script>
 
-<svelte:head>
-	<title>{schoolName || 'Лендинг школы'}</title>
-	<meta name="description" content={schoolLead || 'Добро пожаловать в нашу школу'} />
-</svelte:head>
-
-<div class="page {hydrated ? 'is-hydrated' : ''}">
-	<!-- HERO -->
-	<section class="hero" aria-labelledby="hero-title">
-		<!-- фон-картинка только если есть, без blur-мыла; подложка с градиентом всегда -->
-		{#if heroBg}
-			<div
-				class="hero__bg"
-				style="background-image: image-set(
-					url('{$authStore.schoolData.logoUrl}') 1x
-				)"
-				role="img"
-				aria-label={schoolName}
-			/>
-		{/if}
-		<div class="hero__overlay" />
-		<div class="hero__container container">
-			<div class="hero__panel">
-				<h1 id="hero-title" class="hero__title">{schoolName}</h1>
-				<p class="hero__subtitle">{schoolLead}</p>
-				{#if schoolAddress}
-					<div class="hero__meta">
-						<span class="hero__meta-icon">📍</span>
-						{schoolAddress}
+<div class="min-h-screen transition-colors duration-300">
+	<!-- Navigation -->
+	<nav class="fixed top-0 left-0 right-0 z-50 bg-white/20 backdrop-blur-md border-b border-white/20 shadow-sm">
+		<div class="container mx-auto px-4">
+			<div class="flex items-center justify-between h-16">
+				<!-- Logo -->
+				<div class="flex items-center gap-3">
+					<div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center animate-glow overflow-hidden">
+						{#if schoolData?.schoolEmblem}
+							<img src={schoolData.schoolEmblem} alt="Эмблема школы" class="w-8 h-8 object-contain" />
+						{:else if schoolData?.logoUrl}
+							<img src={schoolData.logoUrl} alt="Logo" class="w-8 h-8 object-cover rounded" />
+						{:else}
+							<span class="text-white font-bold text-lg">🎓</span>
+						{/if}
 					</div>
-				{/if}
+					<span class="text-xl font-bold text-white">
+						{schoolData ? (currentLanguage === 'kz' ? schoolData.nameKz : schoolData.nameRu) : 'Школа'}
+					</span>
+				</div>
 				
-				<!-- Статистика школы -->
-				{#if $authStore.schoolId && !loading}
-					<div class="hero__stats">
-						<div class="stat-item">
-							<span class="stat-number">{stats.teachers}</span>
-							<span class="stat-label">Учителей</span>
-						</div>
-						<div class="stat-item">
-							<span class="stat-number">{stats.classes}</span>
-							<span class="stat-label">Классов</span>
-						</div>
-						<div class="stat-item">
-							<span class="stat-number">{stats.achievements}</span>
-							<span class="stat-label">Достижений</span>
-						</div>
-					</div>
-				{/if}
+
+
+				<!-- Desktop Menu -->
+				<div class="hidden md:flex items-center gap-8">
+					<button onclick={() => scrollToSection('news')} class="text-white hover:text-blue-200 transition-colors font-medium">
+						Новости
+					</button>
+					<button onclick={() => scrollToSection('teachers')} class="text-white hover:text-blue-200 transition-colors font-medium">
+						Учителя
+					</button>
+					<button onclick={() => scrollToSection('achievements')} class="text-white hover:text-blue-200 transition-colors font-medium">
+						Достижения
+					</button>
+					<button onclick={() => scrollToSection('schedule')} class="text-white hover:text-blue-200 transition-colors font-medium">
+						Расписание
+					</button>
+					<button onclick={() => scrollToSection('contact')} class="text-white hover:text-blue-200 transition-colors font-medium">
+						Контакты
+					</button>
+				</div>
+
+				<!-- Language Switch & Mobile Menu -->
+				<div class="flex items-center gap-4">
+					<LanguageSwitch 
+						language={currentLanguage === 'kz' ? 'kz' : 'ru'} 
+						on:change={(e) => $languageStore = e.detail}
+					/>
+
+					<button 
+						onclick={() => isMobileMenuOpen = !isMobileMenuOpen}
+						class="md:hidden w-9 h-9 rounded-md border border-border bg-card hover:bg-accent transition-colors flex items-center justify-center"
+					>
+						{#if isMobileMenuOpen}
+							<span class="text-lg">✕</span>
+						{:else}
+							<span class="text-lg">☰</span>
+						{/if}
+					</button>
+				</div>
 			</div>
-		</div>
-	</section>
 
-	<!-- БЫСТРЫЕ ДЕЙСТВИЯ -->
-	<section class="section section--muted">
-		<div class="container">
-			<header class="section__head">
-				<h2 class="section__title">Быстрый доступ</h2>
-				<p class="section__subtitle">Основные разделы системы</p>
-			</header>
-
-			<div class="actions">
-				<a href="/news" class="action" aria-label="Перейти в новости">
-					<span class="action__icon">📰</span>
-					<span class="action__title">Новости</span>
-					<span class="action__desc">События и объявления</span>
-					{#if stats.news > 0}
-						<span class="action__badge">{stats.news}</span>
-					{/if}
-				</a>
-
-				<a href="/teachers" class="action" aria-label="Перейти к учителям">
-					<span class="action__icon">👥</span>
-					<span class="action__title">Учителя</span>
-					<span class="action__desc">Педагогический состав</span>
-					{#if stats.teachers > 0}
-						<span class="action__badge">{stats.teachers}</span>
-					{/if}
-				</a>
-
-				<a href="/schedule" class="action" aria-label="Открыть расписание">
-					<span class="action__icon">📅</span>
-					<span class="action__title">Расписание</span>
-					<span class="action__desc">Уроки и мероприятия</span>
-				</a>
-
-				<a href="/" class="action" aria-label="Перейти в систему">
-					<span class="action__icon">🏠</span>
-					<span class="action__title">Панель</span>
-					<span class="action__desc">Основная система</span>
-				</a>
-			</div>
-		</div>
-	</section>
-
-	<!-- ПРЕВЬЮ БЛОКИ -->
-	{#if $authStore.schoolId}
-		{#if error}
-			<section class="section">
-				<div class="container">
-					<div class="error-message">
-						<span class="error-icon">⚠️</span>
-						<h3>Ошибка загрузки данных</h3>
-						<p>{error}</p>
-						<button class="btn btn-retry" on:click={loadPreviewData}>
-							Попробовать снова
+			<!-- Mobile Menu -->
+			{#if isMobileMenuOpen}
+				<div class="md:hidden py-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
+					<div class="flex flex-col gap-4">
+						<button onclick={() => scrollToSection('news')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
+							Новости
+						</button>
+						<button onclick={() => scrollToSection('teachers')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
+							Учителя
+						</button>
+						<button onclick={() => scrollToSection('achievements')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
+							Достижения
+						</button>
+						<button onclick={() => scrollToSection('schedule')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
+							Расписание
+						</button>
+						<button onclick={() => scrollToSection('contact')} class="text-left text-white hover:text-blue-200 transition-colors font-medium">
+							Контакты
 						</button>
 					</div>
 				</div>
-			</section>
+			{/if}
+		</div>
+	</nav>
+
+	<!-- Hero Section -->
+	<section class="hero-section relative overflow-hidden text-white pt-16 min-h-screen">
+		<!-- Фон школы -->
+		{#if schoolData?.logoUrl}
+			<div class="absolute inset-0 overflow-hidden">
+				<div class="w-full h-full hero-background" style="background-image: url({schoolData.logoUrl});"></div>
+			</div>
 		{:else}
-			<!-- NEWS -->
-			<section class="section">
-				<div class="container">
-					<header class="section__head">
-						<h2 class="section__title">Последние новости</h2>
-						<a href="/news" class="link">Все новости →</a>
-					</header>
+			<!-- Fallback background when no image -->
+			<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
+		{/if}
+		
 
-					{#if loading}
-						<div class="grid grid--cards">
-							{#each Array(3) as _}
-								<div class="skeleton skeleton--card" />
-							{/each}
-						</div>
-					{:else if news.length > 0}
-						<div class="grid grid--cards">
-							{#each news as item}
-								<DataCard 
-									data={item} 
-									type="news" 
-									language={$languageStore}
-									showActions={false} 
-								/>
-							{/each}
-						</div>
-					{:else}
-						<div class="empty">
-							<span class="empty-icon">📰</span>
-							<h3>Пока нет новостей</h3>
-							<p>Новости появятся в ближайшее время</p>
-						</div>
-					{/if}
-				</div>
-			</section>
+		
+		<!-- Animated Background Elements (убрано для чистого фото) -->
 
-			<!-- TEACHERS -->
-			<section class="section section--alt">
-				<div class="container">
-					<header class="section__head">
-						<h2 class="section__title">Наши учителя</h2>
-						<a href="/teachers" class="link">Все учителя →</a>
-					</header>
+		<div class="relative container mx-auto px-4 py-96 text-center">
+			<div class="mx-auto max-w-4xl">
+				<!-- Loading state -->
+				{#if loading}
+					<div class="mb-8 inline-flex items-center justify-center w-24 h-24 bg-white/10 rounded-full backdrop-blur-sm animate-pulse">
+						<span class="text-4xl">⏳</span>
+					</div>
+					<h1 class="mb-6 text-5xl md:text-7xl font-bold tracking-tight animate-pulse">
+						Загрузка...
+					</h1>
+				{:else}
+					<!-- School Icon -->
+					<div class="mb-8 inline-flex items-center justify-center w-24 h-24 bg-white/10 rounded-full backdrop-blur-sm animate-bounce overflow-hidden">
+						{#if schoolData?.schoolEmblem}
+							<img src={schoolData.schoolEmblem} alt="Эмблема школы" class="w-16 h-16 object-contain" />
+						{:else if schoolData?.logoUrl}
+							<img src={schoolData.logoUrl} alt="School Logo" class="w-16 h-16 rounded-full object-cover" />
+						{:else}
+							<span class="text-4xl">🎓</span>
+						{/if}
+					</div>
 
-					{#if loading}
-						<div class="grid grid--cards">
-							{#each Array(4) as _}
-								<div class="skeleton skeleton--card" />
-							{/each}
-						</div>
-					{:else if teachers.length > 0}
-						<div class="grid grid--cards">
-							{#each teachers as item}
-								<DataCard 
-									data={item} 
-									type="teacher" 
-									language={$languageStore}
-									showActions={false} 
-								/>
-							{/each}
-						</div>
-					{:else}
-						<div class="empty">
-							<span class="empty-icon">👥</span>
-							<h3>Список учителей скоро появится</h3>
-							<p>Информация о педагогах обновится позже</p>
-						</div>
-					{/if}
-				</div>
-			</section>
+					<h1 class="mb-6 text-5xl md:text-7xl font-bold tracking-tight">
+						{schoolData ? (currentLanguage === 'kz' ? schoolData.nameKz : schoolData.nameRu) : 'Школа'}
+					</h1>
+					<p class="mb-8 text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+						{schoolData?.descriptionRu || 'Современное образование для будущих лидеров. Развиваем таланты, воспитываем характер, строим будущее вместе.'}
+					</p>
 
-			<!-- HONOR BOARD -->
-			<section class="section">
-				<div class="container">
-					<header class="section__head">
-						<h2 class="section__title">Доска почёта</h2>
-						<a href="/honor-board" class="link">Все достижения →</a>
-					</header>
-
-					{#if loading}
-						<div class="grid grid--cards">
-							{#each Array(3) as _}
-								<div class="skeleton skeleton--card" />
-							{/each}
-						</div>
-					{:else if honorBoard.length > 0}
-						<div class="grid grid--cards">
-							{#each honorBoard as item}
-								<DataCard 
-									data={item} 
-									type="honor-board" 
-									language={$languageStore}
-									showActions={false} 
-								/>
-							{/each}
-						</div>
-					{:else}
-						<div class="empty">
-							<span class="empty-icon">🏆</span>
-							<h3>Пока нет наград</h3>
-							<p>Достижения учеников появятся позже</p>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- SCHEDULE -->
-			<section class="section section--alt">
-				<div class="container">
-					<header class="section__head">
-						<h2 class="section__title">Ближайшее расписание</h2>
-						<a href="/schedule" class="link">Полное расписание →</a>
-					</header>
-
-					{#if loading}
-						<div class="skeleton skeleton--table" />
-					{:else if schedule.length > 0}
-						<!-- Отладочная информация -->
-						{#if import.meta.env.DEV}
-							<div class="debug-info" style="background: #f0f0f0; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 0.8rem;">
-								<strong>DEBUG Schedule:</strong><br>
-								Количество элементов: {schedule.length}<br>
-								Первый элемент: {schedule[0] ? `${schedule[0].subjectRu || schedule[0].subjectKz} (${schedule[0].date})` : 'Нет данных'}
+					<div class="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
+						{#if schoolData?.addressRu}
+							<div class="flex items-center gap-2 text-white/90 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm">
+								<span class="text-lg">📍</span>
+								<span>{currentLanguage === 'kz' ? schoolData.addressKz : schoolData.addressRu}</span>
 							</div>
 						{/if}
+
+						<a href="/login" class="bg-white text-primary hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+							Войти в систему
+							<span class="text-lg">→</span>
+						</a>
+					</div>
+
+
+				{/if}
+			</div>
+		</div>
+	</section>
+
+	<!-- News Section -->
+	<section id="news" class="py-20 bg-muted/30">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Последние новости</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Следите за важными событиями и достижениями нашей школы
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+					{#each Array(6) as _, i}
+						<div class="animate-pulse">
+							<div class="bg-muted h-48 rounded-t-lg"></div>
+							<div class="bg-card p-6 rounded-b-lg border border-border">
+								<div class="h-4 bg-muted rounded mb-2"></div>
+								<div class="h-4 bg-muted rounded mb-4"></div>
+								<div class="h-3 bg-muted rounded"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if news.length > 0}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+					{#each news as item}
+						<DataCard 
+							data={item} 
+							type="news" 
+							language={currentLanguage}
+							class="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+						/>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Новости пока не добавлены</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Teachers Section -->
+	<section id="teachers" class="py-20 bg-background">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Наши учителя</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Опытные педагоги, которые вдохновляют и направляют наших учеников к успеху
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+					{#each Array(8) as _, i}
+						<div class="animate-pulse">
+							<div class="bg-muted h-48 rounded-t-lg"></div>
+							<div class="bg-card p-6 rounded-b-lg border border-border">
+								<div class="h-4 bg-muted rounded mb-2"></div>
+								<div class="h-4 bg-muted rounded mb-4"></div>
+								<div class="h-3 bg-muted rounded"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if teachers.length > 0}
+				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+					{#each teachers as teacher}
+						<DataCard 
+							data={teacher} 
+							type="teacher" 
+							language={currentLanguage}
+							class="text-center group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+						/>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Информация об учителях пока не добавлена</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Achievements Section -->
+	<section id="achievements" class="py-20 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-slate-900 dark:to-slate-800">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Достижения учеников</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Гордимся успехами наших талантливых учеников и их выдающимися результатами
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+					{#each Array(8) as _, i}
+						<div class="animate-pulse">
+							<div class="bg-muted h-48 rounded-t-lg"></div>
+							<div class="bg-card p-6 rounded-b-lg border border-border">
+								<div class="h-4 bg-muted rounded mb-2"></div>
+								<div class="h-4 bg-muted rounded mb-4"></div>
+								<div class="h-3 bg-muted rounded"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if honorBoard.length > 0}
+				<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+					{#each honorBoard as achievement}
+						<DataCard 
+							data={achievement} 
+							type="honor-board" 
+							language={currentLanguage}
+							class="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2"
+						/>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Информация о достижениях пока не добавлена</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Schedule Section -->
+	<section id="schedule" class="py-20 bg-background">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Расписание на сегодня</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Актуальное расписание занятий на сегодняшний день
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="max-w-4xl mx-auto">
+					<div class="overflow-hidden bg-card border border-border rounded-lg shadow-lg">
+						<div class="bg-primary/10 p-6 border-b border-border">
+							<h3 class="flex items-center gap-2 text-xl font-semibold text-card-foreground">
+								<span class="text-2xl">📅</span>
+								{currentDate}
+							</h3>
+						</div>
 						
-						<Schedule schedule={schedule} />
-					{:else}
-						<div class="empty">
-							<span class="empty-icon">📅</span>
-							<h3>Нет занятий на ближайшие даты</h3>
-							<p>Расписание обновится позже</p>
-						</div>
-					{/if}
-				</div>
-			</section>
-
-			<!-- CANTEEN -->
-			<section class="section">
-				<div class="container">
-					<header class="section__head">
-						<h2 class="section__title">Меню столовой</h2>
-						<a href="/canteen" class="link">Полное меню →</a>
-					</header>
-
-					{#if loading}
-						<div class="grid grid--cards">
-							{#each Array(2) as _}
-								<div class="skeleton skeleton--card" />
+						<div class="divide-y divide-border">
+							{#each Array(6) as _, i}
+								<div class="p-6 animate-pulse">
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-6">
+											<div class="h-8 w-20 bg-muted rounded"></div>
+											<div>
+												<div class="h-5 w-32 bg-muted rounded mb-2"></div>
+												<div class="h-4 w-24 bg-muted rounded"></div>
+											</div>
+										</div>
+										<div class="h-6 w-16 bg-muted rounded"></div>
+									</div>
+								</div>
 							{/each}
 						</div>
-					{:else if canteenMenu.length > 0}
-						<div class="grid grid--cards">
-							{#each canteenMenu as item}
-								<DataCard 
-									data={item} 
-									type="canteen" 
-									language={$languageStore}
-									showActions={false} 
-								/>
+					</div>
+				</div>
+			{:else if schedule.length > 0}
+				<div class="max-w-4xl mx-auto">
+					<div class="overflow-hidden bg-card border border-border rounded-lg shadow-lg">
+						<div class="bg-primary/10 p-6 border-b border-border">
+							<h3 class="flex items-center gap-2 text-xl font-semibold text-card-foreground">
+								<span class="text-2xl">📅</span>
+								{currentDate}
+							</h3>
+						</div>
+						
+						<div class="divide-y divide-border">
+							{#each schedule.filter((item, index, arr) => 
+								arr.findIndex(s => s.startTime === item.startTime && 
+								(currentLanguage === 'kz' ? s.subjectKz : s.subjectRu) === (currentLanguage === 'kz' ? item.subjectKz : item.subjectRu)) === index
+							) as item, index}
+								<div class="p-6 hover:bg-muted/50 transition-colors group">
+									<div class="flex items-center justify-between">
+										<div class="flex items-center gap-6">
+											<div class="text-2xl font-bold text-primary min-w-[80px] group-hover:scale-110 transition-transform">
+												{item.startTime}
+											</div>
+											<div>
+												<h4 class="font-semibold text-lg text-card-foreground group-hover:text-primary transition-colors">
+													{currentLanguage === 'kz' ? item.subjectKz : item.subjectRu}
+												</h4>
+												<p class="text-muted-foreground">
+													{item.Teacher ? (currentLanguage === 'kz' ? item.Teacher.nameKz : item.Teacher.nameRu) : 'Учитель не указан'}
+												</p>
+											</div>
+										</div>
+										<div class="text-right">
+											<span class="bg-secondary/20 text-secondary px-3 py-1 rounded-full text-sm font-medium">
+												{item.Class ? `Класс ${item.Class.grade}${item.Class.letter}` : 'Класс не указан'}
+											</span>
+										</div>
+									</div>
+								</div>
 							{/each}
 						</div>
-					{:else}
-						<div class="empty">
-							<span class="empty-icon">🍽️</span>
-							<h3>Меню обновится позже</h3>
-							<p>Информация о питании появится в ближайшее время</p>
+					</div>
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Расписание пока не добавлено</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Canteen Menu Section -->
+	<section class="py-20 bg-muted/30">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Меню столовой</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Вкусное и полезное питание для наших учеников
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+					{#each Array(6) as _, i}
+						<div class="animate-pulse">
+							<div class="bg-muted h-48 rounded-t-lg"></div>
+							<div class="bg-card p-6 rounded-b-lg border border-border">
+								<div class="h-4 bg-muted rounded mb-2"></div>
+								<div class="h-4 bg-muted rounded mb-4"></div>
+								<div class="h-3 bg-muted rounded"></div>
+							</div>
 						</div>
-					{/if}
+					{/each}
 				</div>
-			</section>
-		{/if}
-	{:else}
-		<section class="section">
-			<div class="container">
-				<div class="welcome-section">
-					<span class="welcome-icon">🏫</span>
-					<h2 class="welcome-title">Добро пожаловать!</h2>
-					<p class="welcome-text">Чтобы увидеть информацию о школе, войдите в систему.</p>
-					<a href="/" class="btn btn-primary">Перейти в систему</a>
+			{:else if canteenMenu.length > 0}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+					{#each canteenMenu as item}
+						<DataCard 
+							data={item}
+							type="canteen"
+							language={currentLanguage}
+							class="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+						/>
+					{/each}
 				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Меню столовой пока не добавлено</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Classes Section -->
+	<section class="py-20 bg-background">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold text-foreground mb-4">Наши классы</h2>
+				<p class="text-muted-foreground max-w-2xl mx-auto text-lg">
+					Информация о классах и классных руководителях
+				</p>
+			</div>
+
+			{#if loading}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{#each Array(9) as _, i}
+						<div class="text-center animate-pulse bg-card border border-border rounded-lg p-6">
+							<div class="w-16 h-16 bg-muted rounded-full mx-auto mb-4"></div>
+							<div class="h-6 bg-muted rounded mb-2"></div>
+							<div class="h-4 bg-muted rounded mb-4"></div>
+							<div class="h-4 bg-muted rounded"></div>
+						</div>
+					{/each}
+				</div>
+			{:else if classes.length > 0}
+				<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{#each classes as classItem}
+						<div class="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-card border border-border rounded-lg p-6">
+							<div class="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+								<span class="text-2xl font-bold text-green-600 dark:text-green-400">
+									{classItem.grade}{classItem.letter}
+								</span>
+							</div>
+							
+							<h3 class="text-xl font-semibold text-card-foreground group-hover:text-green-600 transition-colors mb-2">
+								{classItem.grade} класс "{classItem.letter}"
+							</h3>
+							
+							<div class="space-y-2 mb-4">
+								<div class="flex items-center justify-center gap-2 text-muted-foreground">
+									<span>👥</span>
+									<span>25 учеников</span>
 	</div>
-		</section>
-	{/if}
+							</div>
+							
+							{#if classItem.Teacher}
+								<p class="text-sm text-muted-foreground">
+									Классный руководитель: <br>
+									<span class="font-medium">{classItem.Teacher.nameRu}</span>
+								</p>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center py-12">
+					<p class="text-muted-foreground text-lg">Информация о классах пока не добавлена</p>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<!-- Contact Section -->
+	<section id="contact" class="py-20 bg-gradient-to-br from-slate-900 to-primary text-white">
+		<div class="container mx-auto px-4">
+			<div class="text-center mb-16">
+				<h2 class="text-4xl font-bold mb-4">Свяжитесь с нами</h2>
+				<p class="text-white/90 max-w-2xl mx-auto text-lg">
+					Мы всегда готовы ответить на ваши вопросы и предоставить необходимую информацию
+				</p>
+			</div>
+
+			<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+				{#if schoolData?.addressRu}
+					<div class="text-center group">
+						<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow">
+							<span class="text-2xl">📍</span>
+						</div>
+						<h3 class="text-xl font-semibold mb-2">Адрес</h3>
+						<p class="text-white/90">{currentLanguage === 'kz' ? schoolData.addressKz : schoolData.addressRu}</p>
+					</div>
+				{/if}
+
+				<div class="text-center group">
+					<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 0.5s;">
+						<span class="text-2xl">📞</span>
+					</div>
+					<h3 class="text-xl font-semibold mb-2">Телефон</h3>
+											<p class="text-white/90">+7 (727) 123-45-67</p>
+				</div>
+
+				{#if schoolData?.email}
+					<div class="text-center group">
+						<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 1s;">
+							<span class="text-2xl">📧</span>
+						</div>
+						<h3 class="text-xl font-semibold mb-2">Email</h3>
+						<p class="text-white/90">{schoolData.email}</p>
+					</div>
+				{/if}
+
+				<div class="text-center group">
+					<div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform animate-glow" style="animation-delay: 1.5s;">
+						<span class="text-2xl">🕒</span>
+					</div>
+					<h3 class="text-xl font-semibold mb-2">Режим работы</h3>
+											<p class="text-white/90">Пн-Пт: 8:00 - 18:00</p>
+				</div>
+			</div>
+
+			<div class="text-center">
+				<a href="/" class="inline-block bg-white text-primary hover:bg-blue-50 hover:scale-105 transition-all duration-300 shadow-lg px-8 py-4 rounded-lg font-semibold text-lg flex items-center gap-3 mx-auto">
+					<span class="text-2xl">🏆</span>
+					Войти в систему
+				</a>
+			</div>
+		</div>
+	</section>
 </div>
 
 <style>
-	:root {
-		/* аккуратная палитра под твой стиль: синий/белый с зелёным акцентом */
-		--c-bg: hsl(var(--background));
-		--c-fg: hsl(var(--foreground));
-		--c-muted: hsl(var(--muted-foreground));
-		--c-card: hsl(var(--card));
-		--c-border: hsl(var(--border));
-		--c-primary: hsl(var(--primary));
-		--c-primary-fg: hsl(var(--primary-foreground));
-		--radius: 16px;
+	/* Custom animations */
+	@keyframes float {
+		0%, 100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-20px);
+		}
 	}
 
-	/* Базовая сетка */
+	@keyframes glow {
+		0%, 100% {
+			box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+		}
+		50% {
+			box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+		}
+	}
+
+	.animate-float {
+		animation: float 6s ease-in-out infinite;
+	}
+
+	.animate-glow {
+		animation: glow 3s ease-in-out infinite;
+	}
+
+	/* Hero Section - Full Screen Height */
+	.hero-section {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* High Quality Background Image */
+	.hero-background {
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		background-attachment: fixed; /* Фиксированный фон для лучшего качества */
+		image-rendering: -webkit-optimize-contrast; /* Улучшение контраста в WebKit */
+		image-rendering: crisp-edges; /* Четкие края */
+		image-rendering: pixelated; /* Пиксельная четкость */
+		-webkit-backface-visibility: hidden; /* Предотвращение размытия */
+		backface-visibility: hidden;
+		transform: translateZ(0); /* Аппаратное ускорение */
+		will-change: transform; /* Оптимизация производительности */
+	}
+
+	/* Responsive container */
 	.container {
 		max-width: 1200px;
 		margin: 0 auto;
-		padding: 0 20px;
+		padding: 0 1rem;
 	}
 
-	.page {
-		background: var(--c-bg);
-		color: var(--c-fg);
+	/* CSS Variables for colors - Light theme by default */
+	:root {
+		--background: #ffffff;
+		--foreground: #1f2937;
+		--card: #ffffff;
+		--card-foreground: #1f2937;
+		--border: #e5e7eb;
+		--muted: #f9fafb;
+		--muted-foreground: #6b7280;
+		--primary: #1e40af;
+		--primary-foreground: #ffffff;
+		--secondary: #3b82f6;
+		--secondary-foreground: #ffffff;
+		--accent: #3b82f6;
+		--accent-foreground: #ffffff;
 	}
 
-	/* HERO */
-	.hero {
-		position: relative;
-		min-height: clamp(420px, 52vh, 600px);
-		display: grid;
-		place-items: center;
-		overflow: clip;
-		isolation: isolate;
-	}
 
-	.hero__bg {
-		position: absolute;
-		inset: 0;
-		background-size: cover;
-		background-position: center;
-		transform: scale(1.02); /* лёгкий параллакс без blur */
-	}
 
-	.hero__overlay {
-		position: absolute;
-		inset: 0;
-		background: radial-gradient(120% 90% at 50% 10%, rgba(0,0,0,.35), rgba(0,0,0,.62) 70%, rgba(0,0,0,.75));
-		pointer-events: none;
-	}
-
-	.hero__container {
-		position: relative;
-		z-index: 1;
-		width: 100%;
-	}
-
-	.hero__panel {
-		margin-inline: auto;
-		max-width: 820px;
-		padding: clamp(20px, 4vw, 36px);
-		background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-		-webkit-backdrop-filter: saturate(1.3) blur(10px);
-		backdrop-filter: saturate(1.3) blur(10px);
-		border: 1px solid rgba(255,255,255,.16);
-		border-radius: calc(var(--radius) + 8px);
-		color: white;
-		box-shadow: 0 20px 60px rgba(0,0,0,.25);
-		transition: transform .35s ease;
-	}
-
-	@media (hover:hover) {
-		.hero__panel:hover { transform: translateY(-2px); }
-	}
-
-	.hero__title {
-		font-size: clamp(28px, 5vw, 42px);
-		font-weight: 800;
-		line-height: 1.1;
-		margin: 0 0 10px;
-		letter-spacing: .2px;
-		text-wrap: balance;
-	}
-
-	.hero__subtitle {
-		font-size: clamp(14px, 2.2vw, 18px);
-		opacity: .95;
-		margin: 0 0 12px;
-		text-wrap: pretty;
-	}
-
-	.hero__meta {
-		font-size: 15px;
-		opacity: .85;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.hero__meta-icon {
-		font-size: 1.1em;
-	}
-
-	.hero__stats {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 1rem;
-		margin-top: 1.5rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid rgba(255,255,255,.2);
-	}
-
-	.stat-item {
-		text-align: center;
-	}
-
-	.stat-number {
-		display: block;
-		font-size: 1.5rem;
-		font-weight: 700;
-		color: var(--c-primary);
-	}
-
-	.stat-label {
-		font-size: 0.8rem;
-		opacity: 0.8;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-
-	/* СЕКЦИИ */
-	.section {
-		padding: clamp(36px, 6vw, 64px) 0;
-		border-top: 1px solid var(--c-border);
-	}
-
-	.section:first-of-type { border-top: none; }
-
-	.section--muted {
-		background: var(--c-card);
-	}
-
-	.section--alt {
-		background: color-mix(in oklab, var(--c-card), white 8%);
-	}
-
-	.section__head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 16px;
-		margin-bottom: clamp(18px, 3vw, 28px);
-	}
-
-	.section__title {
-		font-size: clamp(22px, 3.6vw, 28px);
-		font-weight: 700;
-		margin: 0;
-	}
-
-	.section__subtitle {
-		color: var(--c-muted);
-		font-size: 0.9rem;
-		margin: 0;
-	}
-
-	.link {
-		color: var(--c-primary);
-		text-decoration: none;
-		font-weight: 600;
-		transition: opacity .2s ease;
-	}
-	.link:hover, .link:focus-visible { opacity: .8; outline: none; }
-
-	/* ACTIONS */
-	.actions {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 16px;
-	}
-
-	.action {
-		display: grid;
-		align-content: start;
-		gap: 8px;
-		padding: 18px;
-		background: var(--c-bg);
-		border: 1px solid var(--c-border);
-		border-radius: var(--radius);
-		text-decoration: none;
-		color: inherit;
-		box-shadow: 0 6px 24px rgba(0,0,0,.06);
-		transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-		position: relative;
-	}
-	.action:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
-	@media (hover:hover) {
-		.action:hover {
-			transform: translateY(-2px);
-			border-color: var(--c-primary);
-			box-shadow: 0 10px 26px rgba(0,0,0,.08);
+	/* Responsive background quality for different screen densities */
+	@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+		.hero-background {
+			background-size: cover;
+			image-rendering: -webkit-optimize-contrast;
+			image-rendering: crisp-edges;
 		}
 	}
 
-	.action__icon {
-		font-size: 1.5rem;
-		margin-bottom: 0.5rem;
+	@media (-webkit-min-device-pixel-ratio: 3), (min-resolution: 288dpi) {
+		.hero-background {
+			background-size: cover;
+			image-rendering: -webkit-optimize-contrast;
+			image-rendering: crisp-edges;
+		}
 	}
 
-	.action__title {
-		font-weight: 700;
-		font-size: 16px;
-	}
-	.action__desc {
-		color: var(--c-muted);
-		font-size: 14px;
-	}
-
-	.action__badge {
-		position: absolute;
-		top: 12px;
-		right: 12px;
-		background: var(--c-primary);
-		color: var(--c-primary-fg);
-		font-size: 0.75rem;
-		font-weight: 600;
-		padding: 0.25rem 0.5rem;
-		border-radius: 12px;
-		min-width: 1.5rem;
-		text-align: center;
-	}
-
-	/* GRID */
-	.grid {
-		display: grid;
-		gap: 16px;
-	}
-	.grid--cards {
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-	}
-
-	/* ЭЛЕМЕНТЫ */
-	.btn {
-		display: inline-block;
-		background: var(--c-primary);
-		color: var(--c-primary-fg);
-		text-decoration: none;
-		border-radius: 12px;
-		padding: 10px 16px;
-		font-weight: 600;
-		transition: transform .15s ease, opacity .15s ease;
-		border: none;
-		cursor: pointer;
-		font-size: 0.9rem;
-	}
-	.btn:hover { transform: translateY(-1px); }
-	.btn:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 3px; }
-
-	.btn-primary {
-		background: var(--c-primary);
-		color: var(--c-primary-fg);
-	}
-
-	.btn-retry {
-		background: var(--c-primary);
-		color: var(--c-primary-fg);
-		margin-top: 1rem;
-	}
-
-	.lead { color: var(--c-muted); margin: 8px 0 16px; }
-
-	.empty {
-		border: 1px dashed var(--c-border);
-		border-radius: var(--radius);
-		padding: 2rem;
-		text-align: center;
-		color: var(--c-muted);
-		background: var(--c-bg);
-	}
-
-	.empty-icon {
-		font-size: 2rem;
-		display: block;
-		margin-bottom: 1rem;
-	}
-
-	.empty h3 {
-		margin: 0 0 0.5rem;
-		font-size: 1.1rem;
-		font-weight: 600;
-	}
-
-	.empty p {
-		margin: 0;
-		font-size: 0.9rem;
-		opacity: 0.8;
-	}
-
-	.welcome-section {
-		text-align: center;
-		padding: 3rem 1rem;
-	}
-
-	.welcome-icon {
-		font-size: 3rem;
-		display: block;
-		margin-bottom: 1rem;
-	}
-
-	.welcome-title {
-		font-size: 1.5rem;
-		font-weight: 700;
-		margin: 0 0 1rem;
-	}
-
-	.welcome-text {
-		color: var(--c-muted);
-		margin: 0 0 1.5rem;
-		font-size: 1rem;
-	}
-
-	.error-message {
-		text-align: center;
-		padding: 2rem;
-		border: 1px solid hsl(var(--destructive) / 0.2);
-		border-radius: var(--radius);
-		background: hsl(var(--destructive) / 0.05);
-	}
-
-	.error-icon {
-		font-size: 2rem;
-		display: block;
-		margin-bottom: 1rem;
-	}
-
-	.error-message h3 {
-		margin: 0 0 0.5rem;
-		color: hsl(var(--destructive));
-	}
-
-	.error-message p {
-		margin: 0;
-		color: var(--c-muted);
-	}
-
-	/* SKELETONS */
-	@keyframes pulse {
-		0% { opacity: .6; }
-		50% { opacity: .35; }
-		100% { opacity: .6; }
-	}
-	.skeleton {
-		border-radius: var(--radius);
-		background:
-			linear-gradient(90deg, rgba(0,0,0,.04), rgba(0,0,0,.07), rgba(0,0,0,.04));
-		animation: pulse 1.6s ease-in-out infinite;
-	}
-	.skeleton--card { height: 220px; }
-	.skeleton--table { height: 260px; }
-
-	/* АДАПТИВ */
+	/* Disable background-attachment: fixed on mobile for better performance */
 	@media (max-width: 768px) {
-		.container { padding: 0 14px; }
-		
-		.hero__stats {
-			grid-template-columns: repeat(3, 1fr);
-			gap: 0.5rem;
-		}
-
-		.stat-number {
-			font-size: 1.2rem;
-		}
-
-		.stat-label {
-			font-size: 0.7rem;
-		}
-
-		.section__head {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.5rem;
+		.hero-background {
+			background-attachment: scroll;
 		}
 	}
-
-	@media (max-width: 480px) {
-		.hero__stats {
-			grid-template-columns: 1fr;
-			gap: 1rem;
-		}
-
-		.actions {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	/* Предпочтение пользователя по анимации */
-	@media (prefers-reduced-motion: reduce) {
-		* { transition: none !important; animation: none !important; }
-	}
-
-	/* Плавное появление страницы */
-	.page { opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease; }
-	.page.is-hydrated { opacity: 1; transform: translateY(0); }
 </style>

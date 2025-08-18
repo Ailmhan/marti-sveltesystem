@@ -209,7 +209,7 @@
                     language={$languageStore}
                     showActions={$adminStore.isAdminMode}
                     onEdit={() => editTeacher(teacher)}
-                    onDelete={() => deleteTeacher(teacher.id)}
+                    					onDelete={$adminStore.isAdminMode ? () => deleteTeacher(teacher.id) : undefined}
                 />
 			{/each}
 		</div>
@@ -607,8 +607,23 @@
 
 .grid-container {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	grid-template-columns: repeat(3, 340px);
+	justify-content: start;
 	gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+	.grid-container {
+		grid-template-columns: repeat(2, 340px);
+	}
+}
+
+@media (max-width: 768px) {
+	.grid-container {
+		grid-template-columns: 1fr;
+		max-width: 400px;
+		margin: 0 auto;
+	}
 }
 
 .alert {

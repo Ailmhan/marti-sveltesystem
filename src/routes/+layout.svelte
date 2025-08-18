@@ -135,8 +135,8 @@
 			<div class="sidebar-surface flex grow flex-col gap-y-5 overflow-y-auto px-6 pb-4">
 				<div class="sidebar-header">
 					<div class="brand">
-						{#if $authStore.schoolData?.logoUrl}
-							<img class="brand-logo" src={$authStore.schoolData.logoUrl} alt="Логотип школы" />
+						{#if $authStore.schoolData?.schoolEmblem}
+							<img class="brand-logo" src={$authStore.schoolData.schoolEmblem} alt="Эмблема школы" />
 						{:else}
 							<div class="brand-logo ph">🏫</div>
 						{/if}
