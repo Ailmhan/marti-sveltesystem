@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { apiClient } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { adminStore } from '$lib/stores/admin';
@@ -41,7 +42,10 @@
 	};
 
 	// Валидация изображения для редактирования
-	let editImageValidation: ReturnType<typeof useImageValidation> | null = null;
+	let editImageValidation = {
+		shouldDisableSubmit: false,
+		validationError: ''
+	};
 
 	// Состояние для загрузки изображений
 	let imageUploading = false;
@@ -55,7 +59,10 @@
 	};
 
 	// Валидация изображения для добавления
-	const addImageValidation = useImageValidation('', newNews.imageUrl || '');
+	let addImageValidation = {
+		shouldDisableSubmit: false,
+		validationError: ''
+	};
 
 	onMount(() => {
 		loadNews();
@@ -159,7 +166,8 @@
 		};
 		
 		// Сбрасываем валидацию
-		addImageValidation.resetValidation();
+		addImageValidation.shouldDisableSubmit = false;
+		addImageValidation.validationError = '';
 	}
 
 	function editNews(news: News) {
@@ -173,7 +181,8 @@
 		};
 		
 		// Инициализируем валидацию для редактирования
-		editImageValidation = useImageValidation(news.imageUrl || '', editForm.imageUrl || '');
+		editImageValidation.shouldDisableSubmit = false;
+		editImageValidation.validationError = '';
 		
 		showEditModal = true;
 		modalError = '';
@@ -185,10 +194,8 @@
 		modalError = '';
 		
 		// Сбрасываем валидацию
-		if (editImageValidation) {
-			editImageValidation.resetValidation();
-			editImageValidation = null;
-		}
+		editImageValidation.shouldDisableSubmit = false;
+		editImageValidation.validationError = '';
 	}
 
 	async function handleImageChange(event: CustomEvent) {
@@ -196,7 +203,8 @@
 		if (url) {
 			newNews.imageUrl = url;
 			// Валидируем новое изображение
-			await addImageValidation.validateCurrentImage();
+			addImageValidation.shouldDisableSubmit = false;
+			addImageValidation.validationError = '';
 		}
 	}
 
@@ -204,8 +212,9 @@
 		const url = event.detail.value;
 		if (url && editImageValidation) {
 			editForm.imageUrl = url;
-			// Валидируем новое изображение
-			await editImageValidation.validateCurrentImage();
+					// Валидируем новое изображение
+		editImageValidation.shouldDisableSubmit = false;
+		editImageValidation.validationError = '';
 		}
 	}
 
@@ -273,11 +282,12 @@
                             <DataCard
                                 data={item}
                                 type="news"
-                            language={$languageStore}
-                            showActions={$adminStore.isAdminMode}
-                            onEdit={() => editNews(item)}
-                            onDelete={$adminStore.isAdminMode ? () => deleteNews(item.id) : undefined}
-                        />
+                                language={$languageStore}
+                                showActions={$adminStore.isAdminMode}
+                                onEdit={() => editNews(item)}
+                                onDelete={$adminStore.isAdminMode ? () => deleteNews(item.id) : undefined}
+                                onClick={() => goto(`/news/${item.id}`)}
+                            />
                     {/each}
                 </div>
 			{:else if currentView === 'list'}
@@ -336,7 +346,7 @@
 	bind:open={showAddModal}
 	title="Добавить новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading || ($addImageValidation?.shouldDisableSubmit || false)}
+	disableSubmit={imageUploading || addImageValidation.shouldDisableSubmit}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -413,9 +423,9 @@
 				folder="news"
 				on:change={handleImageChange}
 			/>
-			{#if $addImageValidation.validationError}
+			{#if addImageValidation.validationError}
 				<div class="text-red-500 text-sm mt-1">
-					{$addImageValidation.validationError}
+					{addImageValidation.validationError}
 				</div>
 			{/if}
 		</div>
@@ -427,7 +437,7 @@
 	bind:open={showEditModal}
 	title="Редактировать новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading || (editImageValidation ? $editImageValidation.shouldDisableSubmit : false)}
+	disableSubmit={imageUploading || editImageValidation.shouldDisableSubmit}
 	on:close={closeEditModal}
 	on:submit={updateNews}
 >
@@ -502,9 +512,9 @@
 				folder="news" 
 				on:change={handleEditImageChange} 
 			/>
-			{#if editImageValidation && $editImageValidation.validationError}
+			{#if editImageValidation.validationError}
 				<div class="text-red-500 text-sm mt-1">
-					{$editImageValidation.validationError}
+					{editImageValidation.validationError}
 				</div>
 			{/if}
 		</div>
@@ -512,6 +522,37 @@
 </DataModal>
 
 <style>
+.news-page {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 2rem;
+	padding-top: calc(70px + 2rem);
+}
+
+.page-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	row-gap: 1rem;
+	margin-bottom: 2.5rem;
+	border-bottom: 1px solid #e5e7eb;
+	padding-bottom: 1.25rem;
+}
+
+.page-header h1 {
+	margin: 0;
+	font-size: 2rem;
+	font-weight: 700;
+	color: #1f2937;
+}
+
+.page-actions {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
 .btn {
 	border: none;
 	border-radius: 0.6rem;
