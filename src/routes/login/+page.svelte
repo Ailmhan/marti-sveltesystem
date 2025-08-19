@@ -46,21 +46,6 @@
 			</div>
 			<h1 class="auth-title">Добро пожаловать</h1>
 			<p class="auth-subtitle">Войдите в школьную систему управления</p>
-			
-			<!-- Test Credentials Info -->
-			<div class="test-credentials">
-				<h3>Тестовые учетные данные:</h3>
-				<div class="credential-box">
-					<div class="credential-row">
-						<span class="credential-label">Email:</span>
-						<span class="credential-value">school@example.com</span>
-					</div>
-					<div class="credential-row">
-						<span class="credential-label">Пароль:</span>
-						<span class="credential-value">password123</span>
-					</div>
-				</div>
-			</div>
 		</div>
 
 		<form on:submit|preventDefault={handleSubmit} class="auth-form">
@@ -74,7 +59,7 @@
 					type="email"
 					bind:value={email}
 					class="form-input"
-					placeholder="school@example.com"
+					placeholder="Введите email"
 					required
 					disabled={loading}
 				/>
@@ -116,23 +101,6 @@
 		</form>
 
 		<div class="auth-footer">
-			<div class="demo-credentials">
-				<h4 class="demo-title">
-					<span class="demo-icon">🧪</span>
-					Тестовые данные
-				</h4>
-				<div class="credentials-grid">
-					<div class="credential-item">
-						<span class="credential-label">Email:</span>
-						<span class="credential-value">school@example.com</span>
-					</div>
-					<div class="credential-item">
-						<span class="credential-label">Пароль:</span>
-						<span class="credential-value">password123</span>
-					</div>
-				</div>
-			</div>
-			
 			<div class="auth-links">
 				<p class="register-text">
 					Нет аккаунта? 
@@ -146,16 +114,35 @@
 </div>
 
 <style>
+	/* CSS переменные для темной темы */
+	:global(.dark) {
+		--auth-bg: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+		--auth-card-bg: rgba(30, 41, 59, 0.95);
+		--auth-card-border: rgba(139, 92, 246, 0.3);
+		--auth-text-primary: #f8fafc;
+		--auth-text-secondary: #cbd5e1;
+		--auth-input-bg: rgba(51, 65, 85, 0.8);
+		--auth-input-border: rgba(139, 92, 246, 0.4);
+		--auth-input-text: #f1f5f9;
+		--auth-error-bg: rgba(239, 68, 68, 0.15);
+		--auth-error-border: rgba(239, 68, 68, 0.3);
+		--auth-error-text: #fca5a5;
+	}
+
 	/* Auth Container */
 	.auth-container {
 		min-height: 100vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+		background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 		padding: 1rem;
 		position: relative;
 		overflow: hidden;
+	}
+
+	:global(.dark) .auth-container {
+		background: var(--auth-bg);
 	}
 
 	/* Background Animation */
@@ -179,6 +166,10 @@
 		font-size: 2rem;
 		opacity: 0.1;
 		animation: float 6s ease-in-out infinite;
+	}
+
+	:global(.dark) .shape {
+		opacity: 0.05;
 	}
 
 	.shape-1 {
@@ -221,8 +212,8 @@
 	.auth-card {
 		background: rgba(255, 255, 255, 0.95);
 		backdrop-filter: blur(20px);
-		border-radius: var(--radius-2xl);
-		box-shadow: var(--shadow-xl);
+		border-radius: 1rem;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 		padding: 3rem;
 		width: 100%;
 		max-width: 450px;
@@ -230,6 +221,12 @@
 		z-index: 10;
 		border: 1px solid rgba(255, 255, 255, 0.2);
 		animation: slideInUp 0.6s ease-out;
+	}
+
+	:global(.dark) .auth-card {
+		background: var(--auth-card-bg);
+		border: 1px solid var(--auth-card-border);
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 	}
 
 	@keyframes slideInUp {
@@ -267,18 +264,30 @@
 	.auth-title {
 		font-size: 2.25rem;
 		font-weight: 700;
-		color: var(--gray-900);
+		color: #111827;
 		margin: 0 0 0.5rem 0;
-		background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+		background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	:global(.dark) .auth-title {
+		color: var(--auth-text-primary);
+		background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
 		-webkit-background-clip: text;
 		-webkit-text-fill-color: transparent;
 		background-clip: text;
 	}
 
 	.auth-subtitle {
-		color: var(--gray-600);
+		color: #6b7280;
 		font-size: 1rem;
 		margin: 0;
+	}
+
+	:global(.dark) .auth-subtitle {
+		color: var(--auth-text-secondary);
 	}
 
 	/* Auth Form */
@@ -295,9 +304,13 @@
 		align-items: center;
 		gap: 0.5rem;
 		font-weight: 600;
-		color: var(--gray-700);
+		color: #374151;
 		margin-bottom: 0.75rem;
 		font-size: 0.875rem;
+	}
+
+	:global(.dark) .form-label {
+		color: var(--auth-text-secondary);
 	}
 
 	.label-icon {
@@ -307,24 +320,43 @@
 	.form-input {
 		width: 100%;
 		padding: 1rem 1.25rem;
-		border: 2px solid var(--gray-200);
-		border-radius: var(--radius-lg);
+		border: 2px solid #d1d5db;
+		border-radius: 0.5rem;
 		font-size: 1rem;
-		transition: all var(--transition-fast);
-		background: var(--bg-primary);
-		color: var(--text-primary);
+		transition: all 0.2s ease;
+		background: #ffffff;
+		color: #111827;
+	}
+
+	:global(.dark) .form-input {
+		background: var(--auth-input-bg);
+		border-color: var(--auth-input-border);
+		color: var(--auth-input-text);
 	}
 
 	.form-input:focus {
 		outline: none;
-		border-color: var(--primary);
-		box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+		border-color: #3b82f6;
+		box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 		transform: translateY(-1px);
+	}
+
+	:global(.dark) .form-input:focus {
+		border-color: #a855f7;
+		box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
 	}
 
 	.form-input:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
+	}
+
+	.form-input::placeholder {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .form-input::placeholder {
+		color: #64748b;
 	}
 
 	/* Error Message */
@@ -335,10 +367,16 @@
 		padding: 1rem;
 		background: rgba(239, 68, 68, 0.1);
 		border: 1px solid rgba(239, 68, 68, 0.2);
-		border-radius: var(--radius-lg);
-		color: var(--error);
+		border-radius: 0.5rem;
+		color: #dc2626;
 		font-size: 0.875rem;
 		margin-bottom: 1.5rem;
+	}
+
+	:global(.dark) .error-message {
+		background: var(--auth-error-bg);
+		border-color: var(--auth-error-border);
+		color: var(--auth-error-text);
 	}
 
 	.error-icon {
@@ -349,20 +387,24 @@
 	.submit-btn {
 		width: 100%;
 		padding: 1rem 1.5rem;
-		background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+		background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 		color: white;
 		border: none;
-		border-radius: var(--radius-lg);
+		border-radius: 0.5rem;
 		font-size: 1rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: all var(--transition-fast);
+		transition: all 0.2s ease;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		gap: 0.5rem;
 		position: relative;
 		overflow: hidden;
+	}
+
+	:global(.dark) .submit-btn {
+		background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
 	}
 
 	.submit-btn::before {
@@ -382,7 +424,11 @@
 
 	.submit-btn:hover:not(:disabled) {
 		transform: translateY(-2px);
-		box-shadow: var(--shadow-lg);
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	}
+
+	:global(.dark) .submit-btn:hover:not(:disabled) {
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
 	}
 
 	.submit-btn:disabled {
@@ -406,63 +452,12 @@
 
 	/* Auth Footer */
 	.auth-footer {
-		border-top: 1px solid var(--gray-200);
+		border-top: 1px solid #e5e7eb;
 		padding-top: 2rem;
 	}
 
-	.demo-credentials {
-		background: var(--gray-50);
-		border-radius: var(--radius-lg);
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
-		border: 1px solid var(--gray-200);
-	}
-
-	.demo-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		font-size: 1rem;
-		font-weight: 600;
-		color: var(--gray-900);
-		margin: 0 0 1rem 0;
-	}
-
-	.demo-icon {
-		font-size: 1.125rem;
-	}
-
-	.credentials-grid {
-		display: grid;
-		gap: 0.75rem;
-	}
-
-	.credential-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--gray-200);
-	}
-
-	.credential-item:last-child {
-		border-bottom: none;
-	}
-
-	.credential-label {
-		font-weight: 500;
-		color: var(--gray-600);
-		font-size: 0.875rem;
-	}
-
-	.credential-value {
-		font-family: var(--font-mono);
-		font-size: 0.875rem;
-		color: var(--text-primary);
-		background: var(--bg-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
-		border: 1px solid var(--border-primary);
+	:global(.dark) .auth-footer {
+		border-top-color: #334155;
 	}
 
 	.auth-links {
@@ -470,73 +465,33 @@
 	}
 
 	.register-text {
-		color: var(--gray-600);
+		color: #6b7280;
 		font-size: 0.875rem;
 		margin: 0;
 	}
 
+	:global(.dark) .register-text {
+		color: var(--auth-text-secondary);
+	}
+
 	.register-link {
-		color: var(--primary);
+		color: #3b82f6;
 		text-decoration: none;
 		font-weight: 600;
-		transition: color var(--transition-fast);
+		transition: color 0.2s ease;
+	}
+
+	:global(.dark) .register-link {
+		color: #a855f7;
 	}
 
 	.register-link:hover {
-		color: var(--primary-dark);
+		color: #1d4ed8;
 		text-decoration: underline;
 	}
 
-	/* Test Credentials Styles */
-	.test-credentials {
-		margin-top: 2rem;
-		padding: 1.5rem;
-		background: var(--primary-lighter);
-		border-radius: var(--radius-lg);
-		border: 1px solid var(--primary-light);
-	}
-
-	.test-credentials h3 {
-		font-size: 1rem;
-		font-weight: 600;
-		color: var(--primary-dark);
-		margin-bottom: 1rem;
-		text-align: center;
-	}
-
-	.credential-box {
-		background: var(--bg-primary);
-		padding: 1rem;
-		border-radius: var(--radius-md);
-		border: 1px solid var(--border-primary);
-	}
-
-	.credential-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--border-primary);
-	}
-
-	.credential-row:last-child {
-		border-bottom: none;
-	}
-
-	.credential-label {
-		font-weight: 500;
-		color: var(--text-secondary);
-		font-size: 0.875rem;
-	}
-
-	.credential-value {
-		font-weight: 600;
-		color: var(--text-primary);
-		font-size: 0.875rem;
-		font-family: var(--font-mono);
-		background: var(--bg-secondary);
-		padding: 0.25rem 0.5rem;
-		border-radius: var(--radius-sm);
+	:global(.dark) .register-link:hover {
+		color: #7c3aed;
 	}
 
 	/* Responsive Design */
@@ -566,12 +521,6 @@
 
 		.auth-title {
 			font-size: 1.5rem;
-		}
-
-		.credential-item {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.25rem;
 		}
 	}
 </style> 

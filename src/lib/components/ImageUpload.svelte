@@ -49,6 +49,7 @@
 
 		// Показываем состояние загрузки
 		internalUploading = true;
+		dispatch('uploading', { uploading: true });
 
 		try {
 			// Создаем временный URL для предварительного просмотра
@@ -67,6 +68,7 @@
 				uploadSuccess = true; // Устанавливаем флаг успешной загрузки
 				dispatch('change', { value: result.url });
 				dispatch('success', { message: 'Изображение успешно загружено' });
+				dispatch('uploading', { uploading: false });
 			} else {
 				// Освобождаем временный URL в случае ошибки
 				URL.revokeObjectURL(tempUrl);
@@ -74,12 +76,14 @@
 				uploadSuccess = false;
 				const errorMsg = result.error || 'Ошибка загрузки изображения';
 				dispatch('error', { message: errorMsg });
+				dispatch('uploading', { uploading: false });
 			}
 		} catch (error) {
 			value = '';
 			uploadSuccess = false;
 			const errorMsg = error instanceof Error ? error.message : 'Ошибка загрузки изображения';
 			dispatch('error', { message: errorMsg });
+			dispatch('uploading', { uploading: false });
 		} finally {
 			internalUploading = false;
 		}
@@ -108,6 +112,7 @@
 		value = '';
 		uploadSuccess = false;
 		dispatch('change', { value: '' });
+		dispatch('uploading', { uploading: false });
 	}
 
 	function openFileDialog() {
@@ -123,19 +128,19 @@
 	export { uploadSuccess };
 </script>
 
-<div class="image-upload">
-	<div 
-		class="upload-area" 
-		class:drag-over={isDragOver}
-		on:click={() => fileInput?.click()}
-		on:dragover={handleDragOver}
-		on:dragleave={handleDragLeave}
-		on:drop={handleDrop}
-	>
+	<div class="image-upload">
+		<div 
+			class="upload-area" 
+			class:drag-over={isDragOver}
+			on:click|stopPropagation={() => fileInput?.click()}
+			on:dragover|stopPropagation={handleDragOver}
+			on:dragleave|stopPropagation={handleDragLeave}
+			on:drop|stopPropagation={handleDrop}
+		>
 		{#if value && !isUploading}
 			<div class="image-preview">
 				<img src={value} alt="Preview" />
-				<button type="button" class="remove-btn" on:click={clearImage}>✕</button>
+				<button type="button" class="remove-btn" on:click|stopPropagation={clearImage}>✕</button>
 			</div>
 		{:else if isUploading}
 			<div class="uploading-state">
@@ -161,7 +166,7 @@
 	/>
 
 	{#if isDragOver}
-		<div class="drag-overlay">
+		<div class="drag-overlay" on:click|stopPropagation>
 			<span>Отпустите файл для загрузки</span>
 		</div>
 	{/if}

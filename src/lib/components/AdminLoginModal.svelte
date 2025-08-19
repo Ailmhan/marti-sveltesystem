@@ -127,13 +127,32 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <style>
+	/* CSS переменные для темной темы */
+	:global(.dark) {
+		--modal-overlay-bg: rgba(0, 0, 0, 0.8);
+		--modal-content-bg: #1e293b;
+		--modal-border: #334155;
+		--modal-text: #f8fafc;
+		--modal-text-secondary: #cbd5e1;
+		--modal-input-bg: #334155;
+		--modal-input-border: #475569;
+		--modal-input-text: #f1f5f9;
+		--modal-error-bg: rgba(239, 68, 68, 0.15);
+		--modal-error-border: rgba(239, 68, 68, 0.3);
+		--modal-error-text: #fca5a5;
+		--modal-primary: #a855f7;
+		--modal-primary-hover: #7c3aed;
+		--modal-secondary: #475569;
+		--modal-secondary-hover: #334155;
+	}
+
 	.modal-overlay {
 		position: fixed;
 		top: 0;
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background: hsl(var(--background) / 0.8);
+		background: rgba(0, 0, 0, 0.5);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -142,16 +161,26 @@
 		padding: 1rem;
 	}
 
+	:global(.dark) .modal-overlay {
+		background: var(--modal-overlay-bg);
+	}
+
 	.modal-content {
-		background: hsl(var(--card));
-		border-radius: var(--radius);
+		background: #ffffff;
+		border-radius: 0.75rem;
 		padding: 0;
 		max-width: 400px;
 		width: 90%;
 		max-height: 90vh;
 		overflow-y: auto;
-		border: 1px solid hsl(var(--border));
-		box-shadow: var(--shadow-xl);
+		border: 1px solid #e5e7eb;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+	}
+
+	:global(.dark) .modal-content {
+		background: var(--modal-content-bg);
+		border-color: var(--modal-border);
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 	}
 
 	.modal-header {
@@ -159,15 +188,23 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 1.5rem 1.5rem 0;
-		border-bottom: 1px solid hsl(var(--border));
+		border-bottom: 1px solid #e5e7eb;
 		padding-bottom: 1rem;
+	}
+
+	:global(.dark) .modal-header {
+		border-color: var(--modal-border);
 	}
 
 	.modal-title {
 		margin: 0;
 		font-size: 1.25rem;
 		font-weight: 600;
-		color: hsl(var(--foreground));
+		color: #111827;
+	}
+
+	:global(.dark) .modal-title {
+		color: var(--modal-text);
 	}
 
 	.close-button {
@@ -176,8 +213,8 @@
 		font-size: 1.5rem;
 		cursor: pointer;
 		padding: 0.25rem;
-		border-radius: calc(var(--radius) - 0.25rem);
-		color: hsl(var(--muted-foreground));
+		border-radius: 0.375rem;
+		color: #6b7280;
 		transition: all 0.2s ease;
 		width: 2rem;
 		height: 2rem;
@@ -186,9 +223,18 @@
 		justify-content: center;
 	}
 
+	:global(.dark) .close-button {
+		color: var(--modal-text-secondary);
+	}
+
 	.close-button:hover:not(:disabled) {
-		background: hsl(var(--muted));
-		color: hsl(var(--foreground));
+		background: #f3f4f6;
+		color: #374151;
+	}
+
+	:global(.dark) .close-button:hover:not(:disabled) {
+		background: var(--modal-secondary);
+		color: var(--modal-text);
 	}
 
 	.close-button:disabled {
@@ -208,42 +254,75 @@
 		display: block;
 		margin-bottom: 0.5rem;
 		font-weight: 500;
-		color: hsl(var(--foreground));
+		color: #374151;
 		font-size: 0.875rem;
+	}
+
+	:global(.dark) .form-group label {
+		color: var(--modal-text-secondary);
 	}
 
 	.form-input {
 		width: 100%;
 		padding: 0.75rem;
-		border: 1px solid hsl(var(--border));
-		border-radius: calc(var(--radius) - 0.25rem);
-		background: hsl(var(--background));
-		color: hsl(var(--foreground));
+		border: 1px solid #d1d5db;
+		border-radius: 0.5rem;
+		background: #ffffff;
+		color: #111827;
 		font-size: 0.875rem;
 		transition: all 0.2s ease;
 		box-sizing: border-box;
 	}
 
+	:global(.dark) .form-input {
+		background: var(--modal-input-bg);
+		border-color: var(--modal-input-border);
+		color: var(--modal-input-text);
+	}
+
 	.form-input:focus {
 		outline: none;
-		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+		border-color: #3b82f6;
+		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+	}
+
+	:global(.dark) .form-input:focus {
+		border-color: var(--modal-primary);
+		box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
 	}
 
 	.form-input:disabled {
 		opacity: 0.6;
 		cursor: not-allowed;
-		background: hsl(var(--muted));
+		background: #f9fafb;
+	}
+
+	:global(.dark) .form-input:disabled {
+		background: var(--modal-secondary);
+	}
+
+	.form-input::placeholder {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .form-input::placeholder {
+		color: #64748b;
 	}
 
 	.error-message {
 		padding: 0.75rem;
-		background: hsl(var(--destructive) / 0.1);
-		border: 1px solid hsl(var(--destructive) / 0.2);
-		border-radius: calc(var(--radius) - 0.25rem);
-		color: hsl(var(--destructive));
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		border-radius: 0.5rem;
+		color: #dc2626;
 		font-size: 0.875rem;
 		margin-bottom: 1.5rem;
+	}
+
+	:global(.dark) .error-message {
+		background: var(--modal-error-bg);
+		border-color: var(--modal-error-border);
+		color: var(--modal-error-text);
 	}
 
 	.form-actions {
@@ -254,7 +333,7 @@
 
 	.btn {
 		padding: 0.75rem 1.5rem;
-		border-radius: calc(var(--radius) - 0.25rem);
+		border-radius: 0.5rem;
 		border: none;
 		cursor: pointer;
 		font-weight: 500;
@@ -272,23 +351,41 @@
 	}
 
 	.btn-cancel {
-		background: hsl(var(--secondary));
-		color: hsl(var(--secondary-foreground));
-		border: 1px solid hsl(var(--border));
+		background: #f3f4f6;
+		color: #374151;
+		border: 1px solid #d1d5db;
+	}
+
+	:global(.dark) .btn-cancel {
+		background: var(--modal-secondary);
+		color: var(--modal-text);
+		border-color: var(--modal-border);
 	}
 
 	.btn-cancel:hover:not(:disabled) {
-		background: hsl(var(--secondary) / 0.8);
+		background: #e5e7eb;
+	}
+
+	:global(.dark) .btn-cancel:hover:not(:disabled) {
+		background: var(--modal-secondary-hover);
 	}
 
 	.btn-submit {
-		background: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
+		background: #3b82f6;
+		color: #ffffff;
+	}
+
+	:global(.dark) .btn-submit {
+		background: var(--modal-primary);
 	}
 
 	.btn-submit:hover:not(:disabled) {
-		background: hsl(var(--primary) / 0.9);
+		background: #2563eb;
 		transform: translateY(-1px);
+	}
+
+	:global(.dark) .btn-submit:hover:not(:disabled) {
+		background: var(--modal-primary-hover);
 	}
 
 	.loading-spinner {
@@ -298,48 +395,6 @@
 	@keyframes spin {
 		from { transform: rotate(0deg); }
 		to { transform: rotate(360deg); }
-	}
-
-	/* Темная тема */
-	:global(.dark) .modal-overlay {
-		background: hsl(var(--background) / 0.9);
-	}
-
-	:global(.dark) .modal-content {
-		background: hsl(var(--card));
-		border-color: hsl(var(--border));
-	}
-
-	:global(.dark) .modal-header {
-		background: hsl(var(--card));
-		border-color: hsl(var(--border));
-	}
-
-	:global(.dark) .modal-title {
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .close-button {
-		color: hsl(var(--muted-foreground));
-	}
-
-	:global(.dark) .close-button:hover:not(:disabled) {
-		background: hsl(var(--muted));
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .form-input {
-		background: hsl(var(--background));
-		border-color: hsl(var(--border));
-		color: hsl(var(--foreground));
-	}
-
-	:global(.dark) .form-input:focus {
-		border-color: hsl(var(--primary));
-	}
-
-	:global(.dark) .form-input:disabled {
-		background: hsl(var(--muted));
 	}
 
 	@media (max-width: 640px) {

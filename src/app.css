@@ -193,4 +193,452 @@ body {
 ::selection {
   background: hsl(var(--primary) / 0.2);
   color: hsl(var(--primary-foreground));
+}
+
+/* Предотвращение мерцания темы */
+html {
+	/* Базовые цвета по умолчанию (светлая тема) */
+	--bg-primary: #ffffff;
+	--bg-secondary: #f8fafc;
+	--text-primary: #1e293b;
+	--text-secondary: #64748b;
+	--border-color: #e2e8f0;
+	--accent-color: #3b82f6;
+	--card-bg: #ffffff;
+	--card-border: #e2e8f0;
+	--input-bg: #ffffff;
+	--input-border: #d1d5db;
+	--input-text: #1e293b;
+	--button-bg: #3b82f6;
+	--button-text: #ffffff;
+	--button-hover: #2563eb;
+	--link-color: #3b82f6;
+	--link-hover: #1d4ed8;
+	--success-color: #10b981;
+	--error-color: #ef4444;
+	--warning-color: #f59e0b;
+	--icon-filter: brightness(0) invert(1);
+	--icon-filter: none;
+}
+
+/* Темная тема */
+html.dark {
+	--bg-primary: #0f172a;
+	--bg-secondary: #1e293b;
+	--text-primary: #f1f5f9;
+	--text-secondary: #94a3b8;
+	--border-color: #334155;
+	--accent-color: #8b5cf6;
+	--card-bg: #1e293b;
+	--card-border: #334155;
+	--input-bg: #0f172a;
+	--input-border: #475569;
+	--input-text: #f1f5f9;
+	--button-bg: #8b5cf6;
+	--button-text: #ffffff;
+	--button-hover: #7c3aed;
+	--link-color: #8b5cf6;
+	--link-hover: #7c3aed;
+	--success-color: #10b981;
+	--error-color: #ef4444;
+	--warning-color: #f59e0b;
+}
+
+/* Применяем цвета к body */
+body {
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+	transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Предотвращаем мерцание при загрузке */
+html:not(.dark):not(.light) {
+	/* Пока тема не определена, используем системную тему */
+	color-scheme: light dark;
+}
+
+/* Плавные переходы для всех элементов */
+* {
+	transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Базовые стили для всех элементов */
+h1, h2, h3, h4, h5, h6 {
+	color: var(--text-primary);
+}
+
+p, span, div, li, td, th {
+	color: var(--text-primary);
+}
+
+a {
+	color: var(--link-color);
+}
+
+a:hover {
+	color: var(--link-hover);
+}
+
+/* Стили для карточек */
+.card, .card-body, .card-header {
+	background-color: var(--card-bg);
+	border-color: var(--card-border);
+	color: var(--text-primary);
+}
+
+/* Стили для форм */
+input, textarea, select {
+	background-color: var(--input-bg);
+	border-color: var(--input-border);
+	color: var(--input-text);
+}
+
+input:focus, textarea:focus, select:focus {
+	border-color: var(--accent-color);
+	box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Стили для кнопок */
+.btn, button {
+	background-color: var(--button-bg);
+	color: var(--button-text);
+	border-color: var(--button-bg);
+}
+
+.btn:hover, button:hover {
+	background-color: var(--button-hover);
+}
+
+/* Стили для таблиц */
+table {
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+}
+
+th, td {
+	border-color: var(--border-color);
+}
+
+/* Стили для модальных окон */
+.modal-content, .modal-header, .modal-body {
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+	border-color: var(--card-border);
+}
+
+/* Стили для сайдбара и навигации */
+.sidebar, .nav, .header {
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+	border-color: var(--border-color);
+}
+
+/* Стили для уведомлений */
+.alert, .notification {
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+	border-color: var(--card-border);
+}
+
+.alert-success {
+	background-color: var(--success-color);
+	color: white;
+}
+
+.alert-error {
+	background-color: var(--error-color);
+	color: white;
+}
+
+.alert-warning {
+	background-color: var(--warning-color);
+	color: white;
+}
+
+/* Специфические стили для нашего приложения */
+.section-title, .module-title, .card-title {
+	color: var(--text-primary);
+}
+
+.text-gray-600, .text-gray-700, .text-gray-800 {
+	color: var(--text-secondary);
+}
+
+.bg-white {
+	background-color: var(--card-bg);
+}
+
+.bg-gray-50, .bg-gray-100 {
+	background-color: var(--bg-secondary);
+}
+
+.border-gray-200, .border-gray-300 {
+	border-color: var(--border-color);
+}
+
+/* Стили для заголовков страниц */
+.page-title, .hero-title, .section-header {
+	color: var(--text-primary);
+}
+
+/* Стили для описаний */
+.description, .subtitle, .caption {
+	color: var(--text-secondary);
+}
+
+/* Стили для иконок */
+.icon, .emoji {
+	filter: var(--icon-filter);
+}
+
+/* Стили для темной темы - специальные настройки */
+:global(.dark) .icon, :global(.dark) .emoji {
+	filter: brightness(0) invert(1);
+}
+
+/* Стили для placeholder текста */
+::placeholder {
+	color: var(--text-secondary);
+	opacity: 0.7;
+}
+
+/* Стили для выделенного текста */
+::selection {
+	background-color: var(--accent-color);
+	color: white;
+}
+
+/* Стили для disabled элементов */
+input:disabled, textarea:disabled, select:disabled, button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Стили для loading состояний */
+.loading, .spinner {
+	color: var(--accent-color);
+}
+
+/* Стили для skeleton элементов */
+.skeleton {
+	background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--border-color) 50%, var(--bg-secondary) 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+/* Дополнительные стили для Tailwind CSS классов */
+:global(.dark) .text-gray-900 {
+	color: var(--text-primary);
+}
+
+:global(.dark) .text-gray-800 {
+	color: var(--text-primary);
+}
+
+:global(.dark) .text-gray-700 {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .text-gray-600 {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .text-gray-500 {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .bg-white {
+	background-color: var(--card-bg);
+}
+
+:global(.dark) .bg-gray-50 {
+	background-color: var(--bg-secondary);
+}
+
+:global(.dark) .bg-gray-100 {
+	background-color: var(--bg-secondary);
+}
+
+:global(.dark) .bg-gray-200 {
+	background-color: var(--border-color);
+}
+
+:global(.dark) .border-gray-200 {
+	border-color: var(--border-color);
+}
+
+:global(.dark) .border-gray-300 {
+	border-color: var(--border-color);
+}
+
+:global(.dark) .border-gray-400 {
+	border-color: var(--border-color);
+}
+
+/* Стили для заголовков в темной теме */
+:global(.dark) h1, :global(.dark) h2, :global(.dark) h3, 
+:global(.dark) h4, :global(.dark) h5, :global(.dark) h6 {
+	color: var(--text-primary);
+}
+
+/* Стили для параграфов в темной теме */
+:global(.dark) p, :global(.dark) span, :global(.dark) div {
+	color: var(--text-primary);
+}
+
+/* Стили для ссылок в темной теме */
+:global(.dark) a {
+	color: var(--link-color);
+}
+
+:global(.dark) a:hover {
+	color: var(--link-hover);
+}
+
+/* Дополнительные стили для Tailwind CSS переменных в темной теме */
+:global(.dark) {
+	--foreground: 210 40% 98%;
+	--background: 222.2 84% 4.9%;
+	--card: 222.2 84% 4.9%;
+	--card-foreground: 210 40% 98%;
+	--popover: 222.2 84% 4.9%;
+	--popover-foreground: 210 40% 98%;
+	--primary: 217.2 91.2% 59.8%;
+	--primary-foreground: 222.2 84% 4.9%;
+	--secondary: 217.2 32.6% 17.5%;
+	--secondary-foreground: 210 40% 98%;
+	--muted: 217.2 32.6% 17.5%;
+	--muted-foreground: 215 20.2% 65.1%;
+	--accent: 217.2 32.6% 17.5%;
+	--accent-foreground: 210 40% 98%;
+	--destructive: 0 62.8% 30.6%;
+	--destructive-foreground: 210 40% 98%;
+	--border: 217.2 32.6% 17.5%;
+	--input: 217.2 32.6% 17.5%;
+	--ring: 224.3 76.3% 94.1%;
+}
+
+/* Стили для специфических классов в темной теме */
+:global(.dark) .hero-title {
+	color: white;
+}
+
+:global(.dark) .hero-subtitle {
+	color: rgba(255, 255, 255, 0.95);
+}
+
+:global(.dark) .section-title {
+	color: var(--text-primary);
+}
+
+:global(.dark) .module-title {
+	color: var(--text-primary);
+}
+
+:global(.dark) .module-description {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .info-content label {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .info-content span {
+	color: var(--text-primary);
+}
+
+:global(.dark) .stat-number {
+	color: var(--accent-color);
+}
+
+:global(.dark) .stat-label {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .section-subtitle {
+	color: var(--text-secondary);
+}
+
+/* Стили для общих элементов на всех страницах */
+:global(.dark) .page-header {
+	color: var(--text-primary);
+}
+
+:global(.dark) .page-description {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .card-header {
+	color: var(--text-primary);
+}
+
+:global(.dark) .card-body {
+	color: var(--text-primary);
+}
+
+:global(.dark) .form-label {
+	color: var(--text-primary);
+}
+
+:global(.dark) .form-help {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .table-header {
+	color: var(--text-primary);
+}
+
+:global(.dark) .table-cell {
+	color: var(--text-primary);
+}
+
+:global(.dark) .list-item {
+	color: var(--text-primary);
+}
+
+:global(.dark) .list-title {
+	color: var(--text-primary);
+}
+
+:global(.dark) .list-description {
+	color: var(--text-secondary);
+}
+
+/* Стили для состояний загрузки и ошибок */
+:global(.dark) .loading-text {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .error-text {
+	color: var(--error-color);
+}
+
+:global(.dark) .success-text {
+	color: var(--success-color);
+}
+
+:global(.dark) .warning-text {
+	color: var(--warning-color);
+}
+
+/* Стили для пустых состояний */
+:global(.dark) .empty-state {
+	color: var(--text-secondary);
+}
+
+:global(.dark) .empty-title {
+	color: var(--text-primary);
+}
+
+:global(.dark) .empty-description {
+	color: var(--text-secondary);
 } 

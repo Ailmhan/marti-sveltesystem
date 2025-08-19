@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
+	import { adminStore } from '$lib/stores/admin';
 	import { languageStore } from '$lib/stores/language';
-    import { apiClient } from '$lib/api/client';
+	import { apiClient } from '$lib/api/client';
+	import IdleRedirect from '$lib/components/IdleRedirect.svelte';
+	import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
+	import ImageUpload from '$lib/components/ImageUpload.svelte';
     import type { News } from '$lib/types/api';
     import NewsSlider from '$lib/components/NewsSlider.svelte';
 
@@ -139,42 +144,301 @@
         loadLatest();
     }
 
-    // Функция для обновления данных школы
-    async function updateSchoolData(formData: FormData) {
-        if (!$authStore.schoolId) return;
-        
-        schoolSettingsLoading = true;
-        schoolSettingsError = '';
-        schoolSettingsSuccess = '';
-        
-        try {
-            const updateData = {
-                nameRu: formData.get('nameRu') as string,
-                nameKz: formData.get('nameKz') as string,
-                email: formData.get('email') as string,
-                addressRu: formData.get('addressRu') as string,
-                addressKz: formData.get('addressKz') as string,
-                logoUrl: (formData.get('logoUrl') as string) || undefined,
-                schoolEmblem: (formData.get('schoolEmblem') as string) || undefined
-            };
 
-            await apiClient.updateSchool($authStore.schoolId, updateData);
-            
-            // Обновляем данные в authStore
-            await authStore.loadSchoolData();
-            
-            schoolSettingsSuccess = 'Данные школы успешно обновлены!';
-            setTimeout(() => {
-                showSchoolSettings = false;
-                schoolSettingsSuccess = '';
-            }, 2000);
-            
-        } catch (error) {
-            schoolSettingsError = error instanceof Error ? error.message : 'Ошибка обновления данных школы';
-        } finally {
-            schoolSettingsLoading = false;
-        }
-    }
+
+	// Состояние для загрузки изображений
+	let logoUploading = false;
+	let emblemUploading = false;
+	let logoUrl = '';
+	let schoolEmblem = '';
+
+	// Отслеживаем изменение состояния модального окна
+	$: if (showSchoolSettings) {
+		initializeImageValues();
+	}
+
+	// Валидация URL изображений
+	let logoUrlValid = false;
+	let emblemUrlValid = false;
+
+	// Проверяем, можно ли сохранить настройки
+	$: canSaveSettings = !logoUploading && !emblemUploading && 
+		// Если есть URL логотипа, он должен быть валидным
+		(logoUrl === '' || logoUrlValid) && 
+		// Если есть URL эмблемы, он должен быть валидным
+		(schoolEmblem === '' || emblemUrlValid);
+
+	// Детальная информация о том, что блокирует сохранение
+	$: saveBlockReason = (() => {
+		// Приоритет 1: Загрузка
+		if (logoUploading) return 'logo_uploading';
+		if (emblemUploading) return 'emblem_uploading';
+		
+		// Приоритет 2: Валидация
+		if (logoUrl && !logoUrlValid) return 'logo_invalid';
+		if (schoolEmblem && !emblemUrlValid) return 'emblem_invalid';
+		
+		// Все готово
+		return 'ready';
+	})();
+
+	// Детальная информация о состоянии каждого изображения
+	$: logoStatus = logoUploading ? 'uploading' : (logoUrl ? (logoUrlValid ? 'valid' : 'invalid') : 'empty');
+	$: emblemStatus = emblemUploading ? 'uploading' : (schoolEmblem ? (emblemUrlValid ? 'valid' : 'invalid') : 'empty');
+
+	// Функция для получения понятного сообщения о состоянии
+	function getStatusMessage() {
+		// Сначала проверяем загрузку
+		if (logoUploading) return 'Загрузка логотипа...';
+		if (emblemUploading) return 'Загрузка эмблемы...';
+		
+		// Затем проверяем валидацию
+		if (logoUrl && !logoUrlValid) return 'Проверка логотипа...';
+		if (schoolEmblem && !emblemUrlValid) return 'Проверка эмблемы...';
+		
+		// Если все готово
+		return 'Подготовка к сохранению...';
+	}
+
+	// Функция для получения детального статуса каждого изображения
+	function getImageStatus() {
+		const status = {
+			logo: {
+				uploading: logoUploading,
+				validating: logoUrl && !logoUrlValid,
+				ready: logoUrl && logoUrlValid,
+				empty: !logoUrl
+			},
+			emblem: {
+				uploading: emblemUploading,
+				validating: schoolEmblem && !emblemUrlValid,
+				ready: schoolEmblem && emblemUrlValid,
+				empty: !schoolEmblem
+			}
+		};
+		
+		console.log('Image status:', status);
+		return status;
+	}
+
+	// Отладочная информация для понимания состояния валидации
+	$: {
+		const imageStatus = getImageStatus();
+		console.log('=== VALIDATION STATE ===');
+		console.log('Logo:', {
+			url: logoUrl || 'empty',
+			status: logoStatus,
+			valid: logoUrlValid,
+			...imageStatus.logo
+		});
+		console.log('Emblem:', {
+			url: schoolEmblem || 'empty',
+			status: emblemStatus,
+			valid: emblemUrlValid,
+			...imageStatus.emblem
+		});
+		console.log('Save button:', {
+			canSaveSettings,
+			saveBlockReason,
+			statusMessage: getStatusMessage()
+		});
+		console.log('=======================');
+	}
+
+	// Функция валидации URL изображения
+	async function validateImageUrl(url: string): Promise<boolean> {
+		if (!url) return false;
+		
+		// Проверяем, что это валидный URL
+		try {
+			new URL(url);
+		} catch {
+			console.log('Invalid URL format:', url);
+			return false;
+		}
+		
+		// Проверяем, что это URL от Digital Ocean Spaces
+		if (!url.includes('digitaloceanspaces.com') && !url.includes('martiphoto')) {
+			console.log('URL not from Digital Ocean Spaces:', url);
+			return false;
+		}
+		
+		try {
+			const img = new Image();
+			return new Promise((resolve) => {
+				img.onload = () => {
+					console.log('Image loaded successfully:', url);
+					resolve(true);
+				};
+				img.onerror = () => {
+					console.log('Image failed to load:', url);
+					resolve(false);
+				};
+				img.src = url;
+				// Таймаут на случай, если изображение не загружается
+				setTimeout(() => {
+					console.log('Image validation timeout:', url);
+					resolve(false);
+				}, 5000);
+			});
+		} catch (error) {
+			console.log('Image validation error:', error);
+			return false;
+		}
+	}
+
+	// Обработчики изменения изображений
+	function handleLogoChange(event: CustomEvent) {
+		const newLogoUrl = event.detail.value;
+		console.log('=== LOGO CHANGE ===');
+		console.log('Previous logo URL:', logoUrl);
+		console.log('New logo URL:', newLogoUrl);
+		
+		logoUrl = newLogoUrl;
+		
+		if (logoUrl) {
+			console.log('Starting logo validation...');
+			logoUrlValid = false;
+			validateImageUrl(logoUrl).then(valid => {
+				logoUrlValid = valid;
+				console.log('Logo validation completed:', valid);
+				console.log('Current logo status:', { logoUrl, logoUrlValid, logoUploading });
+			});
+		} else {
+			console.log('Logo URL cleared, setting as valid');
+			logoUrlValid = true; // Пустое значение считается валидным
+		}
+	}
+
+	function handleEmblemChange(event: CustomEvent) {
+		const newEmblemUrl = event.detail.value;
+		console.log('=== EMBLEM CHANGE ===');
+		console.log('Previous emblem URL:', schoolEmblem);
+		console.log('New emblem URL:', newEmblemUrl);
+		
+		schoolEmblem = newEmblemUrl;
+		
+		if (schoolEmblem) {
+			console.log('Starting emblem validation...');
+			emblemUrlValid = false;
+			validateImageUrl(schoolEmblem).then(valid => {
+				emblemUrlValid = valid;
+				console.log('Emblem validation completed:', valid);
+				console.log('Current emblem status:', { schoolEmblem, emblemUrlValid, emblemUploading });
+			});
+		} else {
+			console.log('Emblem URL cleared, setting as valid');
+			emblemUrlValid = true; // Пустое значение считается валидным
+		}
+	}
+
+	// Обработчики состояния загрузки
+	function handleLogoUploading(event: CustomEvent) {
+		const uploading = event.detail.uploading;
+		console.log('=== LOGO UPLOADING ===');
+		console.log('Logo uploading state changed to:', uploading);
+		console.log('Previous state:', logoUploading);
+		
+		logoUploading = uploading;
+		
+		if (uploading) {
+			console.log('Logo upload started, disabling save button');
+		} else {
+			console.log('Logo upload completed, re-evaluating save button state');
+		}
+	}
+
+	function handleEmblemUploading(event: CustomEvent) {
+		const uploading = event.detail.uploading;
+		console.log('=== EMBLEM UPLOADING ===');
+		console.log('Emblem uploading state changed to:', uploading);
+		console.log('Previous state:', emblemUploading);
+		
+		emblemUploading = uploading;
+		
+		if (uploading) {
+			console.log('Emblem upload started, disabling save button');
+		} else {
+			console.log('Emblem upload completed, re-evaluating save button state');
+		}
+	}
+
+	// Обработчики ошибок загрузки
+	function handleLogoError(event: CustomEvent) {
+		logoUrl = '';
+		logoUrlValid = true; // Пустое значение считается валидным
+		schoolSettingsError = event.detail.message;
+		console.log('Logo error:', event.detail.message);
+	}
+
+	function handleEmblemError(event: CustomEvent) {
+		schoolEmblem = '';
+		emblemUrlValid = true; // Пустое значение считается валидным
+		schoolSettingsError = event.detail.message;
+		console.log('Emblem error:', event.detail.message);
+	}
+
+	// Инициализация значений при открытии настроек
+	function initializeImageValues() {
+		logoUrl = $authStore.schoolData?.logoUrl || '';
+		schoolEmblem = $authStore.schoolData?.schoolEmblem || '';
+		
+		// Валидируем существующие URL
+		if (logoUrl) {
+			validateImageUrl(logoUrl).then(valid => {
+				logoUrlValid = valid;
+			});
+		} else {
+			logoUrlValid = true; // Пустое значение считается валидным
+		}
+		
+		if (schoolEmblem) {
+			validateImageUrl(schoolEmblem).then(valid => {
+				emblemUrlValid = valid;
+			});
+		} else {
+			emblemUrlValid = true; // Пустое значение считается валидным
+		}
+		
+		console.log('Initialized with:', { logoUrl, logoUrlValid, schoolEmblem, emblemUrlValid });
+	}
+
+	// Функция для обновления данных школы
+	async function updateSchoolData(formData: FormData) {
+		if (!$authStore.schoolId) return;
+		
+		schoolSettingsLoading = true;
+		schoolSettingsError = '';
+		schoolSettingsSuccess = '';
+		
+		try {
+			const updateData = {
+				nameRu: formData.get('nameRu') as string,
+				nameKz: formData.get('nameKz') as string,
+				email: formData.get('email') as string,
+				addressRu: formData.get('addressRu') as string,
+				addressKz: formData.get('addressKz') as string,
+				logoUrl: logoUrl || undefined,
+				schoolEmblem: schoolEmblem || undefined
+			};
+
+			await apiClient.updateSchool($authStore.schoolId, updateData);
+			
+			// Обновляем данные в authStore
+			await authStore.loadSchoolData();
+			
+			schoolSettingsSuccess = 'Данные школы успешно обновлены!';
+			setTimeout(() => {
+				showSchoolSettings = false;
+				schoolSettingsSuccess = '';
+			}, 2000);
+			
+		} catch (error) {
+			schoolSettingsError = error instanceof Error ? error.message : 'Ошибка обновления данных школы';
+		} finally {
+			schoolSettingsLoading = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -402,15 +666,15 @@
 			on:keydown={(e) => e.key === 'Escape' && (showSchoolSettings = false)}
 			tabindex="-1"
 		>
-			<div class="modal-content" role="document">
+			<div class="modal-content" role="document" on:click|stopPropagation>
 				<div class="modal-header">
 					<h3 id="modal-title">Настройки школы</h3>
 					<button class="modal-close" on:click={() => showSchoolSettings = false}>×</button>
 				</div>
 				
 				<form on:submit|preventDefault={(e) => updateSchoolData(new FormData(e.currentTarget))}>
-					<div class="form-grid">
-						<div class="form-group">
+					<div class="form-grid" on:click|stopPropagation>
+						<div class="form-group" on:click|stopPropagation>
 							<label for="nameRu">Название школы (Русский)</label>
 							<input 
 								type="text" 
@@ -421,7 +685,7 @@
 							/>
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="nameKz">Название школы (Казахский)</label>
 							<input 
 								type="text" 
@@ -432,7 +696,7 @@
 							/>
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="email">Email школы</label>
 							<input 
 								type="email" 
@@ -443,7 +707,7 @@
 							/>
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="addressRu">Адрес (Русский)</label>
 							<input 
 								type="text" 
@@ -454,7 +718,7 @@
 							/>
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="addressKz">Адрес (Казахский)</label>
 							<input 
 								type="text" 
@@ -465,29 +729,51 @@
 							/>
 						</div>
 						
-						<div class="form-group">
-							<label for="logoUrl">URL логотипа</label>
-							<input 
-								type="url" 
-								id="logoUrl" 
-								name="logoUrl" 
-								value={$authStore.schoolData?.logoUrl || ''} 
-								placeholder="https://example.com/logo.png"
+						<div class="form-group" on:click|stopPropagation>
+							<label for="logoUpload">Логотип школы</label>
+							<ImageUpload
+								bind:value={logoUrl}
+								folder="school-logos"
+								disabled={schoolSettingsLoading}
+								on:change={handleLogoChange}
+								on:uploading={handleLogoUploading}
+								on:error={handleLogoError}
 							/>
+							{#if logoUrl && !logoUrlValid}
+								<div class="validation-message error">
+									⚠️ Проверка логотипа...
+								</div>
+							{/if}
+							{#if logoUrl && logoUrlValid}
+								<div class="validation-message success">
+									✅ Логотип загружен и проверен
+								</div>
+							{/if}
 						</div>
 						
-						<div class="form-group">
-							<label for="schoolEmblem">URL эмблемы школы</label>
-							<input 
-								type="url" 
-								id="schoolEmblem" 
-								name="schoolEmblem" 
-								value={$authStore.schoolData?.schoolEmblem || ''} 
-								placeholder="https://example.com/emblem.png"
+						<div class="form-group" on:click|stopPropagation>
+							<label for="emblemUpload">Эмблема школы</label>
+							<ImageUpload
+								bind:value={schoolEmblem}
+								folder="school-emblem"
+								disabled={schoolSettingsLoading}
+								on:change={handleEmblemChange}
+								on:uploading={handleEmblemUploading}
+								on:error={handleEmblemError}
 							/>
+							{#if schoolEmblem && !emblemUrlValid}
+								<div class="validation-message error">
+									⚠️ Проверка эмблемы...
+								</div>
+							{/if}
+							{#if schoolEmblem && emblemUrlValid}
+								<div class="validation-message success">
+									✅ Эмблема загружена и проверена
+								</div>
+							{/if}
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="heroOverlayEnabled">Затемнение фонового фото</label>
 							<select 
 								id="heroOverlayEnabled" 
@@ -508,7 +794,7 @@
 							<small class="form-help">Настройки затемнения сохраняются локально в браузере</small>
 						</div>
 						
-						<div class="form-group">
+						<div class="form-group" on:click|stopPropagation>
 							<label for="heroOverlayIntensity">Интенсивность затемнения</label>
 							<input 
 								type="range" 
@@ -556,19 +842,25 @@
 					</div>
 					
 					{#if schoolSettingsError}
-						<div class="error-message">{schoolSettingsError}</div>
+						<div class="error-message" on:click|stopPropagation>{schoolSettingsError}</div>
 					{/if}
 					
 					{#if schoolSettingsSuccess}
-						<div class="success-message">{schoolSettingsSuccess}</div>
+						<div class="success-message" on:click|stopPropagation>{schoolSettingsSuccess}</div>
 					{/if}
 					
-					<div class="form-actions">
+					<div class="form-actions" on:click|stopPropagation>
 						<button type="button" class="btn-secondary" on:click={() => showSchoolSettings = false}>
 							Отмена
 						</button>
-						<button type="submit" class="btn-primary" disabled={schoolSettingsLoading}>
-							{schoolSettingsLoading ? 'Сохранение...' : 'Сохранить'}
+						<button type="submit" class="btn-primary" disabled={!canSaveSettings || schoolSettingsLoading}>
+							{#if schoolSettingsLoading}
+								Сохранение...
+							{:else if !canSaveSettings}
+								{getStatusMessage()}
+							{:else}
+								Сохранить
+							{/if}
 						</button>
 					</div>
 				</form>
@@ -1296,6 +1588,29 @@
     }
 
     .module-link:hover { color: hsl(262 83% 68%); }
+
+	/* Validation Messages */
+	.validation-message {
+		margin-top: 0.5rem;
+		padding: 0.5rem;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.validation-message.error {
+		background: rgba(239, 68, 68, 0.1);
+		border: 1px solid rgba(239, 68, 68, 0.2);
+		color: #dc2626;
+	}
+
+	.validation-message.success {
+		background: rgba(34, 197, 94, 0.1);
+		border: 1px solid rgba(34, 197, 94, 0.2);
+		color: #16a34a;
+	}
 
 	/* Responsive Design */
     @media (max-width: 768px) {

@@ -4,15 +4,7 @@
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<script>
-			(function() {
-				try {
-					var saved = localStorage.getItem('theme');
-					var isDark = saved ? saved === 'dark' : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-					if (isDark) document.documentElement.classList.add('dark');
-				} catch (e) {}
-			})();
-		</script>
+		<!-- Тема теперь управляется через themeStore -->
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

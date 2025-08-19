@@ -13,19 +13,14 @@
     import { cn } from '$lib/utils/cn';
     import { t } from '$lib/i18n/translations';
     import IdleRedirect from '$lib/components/IdleRedirect.svelte';
-    import '../app.css';
+    	import { themeStore, isDark, currentTheme } from '$lib/stores/theme';
+	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
+	import '../app.css';
 
     let sidebarOpen = false;
-    let isDark = false;
     let showAdminModal = false;
 
-    onMount(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('theme');
-            isDark = saved === 'dark';
-            document.documentElement.classList.toggle('dark', isDark);
-        }
-    });
+
 
 	const navigationItems = [
 		{ key: 'home', href: '/', icon: '🏠' },
@@ -112,11 +107,7 @@
 	}
 
     function toggleTheme() {
-        isDark = !isDark;
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            document.documentElement.classList.toggle('dark', isDark);
-        }
+        themeStore.toggleTheme();
     }
 
     function openSchoolPage() {
@@ -128,7 +119,8 @@
 	<title>{$languageStore === 'kz' ? 'Мектеп жүйесі' : 'Школьная система'}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-background">
+<ThemeProvider>
+	<div class="min-h-screen bg-background">
     <!-- Показываем навигацию только если пользователь авторизован и не на страницах авторизации и не на странице школы -->
     {#if $authStore.isAuthenticated && !$page.url.pathname.startsWith('/login') && !$page.url.pathname.startsWith('/register') && !$page.url.pathname.startsWith('/school')}
 		<!-- Sidebar for desktop -->
@@ -175,16 +167,7 @@
 						</li>
 						
 						<li>
-							<a href="/school" class="sidebar-school-link">
-								<Button variant="outline" class="w-full justify-start">
-									<span class="mr-2">🌐</span>
-									{$languageStore === 'kz' ? 'Мектеп сайты' : 'Сайт школы'}
-								</Button>
-							</a>
-						</li>
-						
-						<li>
-							<Button variant="outline" class="w-full justify-start" on:click={logout}>
+							<Button variant="outline" class="w-full justify-start logout-btn" on:click={logout}>
 								<span class="mr-2">🚪</span>
 								{$languageStore === 'kz' ? 'Шығу' : 'Выйти'}
 							</Button>
@@ -241,10 +224,7 @@
 								</button>
 							{/if}
 							
-							<a href="/school" class="mobile-sidebar-school">
-								<span class="mobile-sidebar-icon">🌐</span>
-								<span class="mobile-sidebar-text">Сайт школы</span>
-							</a>
+
 							
 							<button class="mobile-sidebar-logout" on:click={logout}>
 								<span class="mobile-sidebar-icon">🚪</span>
@@ -296,8 +276,8 @@
                             <span class="btn-icon">🏫</span>
                             {$languageStore === 'kz' ? 'Мектеп туралы' : 'О школе'}
                         </Button>
-                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
-                            {#if isDark}
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={$isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
+                            {#if $isDark}
                                 <span class="theme-icon">🌞</span>
                             {:else}
                                 <span class="theme-icon">🌙</span>
@@ -348,8 +328,8 @@
                     <Button variant="outline" on:click={openSchoolPage}>
                         🏫
                     </Button>
-                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
-                        {#if isDark}
+                    <button class="theme-toggle" type="button" on:click={toggleTheme} aria-label={$isDark ? ($languageStore === 'kz' ? 'Жарық тақырып' : 'Светлая тема') : ($languageStore === 'kz' ? 'Қараңғы тақырып' : 'Тёмная тема')}>
+                        {#if $isDark}
                             <span class="theme-icon">🌞</span>
                         {:else}
                             <span class="theme-icon">🌙</span>
@@ -378,7 +358,8 @@
 			<slot />
 		</main>
 	{/if}
-</div>
+	</div>
+</ThemeProvider>
 
 <!-- Toast notifications -->
 <ToastContainer />
@@ -1027,5 +1008,30 @@
 	:global(.btn-modern:active) {
 		transform: translateY(0);
 		box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	}
+
+	/* Стили для кнопки "Выйти" */
+	.logout-btn {
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(239, 68, 68, 0.4) !important;
+		box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3) !important;
+		font-weight: 600 !important;
+	}
+
+	.logout-btn:hover {
+		background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+		transform: translateY(-2px) !important;
+		box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4) !important;
+	}
+
+	:global(.dark) .logout-btn {
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+		color: white !important;
+		border: 1px solid rgba(239, 68, 68, 0.4) !important;
+	}
+
+	:global(.dark) .logout-btn:hover {
+		background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
 	}
 </style>

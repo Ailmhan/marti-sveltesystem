@@ -15,7 +15,8 @@
     if(!$authStore.schoolId) return;
     loading = true; error='';
     try{
-      birthdays = await apiClient.getTeacherBirthdays($authStore.schoolId);
+      const response = await apiClient.getTeacherBirthdays($authStore.schoolId);
+      birthdays = response as Birthday[];
     }catch(e){
       error = e instanceof Error ? e.message : 'Не удалось загрузить дни рождения';
     }finally{ loading=false; }
@@ -31,9 +32,9 @@
 </svelte:head>
 
 <div class="page">
-  <div class="header">
-    <h1>Дни рождения учителей</h1>
-    <p class="subtitle">Ближайшие даты</p>
+  <div class="page-header">
+    <h1 class="page-title">Дни рождения учителей</h1>
+    <p class="page-subtitle">Ближайшие даты</p>
   </div>
 
   {#if loading}
@@ -64,22 +65,130 @@
 </div>
 
 <style>
-  .page{ max-width:1210px; margin:0 auto; padding:1.5rem; }
-  .header{ margin-bottom:1rem; }
-  .header h1{ margin:0 0 .25rem; font-size:1.75rem; }
-  .subtitle{ color:hsl(var(--muted-foreground)); margin:0; }
+  .page{ 
+    max-width:1210px; 
+    margin:0 auto; 
+    padding:1.5rem; 
+  }
 
-  .loading{ min-height: 30vh; display:flex; flex-direction:column; gap:.75rem; align-items:center; justify-content:center; color:hsl(var(--muted-foreground)); }
+  /* Стили для заголовка страницы */
+  .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
 
-  .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:1rem; }
-  .card{ display:flex; gap:.75rem; padding:.75rem; text-decoration:none; background:hsl(var(--card)); border:1px solid hsl(var(--border)); border-radius:12px; box-shadow: var(--shadow-sm); align-items:center; transition: transform .2s ease, box-shadow .2s ease; }
-  .card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: hsl(var(--ring)); }
-  .avatar{ width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid hsl(var(--border)); background:hsl(var(--background)); display:flex; align-items:center; justify-content:center; }
-  .avatar img{ width:100%; height:100%; object-fit:cover; }
-  .ph{ font-size:1.5rem; }
-  .name{ color:hsl(var(--foreground)); font-weight:700; }
-  .date{ color:hsl(var(--muted-foreground)); }
-  .empty{ color:hsl(var(--muted-foreground)); }
+  .page-title {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 800;
+    color: hsl(var(--foreground));
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    margin: 0;
+    font-size: 1.125rem;
+    color: hsl(var(--muted-foreground));
+    line-height: 1.5;
+  }
+
+  .loading{ 
+    min-height: 30vh; 
+    display:flex; 
+    flex-direction:column; 
+    gap:.75rem; 
+    align-items:center; 
+    justify-content:center; 
+    color:hsl(var(--muted-foreground)); 
+  }
+
+  .grid{ 
+    display:grid; 
+    grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); 
+    gap:1rem; 
+  }
+  
+  .card{ 
+    display:flex; 
+    gap:.75rem; 
+    padding:1rem; 
+    text-decoration:none; 
+    background:hsl(var(--card)); 
+    border:1px solid hsl(var(--border)); 
+    border-radius:12px; 
+    box-shadow: var(--shadow-sm); 
+    align-items:center; 
+    transition: transform .2s ease, box-shadow .2s ease; 
+  }
+  
+  .card:hover{ 
+    transform: translateY(-2px); 
+    box-shadow: var(--shadow-md); 
+    border-color: hsl(var(--ring)); 
+  }
+  
+  .avatar{ 
+    width:64px; 
+    height:64px; 
+    border-radius:10px; 
+    overflow:hidden; 
+    border:1px solid hsl(var(--border)); 
+    background:hsl(var(--background)); 
+    display:flex; 
+    align-items:center; 
+    justify-content:center; 
+  }
+  
+  .avatar img{ 
+    width:100%; 
+    height:100%; 
+    object-fit:cover; 
+  }
+  
+  .ph{ 
+    font-size:1.5rem; 
+  }
+  
+  .name{ 
+    color:hsl(var(--foreground)); 
+    font-weight:700; 
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .date{ 
+    color:hsl(var(--muted-foreground)); 
+    font-size: 0.875rem;
+  }
+  
+  .empty{ 
+    color:hsl(var(--muted-foreground)); 
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.125rem;
+  }
+
+  /* Темная тема */
+  :global(.dark) .page-title {
+    color: var(--text-primary);
+  }
+
+  :global(.dark) .page-subtitle {
+    color: var(--text-secondary);
+  }
+
+  :global(.dark) .name {
+    color: var(--text-primary);
+  }
+
+  :global(.dark) .date {
+    color: var(--text-secondary);
+  }
+
+  :global(.dark) .empty {
+    color: var(--text-secondary);
+  }
 </style>
 
 
