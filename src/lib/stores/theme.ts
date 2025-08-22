@@ -156,18 +156,7 @@ function createThemeStore() {
 		setTheme,
 		toggleTheme,
 		cycleTheme,
-		init,
-		// Геттеры для удобства
-		get isDark() {
-			let state: ThemeState;
-			subscribe(s => state = s)();
-			return state.isDark;
-		},
-		get theme() {
-			let state: ThemeState;
-			subscribe(s => state = s)();
-			return state.theme;
-		}
+		init
 	};
 }
 

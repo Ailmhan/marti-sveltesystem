@@ -25,6 +25,8 @@
 		"vite": "^5.0.0"
 	},
 	"dependencies": {
+		"@pqina/pintura": "^8.92.19",
+		"@pqina/svelte-pintura": "^9.1.2",
 		"aws-sdk": "^2.1692.0",
 		"bits-ui": "^2.9.1",
 		"class-variance-authority": "^0.7.1",

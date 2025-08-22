@@ -41,14 +41,7 @@
 		imageUrl: '' as string | undefined
 	};
 
-	// Валидация изображения для редактирования
-	let editImageValidation = {
-		shouldDisableSubmit: false,
-		validationError: ''
-	};
 
-	// Состояние для загрузки изображений
-	let imageUploading = false;
 
 	let newNews = {
 		titleRu: '',
@@ -58,11 +51,17 @@
 		imageUrl: '' as string | undefined
 	};
 
-	// Валидация изображения для добавления
-	let addImageValidation = {
-		shouldDisableSubmit: false,
-		validationError: ''
-	};
+	// Проверяем, можно ли сохранить в модале добавления новости
+	$: canAddNews = (() => {
+		const isImageValid = !newNews.imageUrl || (newNews.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newNews.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
+
+	// Проверяем, можно ли сохранить в модале редактирования новости
+	$: canEditNews = (() => {
+		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
 
 	onMount(() => {
 		loadNews();
@@ -165,9 +164,7 @@
 			imageUrl: undefined
 		};
 		
-		// Сбрасываем валидацию
-		addImageValidation.shouldDisableSubmit = false;
-		addImageValidation.validationError = '';
+
 	}
 
 	function editNews(news: News) {
@@ -180,9 +177,7 @@
 			imageUrl: news.imageUrl || ''
 		};
 		
-		// Инициализируем валидацию для редактирования
-		editImageValidation.shouldDisableSubmit = false;
-		editImageValidation.validationError = '';
+
 		
 		showEditModal = true;
 		modalError = '';
@@ -193,29 +188,17 @@
 		editingNews = null;
 		modalError = '';
 		
-		// Сбрасываем валидацию
-		editImageValidation.shouldDisableSubmit = false;
-		editImageValidation.validationError = '';
+
 	}
 
-	async function handleImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url) {
-			newNews.imageUrl = url;
-			// Валидируем новое изображение
-			addImageValidation.shouldDisableSubmit = false;
-			addImageValidation.validationError = '';
-		}
+	function handleImageSuccess(event: CustomEvent) {
+		newNews.imageUrl = event.detail.url;
+		console.log('News image uploaded successfully:', event.detail.url);
 	}
 
-	async function handleEditImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url && editImageValidation) {
-			editForm.imageUrl = url;
-					// Валидируем новое изображение
-		editImageValidation.shouldDisableSubmit = false;
-		editImageValidation.validationError = '';
-		}
+	function handleEditImageSuccess(event: CustomEvent) {
+		editForm.imageUrl = event.detail.url;
+		console.log('News image updated successfully:', event.detail.url);
 	}
 
 	function formatDate(date: string | Date) {
@@ -346,7 +329,7 @@
 	bind:open={showAddModal}
 	title="Добавить новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading || addImageValidation.shouldDisableSubmit}
+	disableSubmit={!canAddNews}
 	on:close={closeModal}
 	on:submit={addNews}
 >
@@ -419,15 +402,10 @@
 			</label>
 			<ImageUpload
 				bind:value={newNews.imageUrl}
-				bind:uploading={imageUploading}
 				folder="news"
-				on:change={handleImageChange}
+				on:success={handleImageSuccess}
 			/>
-			{#if addImageValidation.validationError}
-				<div class="text-red-500 text-sm mt-1">
-					{addImageValidation.validationError}
-				</div>
-			{/if}
+
 		</div>
 	</div>
 </DataModal>
@@ -437,7 +415,7 @@
 	bind:open={showEditModal}
 	title="Редактировать новость"
 	loading={modalLoading}
-	disableSubmit={imageUploading || editImageValidation.shouldDisableSubmit}
+	disableSubmit={!canEditNews}
 	on:close={closeEditModal}
 	on:submit={updateNews}
 >
@@ -508,15 +486,10 @@
 			</label>
 			<ImageUpload 
 				bind:value={editForm.imageUrl} 
-				bind:uploading={imageUploading}
 				folder="news" 
-				on:change={handleEditImageChange} 
+				on:success={handleEditImageSuccess} 
 			/>
-			{#if editImageValidation.validationError}
-				<div class="text-red-500 text-sm mt-1">
-					{editImageValidation.validationError}
-				</div>
-			{/if}
+
 		</div>
 	</div>
 </DataModal>

@@ -35,8 +35,17 @@
 		imageUrl: undefined as string | undefined
 	};
 
-	// Состояние для загрузки изображений
-	let imageUploading = false;
+	// Проверяем, можно ли сохранить в модале добавления
+	$: canAddHonorBoard = (() => {
+		const isImageValid = !newHonorBoard.imageUrl || (newHonorBoard.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newHonorBoard.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
+
+	// Проверяем, можно ли сохранить в модале редактирования
+	$: canEditHonorBoard = (() => {
+		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
 
 	onMount(() => {
 		loadHonorBoard();
@@ -115,16 +124,14 @@
 		};
 	}
 
-	function handleImageChange(event: CustomEvent) {
-		// ImageUpload уже обрабатывает загрузку, просто получаем URL
-		const url = event.detail.value;
-		if (url) {
-			if (showEditModal && editingHonorBoard) {
-				editForm.imageUrl = url;
-			} else {
-				newHonorBoard.imageUrl = url;
-			}
-		}
+	function handleImageSuccess(event: CustomEvent) {
+		newHonorBoard.imageUrl = event.detail.url;
+		console.log('Honor board image uploaded successfully:', event.detail.url);
+	}
+
+	function handleEditImageSuccess(event: CustomEvent) {
+		editForm.imageUrl = event.detail.url;
+		console.log('Honor board image updated successfully:', event.detail.url);
 	}
 
 	async function deleteHonorBoard(id: number) {
@@ -252,7 +259,7 @@
 	bind:open={showAddModal}
 	title="Добавить ученика на доску почета"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canAddHonorBoard}
 	on:close={closeModal}
 	on:submit={addHonorBoard}
 >
@@ -311,9 +318,8 @@
 			</label>
 			<ImageUpload
 				bind:value={newHonorBoard.imageUrl}
-				bind:uploading={imageUploading}
 				folder="honor-board"
-				on:change={handleImageChange}
+				on:success={handleImageSuccess}
 			/>
 		</div>
 	</div>
@@ -324,7 +330,7 @@
 	bind:open={showEditModal}
 	title="Редактировать ученика на доску почета"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canEditHonorBoard}
 	on:close={closeEditModal}
 	on:submit={updateHonorBoard}
 >
@@ -383,9 +389,8 @@
 			</label>
 			<ImageUpload
 				bind:value={editForm.imageUrl}
-				bind:uploading={imageUploading}
 				folder="honor-board"
-				on:change={handleImageChange}
+				on:success={handleEditImageSuccess}
 			/>
 		</div>
 	</div>

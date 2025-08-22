@@ -10,6 +10,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import ImageDisplaySettings from '$lib/components/ImageDisplaySettings.svelte';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -19,6 +20,7 @@
 	let showEditModal = false;
 	let modalLoading = false;
 	let modalError = '';
+	let isUploadingCroppedImage = false;
 	let newTeacher = {
 		nameRu: '',
 		nameKz: '',
@@ -43,7 +45,23 @@
 		imageUrl: '' as string | undefined
 	};
 
-	let imageUploading = false;
+	// Состояние для валидации изображений
+	let addImageUrlValid = false;
+	let editImageUrlValid = false;
+
+
+
+	// Проверяем, можно ли сохранить в модале добавления
+	$: canAddTeacher = (() => {
+		const isImageValid = !newTeacher.imageUrl || (newTeacher.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newTeacher.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
+
+	// Проверяем, можно ли сохранить в модале редактирования
+	$: canEditTeacher = (() => {
+		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
 
 	onMount(() => {
 		loadTeachers();
@@ -53,11 +71,23 @@
 		if (!$authStore.schoolId) return;
 		
 		try {
+			console.log('🔄 Загружаем список учителей...');
 			loading = true;
 			error = '';
 			const teachersData = await apiClient.getTeachers($authStore.schoolId);
 			teachers = teachersData;
+			console.log('✅ Список учителей загружен:', teachersData.length, 'учителей');
+			
+			// Проверяем, есть ли обновленный учитель
+			if (editingTeacher) {
+				const updatedTeacher = teachers.find(t => t.id === editingTeacher.id);
+				console.log('🔍 Обновленный учитель в списке:', updatedTeacher);
+				if (updatedTeacher) {
+					console.log('🖼️ URL изображения обновленного учителя:', updatedTeacher.imageUrl);
+				}
+			}
 		} catch (err) {
+			console.error('❌ Ошибка загрузки учителей:', err);
 			error = err instanceof Error ? err.message : 'Ошибка загрузки учителей';
 		} finally {
 			loading = false;
@@ -98,14 +128,27 @@
 		modalError = '';
 
 		try {
-			await apiClient.updateTeacher(editingTeacher.id, {
-				...editForm,
-				schoolId: 10
+			console.log('🔄 Отправляем PATCH запрос для обновления учителя...');
+			console.log('📊 Данные для обновления:', {
+				id: editingTeacher.id,
+				nameRu: editForm.nameRu,
+				subjectRu: editForm.subjectRu,
+				imageUrl: editForm.imageUrl,
+				imageUrlType: typeof editForm.imageUrl,
+				isImageUrlValid: editForm.imageUrl?.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/')
 			});
+
+			const result = await apiClient.updateTeacher(editingTeacher.id, {
+				...editForm
+			});
+			
+			console.log('✅ Учитель успешно обновлен:', result);
+			console.log('🔄 Перезагружаем список учителей...');
 			
 			await loadTeachers();
 			closeEditModal();
 		} catch (err) {
+			console.error('❌ Ошибка обновления учителя:', err);
 			modalError = err instanceof Error ? err.message : 'Ошибка обновления учителя';
 		} finally {
 			modalLoading = false;
@@ -133,6 +176,9 @@
 	}
 
 	function editTeacher(teacher: Teacher) {
+		console.log('🎯 === ОТКРЫТИЕ МОДАЛКИ РЕДАКТИРОВАНИЯ ===');
+		console.log('👤 Учитель для редактирования:', teacher);
+		
 		editingTeacher = teacher;
 		editForm = {
 			nameRu: teacher.nameRu || '',
@@ -144,8 +190,17 @@
 			phone: teacher.phone || '',
 			imageUrl: teacher.imageUrl || undefined
 		};
+		
+		console.log('📝 Форма редактирования инициализирована:', editForm);
+		console.log('🖼️ URL изображения:', {
+			original: teacher.imageUrl,
+			form: editForm.imageUrl,
+			type: typeof editForm.imageUrl
+		});
+		
 		showEditModal = true;
 		modalError = '';
+		console.log('🎯 === МОДАЛКА ОТКРЫТА ===');
 	}
 
 	function closeEditModal() {
@@ -235,7 +290,7 @@
 	bind:open={showAddModal}
 	title="Добавить учителя"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canAddTeacher}
 	on:close={closeAddModal}
 	on:submit={addTeacher}
 >
@@ -347,11 +402,71 @@
 			</label>
 			<ImageUpload 
 				bind:value={newTeacher.imageUrl} 
-				bind:uploading={imageUploading}
 				folder="teachers" 
-				on:change={(event) => newTeacher.imageUrl = event.detail.value} 
+				on:change={(event) => newTeacher.imageUrl = event.detail.value}
+				on:success={(event) => {
+					newTeacher.imageUrl = event.detail.url;
+					console.log('Teacher photo uploaded successfully:', event.detail.url);
+				}}
 			/>
 		</div>
+
+		<!-- Настройки отображения изображения -->
+		{#if newTeacher.imageUrl}
+			<div>
+				{#if isUploadingCroppedImage}
+					<div class="alert alert-info">
+						⏳ Загружаем обрезанное изображение...
+					</div>
+				{/if}
+				<ImageDisplaySettings 
+					imageUrl={newTeacher.imageUrl}
+					outputSize={400}
+					format="image/jpeg"
+					quality={0.9}
+					title="Настройка фото учителя (340x240px)"
+					on:confirm={async (event) => {
+						try {
+							isUploadingCroppedImage = true;
+							// Получаем обрезанное изображение
+							const { blob, dataUrl } = event.detail;
+							console.log('🔄 Загружаем обрезанное изображение на сервер...');
+							
+							// Создаем FormData для загрузки
+							const formData = new FormData();
+							formData.append('file', blob, 'cropped-image.jpg');
+							const response = await fetch('/api/upload', {
+								method: 'POST',
+								body: formData
+							});
+							
+							if (!response.ok) {
+								throw new Error('Failed to upload cropped image');
+							}
+							
+							const result = await response.json();
+							console.log('✅ Обрезанное изображение загружено:', result.url);
+							
+							// Обновляем URL на реальный CDN URL
+							newTeacher.imageUrl = result.url;
+							console.log('🔄 URL обновлен на CDN:', result.url);
+							
+						} catch (error) {
+							console.error('❌ Ошибка загрузки обрезанного изображения:', error);
+							modalError = 'Не удалось загрузить обрезанное изображение';
+						} finally {
+							isUploadingCroppedImage = false;
+						}
+					}}
+					on:cancel={() => {
+						console.log('Обрезка фото отменена');
+					}}
+					on:error={(event) => {
+						modalError = `Ошибка обрезки фото: ${event.detail.message}`;
+					}}
+				/>
+			</div>
+		{/if}
 	</div>
 </DataModal>
 
@@ -360,7 +475,7 @@
 	bind:open={showEditModal}
 	title="Редактировать учителя"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canEditTeacher}
 	on:close={closeEditModal}
 	on:submit={updateTeacher}
 >
@@ -467,15 +582,152 @@
 			</label>
 			<ImageUpload 
 				bind:value={editForm.imageUrl} 
-				bind:uploading={imageUploading}
 				folder="teachers" 
-				on:change={(event) => editForm.imageUrl = event.detail.value} 
+				on:change={(event) => editForm.imageUrl = event.detail.value}
+				on:success={(event) => {
+					editForm.imageUrl = event.detail.url;
+					console.log('Teacher photo updated successfully:', event.detail.url);
+				}}
 			/>
 		</div>
+
+		<!-- Настройки отображения изображения -->
+		{#if editForm.imageUrl}
+			<div>
+				{#if isUploadingCroppedImage}
+					<div class="alert alert-info">
+						⏳ Загружаем обрезанное изображение...
+					</div>
+				{/if}
+				
+				<!-- Отладочная информация -->
+				<div class="alert alert-info">
+					<strong>Отладка:</strong> 
+					editForm.imageUrl = {editForm.imageUrl?.substring(0, 50)}...
+					<br>
+					<button 
+						type="button" 
+						class="btn btn-secondary mt-2"
+						on:click={() => {
+							console.log('🔍 Текущее состояние editForm:', editForm);
+							console.log('🖼️ editForm.imageUrl:', editForm.imageUrl);
+						}}
+					>
+						🔍 Проверить состояние
+					</button>
+				</div>
+				
+				<ImageDisplaySettings 
+					imageUrl={editForm.imageUrl}
+					outputSize={400}
+					format="image/jpeg"
+					quality={0.9}
+					title="Настройка фото учителя (340x240px)"
+					on:confirm={async (event) => {
+						try {
+							isUploadingCroppedImage = true;
+							console.log('🎯 === НАЧАЛО ОБРАБОТКИ ОБРЕЗАННОГО ИЗОБРАЖЕНИЯ ===');
+							
+							// Получаем обрезанное изображение
+							const { blob, dataUrl } = event.detail;
+							console.log('📊 Детали события:', { blob, dataUrl });
+							console.log('🔄 Загружаем обрезанное изображение на сервер...');
+							
+							// Создаем FormData для загрузки
+							const formData = new FormData();
+							formData.append('file', blob, 'cropped-image.jpg');
+							formData.append('folder', 'teachers');
+							
+							console.log('📤 Отправляем FormData на /api/upload...');
+							
+							// Загружаем обрезанное изображение
+							const response = await fetch('/api/upload', {
+								method: 'POST',
+								body: formData
+							});
+							
+							if (!response.ok) {
+								throw new Error('Failed to upload cropped image');
+							}
+							
+							const result = await response.json();
+							console.log('✅ Обрезанное изображение загружено:', result);
+							
+							// Обновляем URL на реальный CDN URL
+							const oldUrl = editForm.imageUrl;
+							editForm.imageUrl = result.url;
+							
+							console.log('🔄 URL обновлен:', {
+								old: oldUrl,
+								new: editForm.imageUrl,
+								type: typeof editForm.imageUrl,
+								isValid: editForm.imageUrl?.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/')
+							});
+							
+							console.log('🎯 === ОБРАБОТКА ЗАВЕРШЕНА ===');
+							
+							// Показываем уведомление об успехе
+							modalError = '';
+							alert('✅ Обрезанное изображение успешно загружено! Теперь нажмите "Сохранить".');
+							
+						} catch (error) {
+							console.error('❌ Ошибка загрузки обрезанного изображения:', error);
+							modalError = 'Не удалось загрузить обрезанное изображение';
+						} finally {
+							isUploadingCroppedImage = false;
+						}
+					}}
+					on:cancel={() => {
+						console.log('Обрезка фото отменена');
+					}}
+					on:error={(event) => {
+						modalError = `Ошибка обрезки фото: ${event.detail.message}`;
+					}}
+				/>
+			</div>
+		{/if}
 	</div>
 </DataModal>
 
 <style>
+.alert {
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	margin-bottom: 1rem;
+	font-size: 0.875rem;
+}
+
+.alert-info {
+	background-color: #dbeafe;
+	border: 1px solid #93c5fd;
+	color: #1e40af;
+}
+
+.alert-error {
+	background-color: #fee2e2;
+	border: 1px solid #fca5a5;
+	color: #dc2626;
+}
+
+.btn-secondary {
+	background-color: #6b7280;
+	color: white;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+	background-color: #4b5563;
+}
+
+.mt-2 {
+	margin-top: 0.5rem;
+}
+
 .teachers-page {
 	max-width: 1200px;
 	margin: 0 auto;

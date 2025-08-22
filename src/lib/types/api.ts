@@ -85,6 +85,15 @@ export interface NewsApiResponse {
 	createdAt: string;
 }
 
+// Настройки отображения изображений
+export interface ImageDisplaySettings {
+	objectFit: 'cover' | 'contain' | 'fill' | 'none';
+	objectPosition: 'center' | 'top' | 'bottom' | 'left' | 'right' | 'custom';
+	cropX: number; // 0-100, позиция по горизонтали
+	cropY: number; // 0-100, позиция по вертикали
+	zoom: number;  // 0.5-2, масштаб изображения
+}
+
 export interface HonorBoard {
 	id: number;
 	schoolId: number;
@@ -92,6 +101,7 @@ export interface HonorBoard {
 	descriptionRu: string;
 	descriptionKz: string;
 	imageUrl?: string;
+	imageDisplay?: ImageDisplaySettings;
 }
 
 // Type for API honor board response by language (simplified format)
@@ -199,6 +209,7 @@ export interface Teacher {
 	email: string;
 	birthday: string; // API возвращает строку, не Date
 	imageUrl?: string;
+	imageDisplay?: ImageDisplaySettings;
 	School?: School;
 }
 
@@ -211,4 +222,30 @@ export interface Class {
 	School?: School;
 	Teacher?: Teacher;
 	Schedule?: Schedule[];
+}
+
+// Типы запросов для учителей
+export interface CreateTeacherRequest {
+	schoolId: number;
+	nameRu: string;
+	nameKz: string;
+	subjectRu: string;
+	subjectKz: string;
+	phone: string;
+	email: string;
+	birthday: string;
+	imageUrl?: string;
+	imageDisplay?: ImageDisplaySettings;
+}
+
+export interface UpdateTeacherRequest {
+	nameRu?: string;
+	nameKz?: string;
+	subjectRu?: string;
+	subjectKz?: string;
+	phone?: string;
+	email?: string;
+	birthday?: string;
+	imageUrl?: string;
+	imageDisplay?: ImageDisplaySettings;
 } 

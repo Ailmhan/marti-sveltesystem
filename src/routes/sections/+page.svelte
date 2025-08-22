@@ -39,8 +39,17 @@
 		imageUrl: undefined as string | undefined
 	};
 
-	// Состояние для загрузки изображений
-	let imageUploading = false;
+	// Проверяем, можно ли сохранить в модале добавления
+	$: canAddSection = (() => {
+		const isImageValid = !newSection.imageUrl || (newSection.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newSection.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
+
+	// Проверяем, можно ли сохранить в модале редактирования
+	$: canEditSection = (() => {
+		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
 
 	onMount(() => {
 		loadSections();
@@ -125,15 +134,14 @@
 		};
 	}
 
-	function handleImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url) {
-			if (showEditModal && editingSection) {
-				editForm.imageUrl = url;
-			} else {
-				newSection.imageUrl = url;
-			}
-		}
+	function handleImageSuccess(event: CustomEvent) {
+		newSection.imageUrl = event.detail.url;
+		console.log('Section image uploaded successfully:', event.detail.url);
+	}
+
+	function handleEditImageSuccess(event: CustomEvent) {
+		editForm.imageUrl = event.detail.url;
+		console.log('Section image updated successfully:', event.detail.url);
 	}
 
 	async function deleteSection(id: number) {
@@ -266,7 +274,7 @@
 	bind:open={showAddModal}
 	title="Добавить секцию"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canAddSection}
 	on:close={closeModal}
 	on:submit={addSection}
 >
@@ -354,14 +362,10 @@
 			<ImageUpload
 				id="section-image-upload"
 				bind:value={newSection.imageUrl}
-				bind:uploading={imageUploading}
 				folder="sections"
-				on:change={handleImageChange}
+				on:success={handleImageSuccess}
 				on:error={(event) => {
 					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
 				}}
 			/>
 		</div>
@@ -373,7 +377,7 @@
 	bind:open={showEditModal}
 	title="Редактировать секцию"
 	loading={modalLoading}
-	disableSubmit={imageUploading}
+	disableSubmit={!canEditSection}
 	on:close={closeEditModal}
 	on:submit={updateSection}
 >
@@ -461,14 +465,10 @@
 			<ImageUpload
 				id="edit-section-image-upload"
 				bind:value={editForm.imageUrl}
-				bind:uploading={imageUploading}
 				folder="sections"
-				on:change={handleImageChange}
+				on:success={handleEditImageSuccess}
 				on:error={(event) => {
 					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
 				}}
 			/>
 		</div>

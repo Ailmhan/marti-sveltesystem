@@ -4,7 +4,8 @@ import type {
 	School, News, HonorBoard, Section, CanteenMenu,
 	Schedule, Teacher, Class, AuthResponse, ApiError,
 	CreateSchoolRequest, UpdateSchoolRequest, LoginRequest, LoginResponse,
-	NewsApiResponse, SectionApiResponse, CanteenMenuApiResponse, HonorBoardApiResponse
+	NewsApiResponse, SectionApiResponse, CanteenMenuApiResponse, HonorBoardApiResponse,
+	CreateTeacherRequest, UpdateTeacherRequest
 } from '$lib/types/api';
 
 class ApiClient {
@@ -204,14 +205,14 @@ class ApiClient {
 		return this.request(`/schedule/teacher/${teacherId}`);
 	}
 
-	async createTeacher(teacher: Omit<Teacher, 'id'>): Promise<Teacher> {
+	async createTeacher(teacher: CreateTeacherRequest): Promise<Teacher> {
 		return this.request<Teacher>('/teachers', {
 			method: 'POST',
 			body: JSON.stringify(teacher),
 		});
 	}
 
-	async updateTeacher(id: number, teacher: Partial<Omit<Teacher, 'id'>>): Promise<Teacher> {
+	async updateTeacher(id: number, teacher: UpdateTeacherRequest): Promise<Teacher> {
 		return this.request<Teacher>(`/teachers/${id}`, {
 			method: 'PATCH',
 			body: JSON.stringify(teacher),

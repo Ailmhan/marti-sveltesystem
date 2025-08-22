@@ -53,9 +53,17 @@
 		imageUrl: undefined as string | undefined
 	};
 
-	// Состояние для загрузки изображений
-	let addImageUploading = false;
-	let editImageUploading = false;
+	// Проверяем, можно ли сохранить в модале добавления
+	$: canAddMenu = (() => {
+		const isImageValid = !newMenu.imageUrl || (newMenu.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newMenu.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
+
+	// Проверяем, можно ли сохранить в модале редактирования
+	$: canEditMenu = (() => {
+		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		return isImageValid;
+	})();
 
 	onMount(() => {
 		loadMenus();
@@ -111,7 +119,7 @@
 			
 			// Добавляем imageUrl только если он есть
 			if (newMenu.imageUrl) {
-				createData.imageUrl = newMenu.imageUrl;
+				(createData as any).imageUrl = newMenu.imageUrl;
 			}
 			
 			// Проверяем, что все обязательные поля заполнены
@@ -133,8 +141,7 @@
 				imageUrl: undefined
 			};
 			
-			// Сбрасываем состояние загрузки
-			addImageUploading = false;
+			
 			
 			// Закрываем модальное окно
 			showAddModal = false;
@@ -154,7 +161,7 @@
 	function closeModal() {
 		showAddModal = false;
 		modalError = '';
-		addImageUploading = false;
+
 		newMenu = {
 			date: '',
 			dishesRu: {
@@ -171,29 +178,14 @@
 		};
 	}
 
-	function handleImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url) {
-			if (showEditModal && editingMenu) {
-				editForm.imageUrl = url;
-			} else {
-				newMenu.imageUrl = url;
-			}
-		}
+	function handleImageSuccess(event: CustomEvent) {
+		newMenu.imageUrl = event.detail.url;
+		console.log('Menu image uploaded successfully:', event.detail.url);
 	}
 
-	function handleAddImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url) {
-			newMenu.imageUrl = url;
-		}
-	}
-
-	function handleEditImageChange(event: CustomEvent) {
-		const url = event.detail.value;
-		if (url) {
-			editForm.imageUrl = url;
-		}
+	function handleEditImageSuccess(event: CustomEvent) {
+		editForm.imageUrl = event.detail.url;
+		console.log('Menu image updated successfully:', event.detail.url);
 	}
 
 	function formatDate(date: Date | string) {
@@ -256,7 +248,6 @@
 		showEditModal = false;
 		editingMenu = null;
 		modalError = '';
-		editImageUploading = false;
 	}
 
 	async function updateMenu() {
@@ -294,7 +285,7 @@
 		
 		// Добавляем imageUrl только если он есть
 		if (editForm.imageUrl) {
-			updateData.imageUrl = editForm.imageUrl;
+			(updateData as any).imageUrl = editForm.imageUrl;
 		}
 		
 		// Проверяем, что все обязательные поля заполнены
@@ -313,8 +304,7 @@
 			// Закрываем модальное окно после успешного обновления
 			closeEditModal();
 			
-			// Сбрасываем состояние загрузки
-			editImageUploading = false;
+			
 			
 			// Перезагружаем меню
 			await loadMenus();
@@ -393,7 +383,7 @@
 		bind:open={showAddModal}
 		title="Добавить меню"
 		loading={false}
-		disableSubmit={addImageUploading}
+		disableSubmit={!canAddMenu}
 		on:close={closeModal}
 		on:submit={addMenu}
 	>
@@ -480,14 +470,10 @@
 			<ImageUpload
 				id="menu-image-upload"
 				bind:value={newMenu.imageUrl}
-				bind:uploading={addImageUploading}
 				folder="canteen"
-				on:change={handleAddImageChange}
+				on:success={handleImageSuccess}
 				on:error={(event) => {
 					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
 				}}
 			/>
 		</div>
@@ -499,7 +485,7 @@
 		bind:open={showEditModal}
 		title="Редактировать меню"
 		loading={false}
-		disableSubmit={editImageUploading}
+		disableSubmit={!canEditMenu}
 		on:close={closeEditModal}
 		on:submit={updateMenu}
 	>
@@ -586,14 +572,10 @@
 			<ImageUpload
 				id="edit-menu-image-upload"
 				bind:value={editForm.imageUrl}
-				bind:uploading={editImageUploading}
 				folder="canteen"
-				on:change={handleEditImageChange}
+				on:success={handleEditImageSuccess}
 				on:error={(event) => {
 					modalError = event.detail.message;
-				}}
-				on:success={(event) => {
-					modalError = '';
 				}}
 			/>
 		</div>

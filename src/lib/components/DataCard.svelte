@@ -193,6 +193,26 @@
 		});
 	}
 
+	// Функция для получения настроек отображения изображения
+	function getImageDisplaySettings(data: CardData) {
+		// Проверяем, есть ли настройки изображения в данных
+		if ('imageDisplay' in data && data.imageDisplay) {
+			const settings = data.imageDisplay;
+			return {
+				objectFit: 'cover', // Всегда cover для карточек
+				objectPosition: `${settings.cropX}% ${settings.cropY}%`,
+				zoom: settings.zoom
+			};
+		}
+		
+		// Возвращаем настройки по умолчанию
+		return {
+			objectFit: 'cover',
+			objectPosition: '50% 50%', // По центру
+			zoom: 1
+		};
+	}
+
 	// Обработчики событий
 	function handleEdit(event: Event) {
 		event.stopPropagation();
@@ -228,7 +248,13 @@
 				src={imageUrl} 
 				alt={title} 
 				loading="lazy"
-				style="object-position: {config.objectPosition}; object-fit: fill; width: 100%; height: 100%;"
+				style="
+					object-fit: {getImageDisplaySettings(data).objectFit};
+					object-position: {getImageDisplaySettings(data).objectPosition};
+					transform: scale({getImageDisplaySettings(data).zoom});
+					width: 100%; 
+					height: 100%;
+				"
 			/>
 		{:else}
 			<div class="image-placeholder">
@@ -289,8 +315,9 @@
 <style>
 	@layer critical {
 		.card-image img {
-			object-fit: fill !important;
-			object-position: center !important;
+			/* Настройки изображения теперь управляются через JavaScript */
+			width: 100%;
+			height: 100%;
 		}
 	}
 	

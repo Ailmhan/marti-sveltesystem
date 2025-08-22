@@ -16,6 +16,20 @@
     	import { themeStore, isDark, currentTheme } from '$lib/stores/theme';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import '../app.css';
+	
+	// Инициализируем тему при загрузке
+	onMount(() => {
+		if (typeof window !== 'undefined') {
+			// Принудительно устанавливаем тему по умолчанию сразу
+			if (!document.documentElement.classList.contains('light') && 
+				!document.documentElement.classList.contains('dark')) {
+				document.documentElement.classList.add('light');
+			}
+			
+			// Инициализируем тему store
+			themeStore.init();
+		}
+	});
 
     let sidebarOpen = false;
     let showAdminModal = false;

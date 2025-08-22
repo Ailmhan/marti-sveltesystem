@@ -146,262 +146,99 @@
 
 
 
-	// Состояние для загрузки изображений
-	let logoUploading = false;
-	let emblemUploading = false;
+	// Состояние для изображений
 	let logoUrl = '';
 	let schoolEmblem = '';
 
 	// Отслеживаем изменение состояния модального окна
 	$: if (showSchoolSettings) {
-		initializeImageValues();
+		// Инициализируем значения при открытии
+		logoUrl = $authStore.schoolData?.logoUrl || '';
+		schoolEmblem = $authStore.schoolData?.schoolEmblem || '';
 	}
 
-	// Валидация URL изображений
-	let logoUrlValid = false;
-	let emblemUrlValid = false;
-
 	// Проверяем, можно ли сохранить настройки
-	$: canSaveSettings = !logoUploading && !emblemUploading && 
-		// Если есть URL логотипа, он должен быть валидным
-		(logoUrl === '' || logoUrlValid) && 
-		// Если есть URL эмблемы, он должен быть валидным
-		(schoolEmblem === '' || emblemUrlValid);
-
-	// Детальная информация о том, что блокирует сохранение
-	$: saveBlockReason = (() => {
-		// Приоритет 1: Загрузка
-		if (logoUploading) return 'logo_uploading';
-		if (emblemUploading) return 'emblem_uploading';
+	$: canSaveSettings = (() => {
+		// Проверяем, что logoUrl - это валидный URL от Digital Ocean Spaces
+		const isLogoValid = !logoUrl || (logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
 		
-		// Приоритет 2: Валидация
-		if (logoUrl && !logoUrlValid) return 'logo_invalid';
-		if (schoolEmblem && !emblemUrlValid) return 'emblem_invalid';
+		// Проверяем, что schoolEmblem - это валидный URL от Digital Ocean Spaces
+		const isEmblemValid = !schoolEmblem || (schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
 		
-		// Все готово
-		return 'ready';
+		const result = isLogoValid && isEmblemValid;
+		
+		// Отладочная информация
+		console.log('Save button state:', {
+			logoUrl,
+			isLogoValid,
+			schoolEmblem,
+			isEmblemValid,
+			canSave: result
+		});
+		
+		return result;
 	})();
 
-	// Детальная информация о состоянии каждого изображения
-	$: logoStatus = logoUploading ? 'uploading' : (logoUrl ? (logoUrlValid ? 'valid' : 'invalid') : 'empty');
-	$: emblemStatus = emblemUploading ? 'uploading' : (schoolEmblem ? (emblemUrlValid ? 'valid' : 'invalid') : 'empty');
+
+
+
 
 	// Функция для получения понятного сообщения о состоянии
 	function getStatusMessage() {
-		// Сначала проверяем загрузку
-		if (logoUploading) return 'Загрузка логотипа...';
-		if (emblemUploading) return 'Загрузка эмблемы...';
-		
-		// Затем проверяем валидацию
-		if (logoUrl && !logoUrlValid) return 'Проверка логотипа...';
-		if (schoolEmblem && !emblemUrlValid) return 'Проверка эмблемы...';
-		
-		// Если все готово
-		return 'Подготовка к сохранению...';
-	}
-
-	// Функция для получения детального статуса каждого изображения
-	function getImageStatus() {
-		const status = {
-			logo: {
-				uploading: logoUploading,
-				validating: logoUrl && !logoUrlValid,
-				ready: logoUrl && logoUrlValid,
-				empty: !logoUrl
-			},
-			emblem: {
-				uploading: emblemUploading,
-				validating: schoolEmblem && !emblemUrlValid,
-				ready: schoolEmblem && emblemUrlValid,
-				empty: !schoolEmblem
+		if (!canSaveSettings) {
+			if (logoUrl && !logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') && !logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/')) {
+				return 'Ожидание загрузки логотипа...';
 			}
-		};
-		
-		console.log('Image status:', status);
-		return status;
+			if (schoolEmblem && !schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') && !schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/')) {
+				return 'Ожидание загрузки эмблемы...';
+			}
+		}
+		return 'Готово к сохранению';
 	}
 
-	// Отладочная информация для понимания состояния валидации
-	$: {
-		const imageStatus = getImageStatus();
-		console.log('=== VALIDATION STATE ===');
-		console.log('Logo:', {
-			url: logoUrl || 'empty',
-			status: logoStatus,
-			valid: logoUrlValid,
-			...imageStatus.logo
-		});
-		console.log('Emblem:', {
-			url: schoolEmblem || 'empty',
-			status: emblemStatus,
-			valid: emblemUrlValid,
-			...imageStatus.emblem
-		});
-		console.log('Save button:', {
-			canSaveSettings,
-			saveBlockReason,
-			statusMessage: getStatusMessage()
-		});
-		console.log('=======================');
-	}
 
-	// Функция валидации URL изображения
-	async function validateImageUrl(url: string): Promise<boolean> {
-		if (!url) return false;
-		
-		// Проверяем, что это валидный URL
-		try {
-			new URL(url);
-		} catch {
-			console.log('Invalid URL format:', url);
-			return false;
-		}
-		
-		// Проверяем, что это URL от Digital Ocean Spaces
-		if (!url.includes('digitaloceanspaces.com') && !url.includes('martiphoto')) {
-			console.log('URL not from Digital Ocean Spaces:', url);
-			return false;
-		}
-		
-		try {
-			const img = new Image();
-			return new Promise((resolve) => {
-				img.onload = () => {
-					console.log('Image loaded successfully:', url);
-					resolve(true);
-				};
-				img.onerror = () => {
-					console.log('Image failed to load:', url);
-					resolve(false);
-				};
-				img.src = url;
-				// Таймаут на случай, если изображение не загружается
-				setTimeout(() => {
-					console.log('Image validation timeout:', url);
-					resolve(false);
-				}, 5000);
-			});
-		} catch (error) {
-			console.log('Image validation error:', error);
-			return false;
-		}
-	}
+
+
 
 	// Обработчики изменения изображений
 	function handleLogoChange(event: CustomEvent) {
-		const newLogoUrl = event.detail.value;
-		console.log('=== LOGO CHANGE ===');
-		console.log('Previous logo URL:', logoUrl);
-		console.log('New logo URL:', newLogoUrl);
-		
-		logoUrl = newLogoUrl;
-		
-		if (logoUrl) {
-			console.log('Starting logo validation...');
-			logoUrlValid = false;
-			validateImageUrl(logoUrl).then(valid => {
-				logoUrlValid = valid;
-				console.log('Logo validation completed:', valid);
-				console.log('Current logo status:', { logoUrl, logoUrlValid, logoUploading });
-			});
-		} else {
-			console.log('Logo URL cleared, setting as valid');
-			logoUrlValid = true; // Пустое значение считается валидным
-		}
+		logoUrl = event.detail.value;
+		console.log('Logo changed to:', logoUrl);
 	}
 
 	function handleEmblemChange(event: CustomEvent) {
-		const newEmblemUrl = event.detail.value;
-		console.log('=== EMBLEM CHANGE ===');
-		console.log('Previous emblem URL:', schoolEmblem);
-		console.log('New emblem URL:', newEmblemUrl);
-		
-		schoolEmblem = newEmblemUrl;
-		
-		if (schoolEmblem) {
-			console.log('Starting emblem validation...');
-			emblemUrlValid = false;
-			validateImageUrl(schoolEmblem).then(valid => {
-				emblemUrlValid = valid;
-				console.log('Emblem validation completed:', valid);
-				console.log('Current emblem status:', { schoolEmblem, emblemUrlValid, emblemUploading });
-			});
-		} else {
-			console.log('Emblem URL cleared, setting as valid');
-			emblemUrlValid = true; // Пустое значение считается валидным
-		}
+		schoolEmblem = event.detail.value;
+		console.log('Emblem changed to:', schoolEmblem);
 	}
 
-	// Обработчики состояния загрузки
-	function handleLogoUploading(event: CustomEvent) {
-		const uploading = event.detail.uploading;
-		console.log('=== LOGO UPLOADING ===');
-		console.log('Logo uploading state changed to:', uploading);
-		console.log('Previous state:', logoUploading);
-		
-		logoUploading = uploading;
-		
-		if (uploading) {
-			console.log('Logo upload started, disabling save button');
-		} else {
-			console.log('Logo upload completed, re-evaluating save button state');
-		}
+	// Обработчики успешной загрузки
+	function handleLogoSuccess(event: CustomEvent) {
+		logoUrl = event.detail.url;
+		console.log('Logo uploaded successfully:', event.detail.url);
+		console.log('Logo URL validation:', logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
 	}
 
-	function handleEmblemUploading(event: CustomEvent) {
-		const uploading = event.detail.uploading;
-		console.log('=== EMBLEM UPLOADING ===');
-		console.log('Emblem uploading state changed to:', uploading);
-		console.log('Previous state:', emblemUploading);
-		
-		emblemUploading = uploading;
-		
-		if (uploading) {
-			console.log('Emblem upload started, disabling save button');
-		} else {
-			console.log('Emblem upload completed, re-evaluating save button state');
-		}
+	function handleEmblemSuccess(event: CustomEvent) {
+		schoolEmblem = event.detail.url;
+		console.log('Emblem uploaded successfully:', event.detail.url);
+		console.log('Emblem URL validation:', schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
 	}
 
 	// Обработчики ошибок загрузки
 	function handleLogoError(event: CustomEvent) {
 		logoUrl = '';
-		logoUrlValid = true; // Пустое значение считается валидным
 		schoolSettingsError = event.detail.message;
 		console.log('Logo error:', event.detail.message);
 	}
 
 	function handleEmblemError(event: CustomEvent) {
 		schoolEmblem = '';
-		emblemUrlValid = true; // Пустое значение считается валидным
 		schoolSettingsError = event.detail.message;
 		console.log('Emblem error:', event.detail.message);
 	}
 
 	// Инициализация значений при открытии настроек
-	function initializeImageValues() {
-		logoUrl = $authStore.schoolData?.logoUrl || '';
-		schoolEmblem = $authStore.schoolData?.schoolEmblem || '';
-		
-		// Валидируем существующие URL
-		if (logoUrl) {
-			validateImageUrl(logoUrl).then(valid => {
-				logoUrlValid = valid;
-			});
-		} else {
-			logoUrlValid = true; // Пустое значение считается валидным
-		}
-		
-		if (schoolEmblem) {
-			validateImageUrl(schoolEmblem).then(valid => {
-				emblemUrlValid = valid;
-			});
-		} else {
-			emblemUrlValid = true; // Пустое значение считается валидным
-		}
-		
-		console.log('Initialized with:', { logoUrl, logoUrlValid, schoolEmblem, emblemUrlValid });
-	}
+
 
 	// Функция для обновления данных школы
 	async function updateSchoolData(formData: FormData) {
@@ -736,19 +573,10 @@
 								folder="school-logos"
 								disabled={schoolSettingsLoading}
 								on:change={handleLogoChange}
-								on:uploading={handleLogoUploading}
+								on:success={handleLogoSuccess}
 								on:error={handleLogoError}
 							/>
-							{#if logoUrl && !logoUrlValid}
-								<div class="validation-message error">
-									⚠️ Проверка логотипа...
-								</div>
-							{/if}
-							{#if logoUrl && logoUrlValid}
-								<div class="validation-message success">
-									✅ Логотип загружен и проверен
-								</div>
-							{/if}
+
 						</div>
 						
 						<div class="form-group" on:click|stopPropagation>
@@ -758,19 +586,10 @@
 								folder="school-emblem"
 								disabled={schoolSettingsLoading}
 								on:change={handleEmblemChange}
-								on:uploading={handleEmblemUploading}
+								on:success={handleEmblemSuccess}
 								on:error={handleEmblemError}
 							/>
-							{#if schoolEmblem && !emblemUrlValid}
-								<div class="validation-message error">
-									⚠️ Проверка эмблемы...
-								</div>
-							{/if}
-							{#if schoolEmblem && emblemUrlValid}
-								<div class="validation-message success">
-									✅ Эмблема загружена и проверена
-								</div>
-							{/if}
+
 						</div>
 						
 						<div class="form-group" on:click|stopPropagation>
@@ -1589,28 +1408,7 @@
 
     .module-link:hover { color: hsl(262 83% 68%); }
 
-	/* Validation Messages */
-	.validation-message {
-		margin-top: 0.5rem;
-		padding: 0.5rem;
-		border-radius: 0.375rem;
-		font-size: 0.875rem;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
 
-	.validation-message.error {
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.2);
-		color: #dc2626;
-	}
-
-	.validation-message.success {
-		background: rgba(34, 197, 94, 0.1);
-		border: 1px solid rgba(34, 197, 94, 0.2);
-		color: #16a34a;
-	}
 
 	/* Responsive Design */
     @media (max-width: 768px) {
