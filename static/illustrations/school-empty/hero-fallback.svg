@@ -1,0 +1,87 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hero-bg" x1="170" y1="72" x2="1778" y2="986" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.52" stop-color="#1E1B4B"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+    <radialGradient id="hero-glow-1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(336 142) rotate(24.79) scale(690 516)">
+      <stop stop-color="#3B82F6" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hero-glow-2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1646 936) rotate(-146.06) scale(728 552)">
+      <stop stop-color="#8B5CF6" stop-opacity="0.33"/>
+      <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hero-grid" x1="960" y1="0" x2="960" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#93C5FD" stop-opacity="0.19"/>
+      <stop offset="1" stop-color="#C4B5FD" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="building" x1="536" y1="300" x2="1362" y2="856" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="960" y1="192" x2="960" y2="354" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#334155"/>
+      <stop offset="1" stop-color="#1F2937"/>
+    </linearGradient>
+    <linearGradient id="window-light" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#60A5FA" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#A78BFA" stop-opacity="0.76"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="437" y="151" width="1037" height="768" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="34"/>
+      <feGaussianBlur stdDeviation="34"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0156863 0 0 0 0 0.0627451 0 0 0 0 0.145098 0 0 0 0.38 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#hero-bg)"/>
+  <rect width="1920" height="1080" fill="url(#hero-glow-1)"/>
+  <rect width="1920" height="1080" fill="url(#hero-glow-2)"/>
+
+  <g opacity="0.38">
+    <path d="M0 224H1920" stroke="url(#hero-grid)"/>
+    <path d="M0 384H1920" stroke="url(#hero-grid)"/>
+    <path d="M0 544H1920" stroke="url(#hero-grid)"/>
+    <path d="M0 704H1920" stroke="url(#hero-grid)"/>
+    <path d="M0 864H1920" stroke="url(#hero-grid)"/>
+  </g>
+
+  <g opacity="0.28">
+    <path d="M224 0V1080" stroke="url(#hero-grid)"/>
+    <path d="M544 0V1080" stroke="url(#hero-grid)"/>
+    <path d="M864 0V1080" stroke="url(#hero-grid)"/>
+    <path d="M1184 0V1080" stroke="url(#hero-grid)"/>
+    <path d="M1504 0V1080" stroke="url(#hero-grid)"/>
+    <path d="M1792 0V1080" stroke="url(#hero-grid)"/>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <path d="M558 320H1362L1306 856H612L558 320Z" fill="url(#building)"/>
+    <path d="M510 336L960 172L1410 336V382H510V336Z" fill="url(#roof)"/>
+    <rect x="910" y="548" width="100" height="308" rx="18" fill="#111827"/>
+    <rect x="946" y="698" width="26" height="26" rx="13" fill="#64748B"/>
+
+    <g opacity="0.9">
+      <rect x="648" y="456" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="782" y="456" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="1042" y="456" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="1176" y="456" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="648" y="590" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="782" y="590" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="1042" y="590" width="96" height="96" rx="14" fill="url(#window-light)"/>
+      <rect x="1176" y="590" width="96" height="96" rx="14" fill="url(#window-light)"/>
+    </g>
+  </g>
+
+  <circle cx="282" cy="272" r="14" fill="#C4B5FD" fill-opacity="0.62"/>
+  <circle cx="1628" cy="224" r="10" fill="#93C5FD" fill-opacity="0.66"/>
+  <circle cx="1534" cy="332" r="6" fill="#F0ABFC" fill-opacity="0.7"/>
+  <circle cx="368" cy="906" r="9" fill="#67E8F9" fill-opacity="0.58"/>
+  <circle cx="1748" cy="826" r="12" fill="#60A5FA" fill-opacity="0.56"/>
+</svg>

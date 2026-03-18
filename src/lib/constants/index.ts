@@ -1,10 +1,10 @@
 // API Configuration
-export const API_BASE_URL = 'https://walrus-app-fioy4.ondigitalocean.app/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 // Test Credentials
 export const TEST_CREDENTIALS = {
-  email: 'school@example.com',
-  password: 'password123'
+  email: 'demo.school@marti.kz',
+  password: 'demo123'
 };
 
 // Language Options

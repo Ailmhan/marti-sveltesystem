@@ -5,11 +5,11 @@
 	export let timeout = 30000; // 30 секунд по умолчанию
 	export let redirectTo = '/school'; // Куда перенаправлять
 
-	let idleTimeout: NodeJS.Timeout;
+	let idleTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Сбрасываем таймер
 	function resetIdleTimer() {
-		clearTimeout(idleTimeout);
+		if (idleTimeout) clearTimeout(idleTimeout);
 		idleTimeout = setTimeout(() => {
 			// Перенаправляем на лендинг
 			goto(redirectTo);
@@ -41,7 +41,7 @@
 		window.removeEventListener('click', resetIdleTimer);
 		window.removeEventListener('scroll', resetIdleTimer);
 		window.removeEventListener('touchstart', resetIdleTimer);
-		clearTimeout(idleTimeout);
+		if (idleTimeout) clearTimeout(idleTimeout);
 	});
 </script>
 

@@ -11,6 +11,7 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import ImageDisplaySettings from '$lib/components/ImageDisplaySettings.svelte';
+	import { uploadBlobToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -79,8 +80,9 @@
 			console.log('✅ Список учителей загружен:', teachersData.length, 'учителей');
 			
 			// Проверяем, есть ли обновленный учитель
-			if (editingTeacher) {
-				const updatedTeacher = teachers.find(t => t.id === editingTeacher.id);
+			const editingTeacherId = editingTeacher?.id;
+			if (editingTeacherId) {
+				const updatedTeacher = teachers.find((t) => t.id === editingTeacherId);
 				console.log('🔍 Обновленный учитель в списке:', updatedTeacher);
 				if (updatedTeacher) {
 					console.log('🖼️ URL изображения обновленного учителя:', updatedTeacher.imageUrl);
@@ -432,19 +434,10 @@
 							const { blob, dataUrl } = event.detail;
 							console.log('🔄 Загружаем обрезанное изображение на сервер...');
 							
-							// Создаем FormData для загрузки
-							const formData = new FormData();
-							formData.append('file', blob, 'cropped-image.jpg');
-							const response = await fetch('/api/upload', {
-								method: 'POST',
-								body: formData
-							});
-							
-							if (!response.ok) {
+							const result = await uploadBlobToDigitalOceanSpaces(blob, 'cropped-image.jpg', 'teachers');
+							if (!result.success || !result.url) {
 								throw new Error('Failed to upload cropped image');
 							}
-							
-							const result = await response.json();
 							console.log('✅ Обрезанное изображение загружено:', result.url);
 							
 							// Обновляем URL на реальный CDN URL
@@ -633,24 +626,10 @@
 							console.log('📊 Детали события:', { blob, dataUrl });
 							console.log('🔄 Загружаем обрезанное изображение на сервер...');
 							
-							// Создаем FormData для загрузки
-							const formData = new FormData();
-							formData.append('file', blob, 'cropped-image.jpg');
-							formData.append('folder', 'teachers');
-							
-							console.log('📤 Отправляем FormData на /api/upload...');
-							
-							// Загружаем обрезанное изображение
-							const response = await fetch('/api/upload', {
-								method: 'POST',
-								body: formData
-							});
-							
-							if (!response.ok) {
+							const result = await uploadBlobToDigitalOceanSpaces(blob, 'cropped-image.jpg', 'teachers');
+							if (!result.success || !result.url) {
 								throw new Error('Failed to upload cropped image');
 							}
-							
-							const result = await response.json();
 							console.log('✅ Обрезанное изображение загружено:', result);
 							
 							// Обновляем URL на реальный CDN URL

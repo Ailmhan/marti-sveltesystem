@@ -11,7 +11,7 @@
 		clear: void;
 	}>();
 
-  let searchTimeout: NodeJS.Timeout;
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
   let expanded = false; // для compact
 
 	function handleInput(event: Event) {
@@ -19,7 +19,7 @@
 		value = target.value;
 		
 		// Debounced search
-		clearTimeout(searchTimeout);
+		if (searchTimeout) clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
 			dispatch('search', value);
 		}, 300);

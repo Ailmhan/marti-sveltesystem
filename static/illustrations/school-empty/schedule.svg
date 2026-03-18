@@ -1,0 +1,39 @@
+<svg width="800" height="560" viewBox="0 0 800 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="s-bg" x1="88" y1="50" x2="720" y2="524" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF"/>
+      <stop offset="1" stop-color="#E0E7FF"/>
+    </linearGradient>
+    <linearGradient id="s-head" x1="186" y1="128" x2="566" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="s-clock" x1="510" y1="274" x2="666" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="560" rx="32" fill="url(#s-bg)"/>
+  <circle cx="138" cy="458" r="62" fill="#BFDBFE" fill-opacity="0.44"/>
+  <circle cx="668" cy="106" r="68" fill="#DDD6FE" fill-opacity="0.56"/>
+
+  <rect x="152" y="112" width="428" height="336" rx="30" fill="#FFFFFF"/>
+  <rect x="152" y="112" width="428" height="86" rx="30" fill="url(#s-head)"/>
+  <rect x="178" y="236" width="152" height="22" rx="11" fill="#DBEAFE"/>
+  <rect x="178" y="276" width="246" height="18" rx="9" fill="#E2E8F0"/>
+  <rect x="178" y="306" width="272" height="18" rx="9" fill="#E2E8F0"/>
+  <rect x="178" y="336" width="210" height="18" rx="9" fill="#E2E8F0"/>
+
+  <rect x="450" y="236" width="96" height="36" rx="12" fill="#C7D2FE"/>
+  <path d="M476 253L490 267L520 240" stroke="#4F46E5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="450" y="286" width="96" height="36" rx="12" fill="#BFDBFE"/>
+  <path d="M476 303L490 317L520 290" stroke="#2563EB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="450" y="336" width="96" height="36" rx="12" fill="#BAE6FD"/>
+  <path d="M476 353L490 367L520 340" stroke="#0284C7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="596" cy="348" r="86" fill="url(#s-clock)"/>
+  <circle cx="596" cy="348" r="62" fill="#FFFFFF" fill-opacity="0.9"/>
+  <path d="M596 306V350L626 372" stroke="#2563EB" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="596" cy="348" r="8" fill="#2563EB"/>
+</svg>

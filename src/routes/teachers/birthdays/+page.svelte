@@ -5,6 +5,7 @@
   import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
   type Birthday = { id:number; nameRu:string; nameKz:string; birthday:string; imageUrl?:string|null };
+  const TEACHER_FALLBACK_IMAGE = '/illustrations/avatars/teacher-fallback.svg';
 
   let birthdays: Birthday[] = [];
   let loading = false;
@@ -46,11 +47,16 @@
       {#each birthdays.sort((a,b)=> new Date(a.birthday).getTime() - new Date(b.birthday).getTime()) as t}
         <a href={`/teachers/${t.id}`} class="card">
           <div class="avatar">
-            {#if t.imageUrl}
-              <img src={t.imageUrl} alt={t.nameRu} />
-            {:else}
-              <div class="ph">👤</div>
-            {/if}
+            <img
+              src={t.imageUrl || TEACHER_FALLBACK_IMAGE}
+              alt={t.nameRu}
+              on:error={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (target.src !== TEACHER_FALLBACK_IMAGE) {
+                  target.src = TEACHER_FALLBACK_IMAGE;
+                }
+              }}
+            />
           </div>
           <div class="info">
             <div class="name">{t.nameRu}</div>
@@ -146,10 +152,6 @@
     object-fit:cover; 
   }
   
-  .ph{ 
-    font-size:1.5rem; 
-  }
-  
   .name{ 
     color:hsl(var(--foreground)); 
     font-weight:700; 
@@ -190,5 +192,4 @@
     color: var(--text-secondary);
   }
 </style>
-
 

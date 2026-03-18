@@ -1,10 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<!-- Тема теперь управляется через themeStore -->
+		<meta name="theme-color" content="#0a6ed1" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+		<script>
+			(function () {
+				try {
+					const savedTheme = localStorage.getItem('theme');
+					const isDarkSystem = window.matchMedia('(prefers-color-scheme: dark)').matches;
+					const isDark = savedTheme === 'dark' || (savedTheme !== 'light' && isDarkSystem);
+					document.documentElement.classList.add(isDark ? 'dark' : 'light');
+				} catch (e) {
+					document.documentElement.classList.add('light');
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

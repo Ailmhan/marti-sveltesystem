@@ -29,10 +29,10 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Only image files are allowed' }, { status: 400 });
 		}
 
-		// Конвертируем File в Buffer
-		console.log('Converting file to buffer...');
+		// Конвертируем File в Uint8Array для загрузки в S3
+		console.log('Converting file to binary...');
 		const arrayBuffer = await file.arrayBuffer();
-		const buffer = Buffer.from(arrayBuffer);
+		const fileData = new Uint8Array(arrayBuffer);
 
 		// Настройки Digital Ocean Spaces
 		const accessKey = 'DO0034HGP4E8E27JLFW6';
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const uploadParams = {
 			Bucket: bucket,
 			Key: fileName,
-			Body: buffer,
+			Body: fileData,
 			ContentType: file.type,
 			ACL: 'public-read'
 		};
@@ -97,7 +97,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			{ 
 				success: false, 
 				error: error instanceof Error ? error.message : 'Upload failed',
-				details: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined
+				details: import.meta.env.DEV ? (error instanceof Error ? error.stack : undefined) : undefined
 			}, 
 			{ status: 500 }
 		);

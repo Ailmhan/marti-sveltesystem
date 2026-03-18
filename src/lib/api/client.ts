@@ -201,8 +201,8 @@ class ApiClient {
 		return this.request(`/teachers/birthdays/school/${schoolId}`);
 	}
 
-	async getTeacherSchedule(teacherId: number) {
-		return this.request(`/schedule/teacher/${teacherId}`);
+	async getTeacherSchedule(teacherId: number): Promise<Schedule[]> {
+		return this.request<Schedule[]>(`/schedule/teacher/${teacherId}`);
 	}
 
 	async createTeacher(teacher: CreateTeacherRequest): Promise<Teacher> {

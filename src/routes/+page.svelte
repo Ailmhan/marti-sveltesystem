@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { adminStore } from '$lib/stores/admin';
 	import { languageStore } from '$lib/stores/language';
@@ -11,13 +10,6 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
     import type { News } from '$lib/types/api';
     import NewsSlider from '$lib/components/NewsSlider.svelte';
-
-	onMount(() => {
-		// Простая проверка: если не авторизован - перенаправляем на логин
-		if (!$authStore.isAuthenticated) {
-			goto('/login');
-		}
-	});
 
     let latestNews: News[] = [];
     let latestLoading = false;

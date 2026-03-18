@@ -1,0 +1,38 @@
+<svg width="800" height="560" viewBox="0 0 800 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="a-bg" x1="80" y1="42" x2="722" y2="524" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7ED"/>
+      <stop offset="1" stop-color="#EDE9FE"/>
+    </linearGradient>
+    <linearGradient id="a-cup" x1="332" y1="170" x2="468" y2="326" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FACC15"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="a-podium" x1="250" y1="324" x2="552" y2="496" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="560" rx="32" fill="url(#a-bg)"/>
+  <circle cx="146" cy="102" r="62" fill="#FCD34D" fill-opacity="0.32"/>
+  <circle cx="674" cy="126" r="68" fill="#C4B5FD" fill-opacity="0.5"/>
+  <circle cx="686" cy="454" r="58" fill="#93C5FD" fill-opacity="0.36"/>
+
+  <rect x="196" y="128" width="408" height="340" rx="28" fill="#FFFFFF"/>
+
+  <path d="M350 170H450V214C450 253 423 284 400 284C377 284 350 253 350 214V170Z" fill="url(#a-cup)"/>
+  <path d="M350 188H328C308 188 294 202 294 222C294 242 308 256 328 256H356" stroke="#F59E0B" stroke-width="16" stroke-linecap="round"/>
+  <path d="M450 188H472C492 188 506 202 506 222C506 242 492 256 472 256H444" stroke="#F59E0B" stroke-width="16" stroke-linecap="round"/>
+  <rect x="382" y="282" width="36" height="56" rx="12" fill="#FBBF24"/>
+  <rect x="344" y="328" width="112" height="24" rx="12" fill="#F59E0B"/>
+
+  <rect x="248" y="360" width="304" height="92" rx="24" fill="url(#a-podium)"/>
+  <rect x="276" y="384" width="76" height="44" rx="12" fill="#DBEAFE"/>
+  <rect x="362" y="374" width="76" height="54" rx="12" fill="#EDE9FE"/>
+  <rect x="448" y="390" width="76" height="38" rx="12" fill="#DDD6FE"/>
+
+  <path d="M400 132L412 156H438L417 172L425 198L400 183L375 198L383 172L362 156H388L400 132Z" fill="#FACC15"/>
+  <path d="M282 178L290 194H308L294 204L300 220L282 209L264 220L270 204L256 194H274L282 178Z" fill="#60A5FA"/>
+  <path d="M522 172L530 188H548L534 198L540 214L522 203L504 214L510 198L496 188H514L522 172Z" fill="#A78BFA"/>
+</svg>

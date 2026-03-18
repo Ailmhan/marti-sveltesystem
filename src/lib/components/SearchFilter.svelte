@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { writable, type Writable } from 'svelte/store';
+	import type { Filter } from '$lib/types/ui';
 
 	export let placeholder = 'Поиск...';
 	export let filters: Filter[] = [];
@@ -34,9 +34,9 @@
 	}
 
 	// Debounced search
-	let searchTimeout: NodeJS.Timeout;
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 	$: if (searchTerm !== undefined) {
-		clearTimeout(searchTimeout);
+		if (searchTimeout) clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(() => {
 			handleSearch();
 		}, 300);
