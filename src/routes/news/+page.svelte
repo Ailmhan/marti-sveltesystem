@@ -13,6 +13,7 @@
 	import Schedule from '$lib/components/Schedule.svelte';
 	import { languageStore } from '$lib/stores/language';
 	import { useImageValidation } from '$lib/hooks/useImageValidation';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
 	import { 
 		searchItems, 
 		sortItems, 
@@ -53,13 +54,13 @@
 
 	// Проверяем, можно ли сохранить в модале добавления новости
 	$: canAddNews = (() => {
-		const isImageValid = !newNews.imageUrl || (newNews.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newNews.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(newNews.imageUrl);
 		return isImageValid;
 	})();
 
 	// Проверяем, можно ли сохранить в модале редактирования новости
 	$: canEditNews = (() => {
-		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(editForm.imageUrl);
 		return isImageValid;
 	})();
 

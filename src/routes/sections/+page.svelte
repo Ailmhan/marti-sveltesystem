@@ -10,6 +10,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
 
 	let sections: Section[] = [];
 	let loading = false;
@@ -41,13 +42,13 @@
 
 	// Проверяем, можно ли сохранить в модале добавления
 	$: canAddSection = (() => {
-		const isImageValid = !newSection.imageUrl || (newSection.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newSection.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(newSection.imageUrl);
 		return isImageValid;
 	})();
 
 	// Проверяем, можно ли сохранить в модале редактирования
 	$: canEditSection = (() => {
-		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(editForm.imageUrl);
 		return isImageValid;
 	})();
 

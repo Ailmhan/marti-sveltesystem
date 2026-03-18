@@ -12,6 +12,7 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import ImageDisplaySettings from '$lib/components/ImageDisplaySettings.svelte';
 	import { uploadBlobToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
 
 	let teachers: Teacher[] = [];
 	let loading = false;
@@ -54,13 +55,13 @@
 
 	// Проверяем, можно ли сохранить в модале добавления
 	$: canAddTeacher = (() => {
-		const isImageValid = !newTeacher.imageUrl || (newTeacher.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newTeacher.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(newTeacher.imageUrl);
 		return isImageValid;
 	})();
 
 	// Проверяем, можно ли сохранить в модале редактирования
 	$: canEditTeacher = (() => {
-		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(editForm.imageUrl);
 		return isImageValid;
 	})();
 
@@ -137,7 +138,7 @@
 				subjectRu: editForm.subjectRu,
 				imageUrl: editForm.imageUrl,
 				imageUrlType: typeof editForm.imageUrl,
-				isImageUrlValid: editForm.imageUrl?.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/')
+				isImageUrlValid: isValidImageUrl(editForm.imageUrl)
 			});
 
 			const result = await apiClient.updateTeacher(editingTeacher.id, {
@@ -640,7 +641,7 @@
 								old: oldUrl,
 								new: editForm.imageUrl,
 								type: typeof editForm.imageUrl,
-								isValid: editForm.imageUrl?.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/')
+								isValid: isValidImageUrl(editForm.imageUrl)
 							});
 							
 							console.log('🎯 === ОБРАБОТКА ЗАВЕРШЕНА ===');

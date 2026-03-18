@@ -8,6 +8,7 @@
 	import IdleRedirect from '$lib/components/IdleRedirect.svelte';
 	import AdminLoginModal from '$lib/components/AdminLoginModal.svelte';
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
     import type { News } from '$lib/types/api';
     import NewsSlider from '$lib/components/NewsSlider.svelte';
 
@@ -151,11 +152,9 @@
 
 	// Проверяем, можно ли сохранить настройки
 	$: canSaveSettings = (() => {
-		// Проверяем, что logoUrl - это валидный URL от Digital Ocean Spaces
-		const isLogoValid = !logoUrl || (logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isLogoValid = isValidImageUrl(logoUrl);
 		
-		// Проверяем, что schoolEmblem - это валидный URL от Digital Ocean Spaces
-		const isEmblemValid = !schoolEmblem || (schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isEmblemValid = isValidImageUrl(schoolEmblem);
 		
 		const result = isLogoValid && isEmblemValid;
 		
@@ -178,10 +177,10 @@
 	// Функция для получения понятного сообщения о состоянии
 	function getStatusMessage() {
 		if (!canSaveSettings) {
-			if (logoUrl && !logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') && !logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/')) {
+			if (logoUrl && !isValidImageUrl(logoUrl)) {
 				return 'Ожидание загрузки логотипа...';
 			}
-			if (schoolEmblem && !schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') && !schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/')) {
+			if (schoolEmblem && !isValidImageUrl(schoolEmblem)) {
 				return 'Ожидание загрузки эмблемы...';
 			}
 		}
@@ -207,13 +206,13 @@
 	function handleLogoSuccess(event: CustomEvent) {
 		logoUrl = event.detail.url;
 		console.log('Logo uploaded successfully:', event.detail.url);
-		console.log('Logo URL validation:', logoUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || logoUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		console.log('Logo URL validation:', isValidImageUrl(logoUrl));
 	}
 
 	function handleEmblemSuccess(event: CustomEvent) {
 		schoolEmblem = event.detail.url;
 		console.log('Emblem uploaded successfully:', event.detail.url);
-		console.log('Emblem URL validation:', schoolEmblem.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || schoolEmblem.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		console.log('Emblem URL validation:', isValidImageUrl(schoolEmblem));
 	}
 
 	// Обработчики ошибок загрузки

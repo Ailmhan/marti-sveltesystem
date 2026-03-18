@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { v4 as uuidv4 } from 'uuid';
 import S3 from 'aws-sdk/clients/s3';
+import { env } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -34,13 +35,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		const arrayBuffer = await file.arrayBuffer();
 		const fileData = new Uint8Array(arrayBuffer);
 
-		// Настройки Digital Ocean Spaces
-		const accessKey = 'DO0034HGP4E8E27JLFW6';
-		const secretKey = 'RMN48DQPBbDvW7QrjFOkHsxZeqielkDbfZJhGzrenS8';
-		const bucket = 'martiphoto';
-		const region = 'sgp1';
-		const endpoint = 'sgp1.digitaloceanspaces.com';
-		const cdn = 'sgp1.cdn.digitaloceanspaces.com';
+		// DigitalOcean Spaces settings (configured via server env vars)
+		const accessKey = env.DO_SPACES_KEY;
+		const secretKey = env.DO_SPACES_SECRET;
+		const bucket = env.DO_SPACES_BUCKET || 'martiscdn';
+		const region = env.DO_SPACES_REGION || 'sfo3';
+		const endpoint = env.DO_SPACES_ENDPOINT || 'sfo3.digitaloceanspaces.com';
+		const cdn = env.DO_SPACES_CDN || 'sfo3.cdn.digitaloceanspaces.com';
+
+		if (!accessKey || !secretKey) {
+			return json(
+				{
+					success: false,
+					error: 'Missing DO_SPACES_KEY/DO_SPACES_SECRET in server environment'
+				},
+				{ status: 500 }
+			);
+		}
 
 		// Создаем уникальное имя файла
 		const fileName = `${folder}/${uuidv4()}-${file.name}`;

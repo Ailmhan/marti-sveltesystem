@@ -13,6 +13,7 @@
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import { uploadToDigitalOceanSpaces } from '$lib/utils/digitalOceanSpaces';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
 
 	let menus: CanteenMenu[] = [];
 	let loading = false;
@@ -55,13 +56,13 @@
 
 	// Проверяем, можно ли сохранить в модале добавления
 	$: canAddMenu = (() => {
-		const isImageValid = !newMenu.imageUrl || (newMenu.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newMenu.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(newMenu.imageUrl);
 		return isImageValid;
 	})();
 
 	// Проверяем, можно ли сохранить в модале редактирования
 	$: canEditMenu = (() => {
-		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(editForm.imageUrl);
 		return isImageValid;
 	})();
 

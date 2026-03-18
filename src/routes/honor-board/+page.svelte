@@ -10,6 +10,7 @@
 	import ImageUpload from '$lib/components/ImageUpload.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import { isValidImageUrl } from '$lib/utils/imageUrl';
 
 	let honorBoard: HonorBoard[] = [];
 	let loading = false;
@@ -37,13 +38,13 @@
 
 	// Проверяем, можно ли сохранить в модале добавления
 	$: canAddHonorBoard = (() => {
-		const isImageValid = !newHonorBoard.imageUrl || (newHonorBoard.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || newHonorBoard.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(newHonorBoard.imageUrl);
 		return isImageValid;
 	})();
 
 	// Проверяем, можно ли сохранить в модале редактирования
 	$: canEditHonorBoard = (() => {
-		const isImageValid = !editForm.imageUrl || (editForm.imageUrl.startsWith('https://martiphoto.sgp1.cdn.digitaloceanspaces.com/') || editForm.imageUrl.startsWith('https://sgp1.cdn.digitaloceanspaces.com/martiphoto/'));
+		const isImageValid = isValidImageUrl(editForm.imageUrl);
 		return isImageValid;
 	})();
 
